@@ -16,6 +16,8 @@ build/
 # Output (Grafiken)
 output/*.png
 !output/.gitkeep
+!output/riemann_zeros_complex.png
+!output/riemann_explicit_formula.png
 
 # OS
 .DS_Store

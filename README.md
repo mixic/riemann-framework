@@ -27,6 +27,16 @@ This framework combines:
 - **Lean 4 + Mathlib** for formal verification of proof attempts,
 - **pytest** as the test infrastructure (unit-test metaphor for the RH).
 
+## Generated Results
+
+### Non-trivial zeros in the complex plane
+
+![First 100 non-trivial zeros of the Riemann zeta function](output/riemann_zeros_complex.png)
+
+### Explicit formula approximation
+
+![Riemann explicit formula approximation](output/riemann_explicit_formula.png)
+
 ## Project Structure
 
 
