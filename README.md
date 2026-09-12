@@ -1,6 +1,12 @@
 # Riemann Framework
 
-A research framework for the **formal and numerical verification** of proof attempts for the Riemann Hypothesis (RH).
+Riemann Framework is an experimental research project for exploring and
+verifying approaches to the Riemann Hypothesis (RH). It combines numerical
+experiments in Python with formal definitions and proof checking in Lean 4,
+including computations involving zeta zeros, the explicit formula, and prime
+counting. The project does **not** claim to prove the Riemann Hypothesis;
+computational results and passing formal checks are research evidence, not a
+completed mathematical proof.
 
 ## Disclaimer
 
