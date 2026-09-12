@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Lean
+.lake/
+build/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Output (Grafiken)
+output/*.png
+!output/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
