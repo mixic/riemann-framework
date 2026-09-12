@@ -99,3 +99,9 @@ See [`LICENSE`](LICENSE) for the full text.
 **Note:** The Lean library **Mathlib** is licensed under the
 Apache License 2.0 and is compatible with GPL v3. See
 [Mathlib LICENSE](https://github.com/leanprover-community/mathlib4/blob/master/LICENSE).
+
+## Third-Party Software
+
+This project uses third-party dependencies with their own licenses,
+including mpmath, NumPy, Matplotlib, pytest, Lean, and Mathlib. Their
+respective licenses remain applicable to those components.
