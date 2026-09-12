@@ -19,7 +19,11 @@
 import numpy as np
 import pytest
 
-from riemann_framework.explicit_formula import prime_count, li_approx
+from riemann_framework.explicit_formula import (
+    li_approx,
+    li_approx_regularized,
+    prime_count,
+)
 from riemann_framework.zeta import set_precision
 
 
@@ -33,6 +37,28 @@ def test_pi_small_values():
     assert prime_count(10) == 4
     assert prime_count(100) == 25
     assert prime_count(1000) == 168
+
+
+@pytest.mark.parametrize("value", [2.5, "10"])
+def test_prime_count_requires_an_integer(value):
+    """Reject values that cannot represent a sieve size exactly."""
+    with pytest.raises(TypeError):
+        prime_count(value)
+
+
+@pytest.mark.parametrize(
+    ("x", "num_zeros", "sigma"),
+    [(1, 0, 1.0), (10, -1, 1.0), (10, 1, 0.0)],
+)
+def test_li_approx_rejects_invalid_parameters(x, num_zeros, sigma):
+    """Reject invalid points, zero counts, and damping parameters."""
+    with pytest.raises(ValueError):
+        li_approx(x, num_zeros, sigma)
+
+
+def test_regularized_alias_matches_li_approx():
+    """Both public names should use the same regularized calculation."""
+    assert li_approx(10, 3, sigma=0.5) == li_approx_regularized(10, 3, sigma=0.5)
 
 
 def test_approximation_runs_without_error():
