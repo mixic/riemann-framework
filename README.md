@@ -63,6 +63,7 @@ riemann-framework/
 ├── docs/                         # Documentation
 │   ├── research_notes.md         # What has been tried so far
 │   ├── number_systems.md         # Your idea with new number systems
+│   ├── spherical_number_systems.md # Hypothetical higher-dimensional model
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)
