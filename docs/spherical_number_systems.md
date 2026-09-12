@@ -333,7 +333,98 @@ This proposal overlaps with several established directions:
 The proposal is valuable only if it contributes a precise new object or a
 new theorem connecting these ingredients.
 
-## 10. Current Status and Next Questions
+## 10. My View: Prime Gaps as Geometric Data
+
+My current view is that the existing observations do not yet give us a route
+to a proof of RH. The Hilbert-Pólya idea, quantum-chaos observations, and
+Connes' work on the adele class space all suggest that the zeros may have a
+spectral or geometric explanation. They do not, by themselves, construct the
+required operator or prove that its spectrum is exactly the set of zeta
+zeros.
+
+For that reason, I am interested in whether a genuinely new number system is
+needed, in the same broad historical sense that the complex numbers extended
+the real numbers. The important question is not simply how to add more
+dimensions. It is:
+
+> What number system can hold the primes as intrinsic objects and turn their
+> distribution into a positivity or spectral statement?
+
+I would concentrate on three related sets of arithmetic data:
+
+1. the set of prime numbers;
+2. the set of non-prime integers, including their position between primes;
+3. the gap sequence `g_n = p_(n+1) - p_n` between consecutive primes.
+
+The gap sequence is attractive because it records local variation in the
+prime distribution. A spherical number system might represent a prime as a
+point, orbit, or direction, while a gap could become a distance, angle, or
+transition between neighboring prime states. The non-prime integers could
+then describe the intervals or excluded regions between those states.
+
+This idea should be treated as a proposed encoding, not as an established
+property of the primes. A useful construction would need to answer questions
+such as:
+
+- Is the representation of a prime canonical, rather than chosen separately
+  for each prime?
+- Does multiplication of prime objects recover unique factorization?
+- Does a geometric distance reproduce `p_(n+1) - p_n` without losing the
+  global information in the Euler product?
+- Can the weighted prime data `log(p)` be recovered from the same geometry?
+- Does the construction lead to a positive quadratic form or a
+  self-adjoint operator connected to zeta zeros?
+
+Prime gaps alone are unlikely to be sufficient. The explicit formula links
+zeros to primes through globally weighted expressions, and the Euler product
+contains the primes multiplicatively rather than only as a list of local
+gaps. A successful gap-based theory would therefore have to recover both the
+local sequence of gaps and the global analytic structure of zeta.
+
+### 10.1 Relation to the linked proposals
+
+The Golden Physics article presents the Riemann zeros as a possible quantum
+spectrum and emphasizes unitarity, a self-adjoint dilation generator, and a
+connection with the celestial sphere. I find this motivating because it
+shows how a sphere and a spectral operator could enter the discussion. The
+unresolved step is the exact isomorphism between that operator's spectrum and
+the zeta zeros, together with a derivation of the Euler product from the
+prime data. Numerical agreement, even when extensive, cannot replace those
+identifications.
+
+Connes' approach is a deeper mathematical precedent for this direction. The
+adele class space and the associated trace formulas organize the arithmetic
+and spectral sides of the problem, while Weil positivity gives a criterion
+closely related to the location of the zeros. My interpretation is that this
+work shows what a successful framework may need: a canonical arithmetic
+space, a trace formula, and a positivity theorem. It does not imply that an
+elementary higher-dimensional number system has already been found.
+
+The proposed spherical system should therefore be judged by whether it adds
+something precise to this program. It should not merely rename the adele
+class space, reproduce known zero statistics, or assume that unitarity forces
+the answer before the prime-to-spectrum correspondence has been proved.
+
+### 10.2 A first test for the gap hypothesis
+
+The smallest useful experiment would define a finite-dimensional prime-gap
+model without fitting its parameters to the zeros. For a cutoff `P`, record
+
+```text
+G(P) = {p_(n+1) - p_n : p_(n+1) <= P}
+```
+
+and compare candidate geometric quantities derived from `G(P)` with both:
+
+- the explicit-formula contributions weighted by `log(p)`; and
+- the normalized spacings of the first zeta zeros.
+
+The dimension, metric, normalization, and prime-to-state map must be fixed
+before the comparison. The model should then make predictions for primes and
+zeros outside the fitting range. If it only reproduces known data after
+adjusting the geometry, it is descriptive rather than explanatory.
+
+## 11. Current Status and Next Questions
 
 At present, this is a hypothesis for organizing research, not evidence for
 RH. The next concrete questions are:
@@ -359,3 +450,16 @@ then, the classical Riemann Hypothesis remains open.
   of the Riemann zeta function*.
 - Conway, J. H. and Smith, D. A. *On Quaternions and Octonions*.
 - Iwaniec, H. and Kowalski, E. *Analytic Number Theory*.
+
+### Linked reading
+
+- Toupin, D. (2026). [The Riemann Hypothesis as a Quantum Mechanics
+  Problem](https://goldenphysics.org/blogs/rh-quantum.html).
+- Connes, A. (1999). [Trace formula in noncommutative geometry and the zeros
+  of the Riemann zeta function](https://alainconnes.org/wp-content/uploads/selecta.ps-2.pdf).
+- Connes, A. and Consani, C. (2020). [Weil positivity and Trace formula: the
+  archimedean place](https://arxiv.org/pdf/2006.13771).
+- Connes, A., Consani, C. and Marcolli, M. [The Weil proof and the geometry of
+  the adeles class space](https://math.nyu.edu/~tschinke/.manin/submitted/ConnesConsaniMarcolli.pdf).
+- Khalkhali, M. [What is new with Connes' approach to the Riemann
+  hypothesis?](https://www.math.uwo.ca/faculty/khalkhali/files/TehProg.pdf).
