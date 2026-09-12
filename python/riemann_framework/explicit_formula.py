@@ -30,24 +30,36 @@ def prime_count(x: int) -> int:
             sieve[i * i::i] = False
     return int(np.sum(sieve))
 
-
-def li_approx(x, num_zeros: int) -> float:
+def li_approx(x, num_zeros: int, sigma: float = 1.0) -> float:
     """
-    Approximation of π(x) via Li(x) − Σ_ρ Li(x^ρ).
+    Regularized approximation of π(x) via the explicit formula:
+        π(x) ≈ Li(x) − Σ_ρ w(γ) · Li(x^ρ)
 
-    Uses the first `num_zeros` non-trivial zeros, sorted by
-    descending imaginary part for better convergence.
+    The weight w(γ) = exp(-(γ·σ)²) is a Gaussian damping factor that
+    ensures absolute convergence. Without this regularization, the
+    naive sum of zeros diverges (the explicit formula is only
+    conditionally convergent).
+
+    Args:
+        x: the evaluation point
+        num_zeros: number of non-trivial zeros to include
+        sigma: damping parameter (smaller = stronger damping)
+
+    Returns:
+        Approximation of π(x) as a float.
     """
     x = mp.mpf(x)
     result = mp.li(x)
 
-    # Compute the zeros first, then sort by descending imaginary part
+    # Collect zeros and sort by descending imaginary part
     zeros = [mp.zetazero(n) for n in range(1, num_zeros + 1)]
     zeros.sort(key=lambda z: -float(mp.im(z)))
 
     for rho in zeros:
+        gamma = float(mp.im(rho))
+        weight = mp.e ** (-(gamma * sigma) ** 2)
         term = mp.li(mp.power(x, rho))
-        result -= 2 * term.real  # conjugate pair
+        result -= 2 * weight * term.real  # conjugate pair
 
     return float(result)
 
@@ -68,3 +80,5 @@ def li_approx_regularized(x, num_zeros: int, sigma: float = 1.0) -> float:
         result -= 2 * weight * term.real
 
     return float(result)
+
+
