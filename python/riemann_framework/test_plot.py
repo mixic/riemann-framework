@@ -13,12 +13,26 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-from riemann_framework.plots import plot_zeros_complex, plot_explicit_formula
+import sys
+from pathlib import Path
 
-print("Erzeuge Nullstellen-Plot...")
-plot_zeros_complex()
 
-print("Erzeuge explizite Formel...")
-plot_explicit_formula()
+if __package__ in {None, ""}:
+	sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-print("Fertig!")
+from riemann_framework.plots import plot_explicit_formula, plot_zeros_complex
+
+
+def main() -> None:
+	"""Generate the complex-zero and explicit-formula plots."""
+	print("Generating zero plot...")
+	plot_zeros_complex()
+
+	print("Generating explicit-formula plot...")
+	plot_explicit_formula()
+
+	print("Finished!")
+
+
+if __name__ == "__main__":
+	main()
