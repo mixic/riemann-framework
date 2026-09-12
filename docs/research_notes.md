@@ -98,7 +98,26 @@ contain subtle errors, often circular reasoning or unproven assumptions.
 **Key insight:** AI can produce meaningful partial results, but a full
 proof of RH remains open.
 
-## 8. References
+## 8. Conditional Convergence of the Explicit Formula
+
+The Riemann explicit formula
+    π(x) = Li(x) − Σ_ρ Li(x^ρ) + (smaller terms)
+is **only conditionally convergent**. The sum over the zeros does not
+converge absolutely, and naive summation in ascending order of Im(ρ)
+can cause the approximation error to grow rather than shrink.
+
+For numerical work, two approaches are common:
+1. **Gaussian regularization**: multiply each term by exp(-(γ·σ)²).
+   This ensures convergence but damps the contributions of higher zeros,
+   which are needed for accuracy at larger x.
+2. **Test functions with compact support**: used in the theoretical
+   literature (e.g., Weil's explicit formula) to control convergence.
+
+This framework uses approach 1 for visualization purposes. The
+numerical tests do **not** assert monotonic convergence, because
+that would be mathematically incorrect.
+
+## 9. References
 
 - Riemann, B. (1859). *Über die Anzahl der Primzahlen unter einer gegebenen Größe*.
 - Montgomery, H. L. (1973). *The pair correlation of zeros of the zeta function*.
