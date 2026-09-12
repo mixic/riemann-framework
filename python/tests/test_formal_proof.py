@@ -25,4 +25,4 @@ def test_riemann_hypothesis_lean():
     assert status["success"], (
         f"ERROR: Lean compilation failed:\n{status['output']}"
     )
-    print("✅ Formal RH proof successfully verified.")
+    print("Formal RH proof successfully verified.")

@@ -59,7 +59,7 @@ def plot_explicit_formula():
     out = OUTPUT_DIR / "riemann_explicit_formula.png"
     plt.savefig(out, dpi=150)
     plt.close()
-    print(f"✅ Saved: {out}")
+    print(f"Saved: {out}")
 
 
 def plot_zeros_complex():
@@ -87,7 +87,7 @@ def plot_zeros_complex():
     out = OUTPUT_DIR / "riemann_zeros_complex.png"
     plt.savefig(out, dpi=150)
     plt.close()
-    print(f"✅ Saved: {out}")
+    print(f"Saved: {out}")
 
 
 def plot_error_amplitude():
@@ -116,7 +116,7 @@ def plot_error_amplitude():
     out = OUTPUT_DIR / "riemann_error_amplitude.png"
     plt.savefig(out, dpi=150)
     plt.close()
-    print(f"✅ Saved: {out}")
+    print(f"Saved: {out}")
 
 
 if __name__ == "__main__":
