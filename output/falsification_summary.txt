@@ -1,0 +1,24 @@
+Falsification Test for the Dimension-Shift Hypothesis
+=====================================================
+
+Reference systems (mean r):
+  poisson: 0.402114
+  goe: 0.549142
+  gue: 0.574342
+  riemann: 0.610276
+
+Grid summary:
+  n_runs: 90
+  n_gue: 10
+  n_goe: 16
+  n_poisson: 4
+  n_intermediate: 60
+  min_mean_r: 0.30477576547431035
+  max_mean_r: 0.6117470687340467
+  verdict: supported
+
+Maximum point:
+  {'dim_per_sector': 10, 'coupling': 0.5, 'symmetry_breaking': 2.0, 'mean_r': 0.6117470687340467, 'best_fit': 'gue', 'ks_gue': 0.13865075603557964, 'ks_poisson': 0.35564078053863823, 'verdict': 'gue'}
+
+Explanation:
+  DSH is SUPPORTED: 10 of 90 parameter points reached GUE statistics (mean r in [0.58, 0.62]). Maximum mean r = 0.6117 at d=10, coupling=0.5, sb=2.0.

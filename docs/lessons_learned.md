@@ -168,3 +168,9 @@ interpreted as robust evidence.
 The result demonstrates why a single maximum mean `r` is insufficient. Future
 falsification summaries should report stability across seeds, finite-size
 scaling, control ensembles, KS distances, and spectral density.
+
+The reproducible runner `scripts/run_falsification.py` now writes the complete
+console table, `output/falsification_heatmap.png`,
+`output/falsification_histogram.png`, and
+`output/falsification_summary.txt`. These artifacts make the result reviewable
+without treating a generated plot as a proof.

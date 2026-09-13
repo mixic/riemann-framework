@@ -33,4 +33,11 @@ def sigma : Sector → Sector
 theorem sigma_squared (sector : Sector) : sigma (sigma sector) = sector := by
   cases sector <;> rfl
 
+theorem sigma_injective : Function.Injective sigma := by
+  intro left right equality
+  simpa [sigma_squared left, sigma_squared right] using congrArg sigma equality
+
+theorem sigma_not_fixed (sector : Sector) : sigma sector != sector := by
+  cases sector <;> decide
+
 end RiemannFramework

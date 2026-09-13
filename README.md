@@ -25,7 +25,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Explicit-formula calculations and plots | Working |
 | Dimension-shift experiments | Working and exploratory |
 | DSIN communication simulation | Working as a toy simulation; no security proof |
-| Lean formalization of RH | Scaffold planned; no Lean source currently tracked |
+| Lean formalization of RH | One standalone involution lemma; RH formalization not started |
 | Formal proof of RH | Open problem |
 
 ## Goal
@@ -118,7 +118,8 @@ riemann-framework/
 │   ├── setup_lean.sh             # Set up Lean + Mathlib
 │   ├── generate_plots.py          # Generate standard plots
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
-│   └── run_dsin_analysis.py       # Run DSIN simulations
+│   ├── run_dsin_analysis.py       # Run DSIN simulations
+│   └── run_falsification.py       # Run DSH grid and write artifacts
 │
 ├── docs/                         # Documentation
 │   ├── research_notes.md         # What has been tried so far
@@ -131,6 +132,7 @@ riemann-framework/
 │   ├── project_critique_and_roadmap.md # Critical assessment and milestones
 │   ├── central_hypothesis.md       # Falsifiable dimension-shift hypothesis
 │   ├── lessons_learned.md          # Negative results and limitations
+│   ├── scientific_contribution_assessment.md # Current scientific status
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)

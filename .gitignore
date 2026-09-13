@@ -21,6 +21,9 @@ output/*.png
 !output/dimension_shift_spectrum.png
 !output/dimension_shift_coupling_sweep.png
 !output/dimension_shift_symmetry_sweep.png
+!output/falsification_heatmap.png
+!output/falsification_histogram.png
+!output/falsification_summary.txt
 
 # OS
 .DS_Store
