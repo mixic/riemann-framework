@@ -16,6 +16,11 @@ build/
 # Output (Grafiken)
 output/*.png
 !output/.gitkeep
+!output/riemann_zeros_complex.png
+!output/riemann_explicit_formula.png
+!output/dimension_shift_spectrum.png
+!output/dimension_shift_coupling_sweep.png
+!output/dimension_shift_symmetry_sweep.png
 
 # OS
 .DS_Store

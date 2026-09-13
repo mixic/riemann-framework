@@ -50,9 +50,27 @@ python scripts/run_dimension_shift_chaos.py
 
 The scripts write PNG files to `output/`, including zero plots,
 explicit-formula plots, spectrum comparisons, coupling sweeps, and
-symmetry-breaking sweeps. These generated files are ignored by default and
-may be embedded in local reports or committed separately when reproducible
-plot snapshots are desired.
+symmetry-breaking sweeps. The current plot snapshots are included below.
+
+### Non-trivial zeros in the complex plane
+
+![First 100 non-trivial zeros of the Riemann zeta function](output/riemann_zeros_complex.png)
+
+### Explicit formula approximation
+
+![Riemann explicit formula approximation](output/riemann_explicit_formula.png)
+
+### Dimension-shift spectrum comparison
+
+![Dimension-shift spectrum compared with Riemann zeros](output/dimension_shift_spectrum.png)
+
+### Dimension-shift coupling sweep
+
+![Dimension-shift coupling sweep](output/dimension_shift_coupling_sweep.png)
+
+### Dimension-shift symmetry-breaking sweep
+
+![Dimension-shift symmetry-breaking sweep](output/dimension_shift_symmetry_sweep.png)
 
 ## Project Structure
 
