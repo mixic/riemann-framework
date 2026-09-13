@@ -37,6 +37,18 @@ This framework combines:
 
 ![Riemann explicit formula approximation](output/riemann_explicit_formula.png)
 
+### Dimension-shift spectrum comparison
+
+![Dimension-shift spectrum compared with Riemann zeros](output/dimension_shift_spectrum.png)
+
+### Dimension-shift coupling sweep
+
+![Dimension-shift coupling sweep](output/dimension_shift_coupling_sweep.png)
+
+### Dimension-shift symmetry-breaking sweep
+
+![Dimension-shift symmetry-breaking sweep](output/dimension_shift_symmetry_sweep.png)
+
 ## Project Structure
 
 

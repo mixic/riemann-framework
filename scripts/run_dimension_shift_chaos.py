@@ -9,7 +9,8 @@ Usage:
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+PROJECT_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "python"))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,7 +31,7 @@ from riemann_framework.statistics import (
 )
 from riemann_framework.zeta import set_precision
 
-OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 set_precision(25)
