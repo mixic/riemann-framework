@@ -101,6 +101,7 @@ riemann-framework/
 │   │   ├── quantum_chaos.py       # Zero-spacing statistics
 │   │   ├── dsin.py                # DSIN communication simulation
 │   │   ├── statistics.py          # Spectral statistics utilities
+│   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
 │   │   ├── lean_runner.py        # Compiles Lean files via subprocess
 │   │   └── plots.py              # Plot generation
 │   │
@@ -127,6 +128,9 @@ riemann-framework/
 │   ├── dimension_shift_quantum_chaos.md # Quantum-chaos extension
 │   ├── dimension_shift_computational_approach.md # Computational methodology
 │   ├── dimension_shift_quantum_communication.md # DSIN communication proposal
+│   ├── project_critique_and_roadmap.md # Critical assessment and milestones
+│   ├── central_hypothesis.md       # Falsifiable dimension-shift hypothesis
+│   ├── lessons_learned.md          # Negative results and limitations
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)
