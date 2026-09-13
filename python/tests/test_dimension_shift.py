@@ -18,6 +18,7 @@
 import mpmath as mp
 import numpy as np
 import pytest
+from typing import Any
 
 from riemann_framework.dimension_shift import (
     DimensionElement,
@@ -35,6 +36,8 @@ from riemann_framework.dimension_shift import (
 )
 from riemann_framework.zeta import set_precision
 
+mpc: Any = mp.mpc
+
 
 @pytest.fixture(autouse=True)
 def setup_precision():
@@ -43,7 +46,11 @@ def setup_precision():
 
 def test_sigma_is_an_involution():
     """Applying conjugate reflection twice returns the original point."""
-    for point in (mp.mpc("0.3", "10"), mp.mpc("0.5", "14"), mp.mpc("2", "-3")):
+    for point in (
+        mpc(mp.mpf("0.3"), mp.mpf("10")),
+        mpc(mp.mpf("0.5"), mp.mpf("14")),
+        mpc(mp.mpf("2"), mp.mpf("-3")),
+    ):
         assert mp.almosteq(sigma(sigma(point)), point)
 
     assert all(result["is_involution"] for result in check_involution())
@@ -51,10 +58,10 @@ def test_sigma_is_an_involution():
 
 def test_fixed_locus_is_the_critical_line():
     """Every point on Re(s)=1/2 is fixed, and off-line points are not."""
-    assert is_fixed_point(mp.mpc("0.5", "10"))
-    assert is_fixed_point(mp.mpc("0.5", "-10"))
-    assert not is_fixed_point(mp.mpc("0.3", "10"))
-    assert not is_fixed_point(mp.mpc("0.7", "10"))
+    assert is_fixed_point(mpc(mp.mpf("0.5"), mp.mpf("10")))
+    assert is_fixed_point(mpc(mp.mpf("0.5"), mp.mpf("-10")))
+    assert not is_fixed_point(mpc(mp.mpf("0.3"), mp.mpf("10")))
+    assert not is_fixed_point(mpc(mp.mpf("0.7"), mp.mpf("10")))
 
     results = check_fixed_locus()
     assert [result["is_fixed"] for result in results] == [
@@ -69,7 +76,7 @@ def test_fixed_locus_is_the_critical_line():
 def test_dimension_element_has_expected_powers():
     """The dimension element has the declared parity behavior."""
     element = DimensionElement(dimension=3)
-    point = mp.mpc("0.3", "10")
+    point = mpc(mp.mpf("0.3"), mp.mpf("10"))
 
     assert mp.almosteq(element.act_on(point), sigma(point))
     assert (element**2).dimension == 0

@@ -133,6 +133,7 @@ riemann-framework/
 │   ├── central_hypothesis.md       # Falsifiable dimension-shift hypothesis
 │   ├── lessons_learned.md          # Negative results and limitations
 │   ├── scientific_contribution_assessment.md # Current scientific status
+│   ├── future_work.md               # Engineering and research roadmap
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)
