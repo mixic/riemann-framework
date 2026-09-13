@@ -80,6 +80,7 @@ riemann-framework/
 │   ├── research_notes.md         # What has been tried so far
 │   ├── number_systems.md         # Your idea with new number systems
 │   ├── spherical_number_systems.md # Hypothetical higher-dimensional model
+│   ├── dimension_shift_involution.md # Discrete involution proposal
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)
