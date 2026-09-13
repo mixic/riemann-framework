@@ -95,6 +95,7 @@ riemann-framework/
 │   ├── dimension_shift_involution.md # Discrete involution proposal
 │   ├── dimension_shift_quantum_chaos.md # Quantum-chaos extension
 │   ├── dimension_shift_computational_approach.md # Computational methodology
+│   ├── dimension_shift_quantum_communication.md # DSIN communication proposal
 │   └── verification.md           # How an RH proof is checked
 │
 ├── output/                       # Generated plots (gitignored)
