@@ -24,8 +24,9 @@ A passing test is **evidence**, not a mathematical proof.
 | Numerical zero verification | Working |
 | Explicit-formula calculations and plots | Working |
 | Dimension-shift experiments | Working and exploratory |
+| Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
 | DSIN communication simulation | Working as a toy simulation; no security proof |
-| Lean formalization of RH | One standalone involution lemma; RH formalization not started |
+| Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
 | Formal proof of RH | Open problem |
 
 ## Goal
@@ -46,11 +47,13 @@ repository root, run:
 ```powershell
 python python/riemann_framework/test_plot.py
 python scripts/run_dimension_shift_chaos.py
+python scripts/run_falsification.py
 ```
 
 The scripts write PNG files to `output/`, including zero plots,
-explicit-formula plots, spectrum comparisons, coupling sweeps, and
-symmetry-breaking sweeps. The current plot snapshots are included below.
+explicit-formula plots, spectrum comparisons, coupling sweeps, symmetry-breaking
+sweeps, and the falsification grid. The current plot snapshots are included
+below.
 
 ### Non-trivial zeros in the complex plane
 
@@ -72,6 +75,22 @@ symmetry-breaking sweeps. The current plot snapshots are included below.
 
 ![Dimension-shift symmetry-breaking sweep](output/dimension_shift_symmetry_sweep.png)
 
+### Dimension-shift falsification grid
+
+The falsification test scans a grid of dimension-shift parameters and reports
+each point's mean adjacent-gap ratio `r`, then compares it with matched
+Poisson, GOE, GUE, and Riemann reference systems.
+
+![Mean r-ratio across the dimension-shift parameter grid](output/falsification_heatmap.png)
+
+![Distribution of mean r-ratio over the parameter grid](output/falsification_histogram.png)
+
+The heatmap shows mean `r` for every combination of sector dimension,
+coupling, and symmetry breaking; the histogram shows how those 90 parameter
+points distribute relative to the reference values (dashed lines). Both are
+written by `scripts/run_falsification.py`, which also records the run in
+[`output/falsification_summary.txt`](output/falsification_summary.txt).
+
 ## Project Structure
 
 
@@ -84,8 +103,11 @@ riemann-framework/
 ├── lakefile.toml                 # Lean 4 project definition
 ├── lean-toolchain                # Lean version pin (e.g. leanprover/lean4:v4.x.x)
 │
-├── lean/                         # Formal verification
-│   └── RiemannFramework/             # Reserved for future Lean formalization
+├── lean/                         # Lean 4 formalization
+│   ├── RiemannFramework.lean         # Aggregate module (library root)
+│   └── RiemannFramework/
+│       ├── DimensionShift.lean       # Sector swap is an involution
+│       └── InvolutionEigenspace.lean # Involution eigenspace lemmas
 │
 ├── python/                       # Numerical tests and control logic
 │   ├── pyproject.toml            # Project definition (uv/pip)
@@ -118,6 +140,8 @@ riemann-framework/
 │   ├── setup_lean.sh             # Set up Lean + Mathlib
 │   ├── generate_plots.py          # Generate standard plots
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
+│   ├── run_quantum_chaos_analysis.py # Zero-spacing statistics
+│   ├── check_sigma.py             # Verify the sector-swap involution
 │   ├── run_dsin_analysis.py       # Run DSIN simulations
 │   └── run_falsification.py       # Run DSH grid and write artifacts
 │
@@ -136,8 +160,9 @@ riemann-framework/
 │   ├── future_work.md               # Engineering and research roadmap
 │   └── verification.md           # How an RH proof is checked
 │
-├── output/                       # Generated plots (gitignored)
-│   └── .gitkeep
+├── output/                       # Generated plots
+│   ├── *.png                     # Plot snapshots embedded in this README
+│   └── falsification_summary.txt # Latest falsification-grid run
 │
 └── .github/
     └── workflows/
