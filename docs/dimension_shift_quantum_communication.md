@@ -18,6 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Dimension-Shift Involution for Quantum Communication Networks
 
+> **Speculative research proposal:** DSIN is not a deployed cryptographic
+> protocol and has no composable security proof. The simulation code is a toy
+> model for exploring sector symmetry, noise, and disturbance.
+
 ## Abstract
 
 Classical quantum communication networks encode information in quantum states
