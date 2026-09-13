@@ -11,7 +11,9 @@ numerically consistent with the functional equation of the zeta function.
 """
 
 from dataclasses import dataclass
+
 import mpmath as mp
+import numpy as np
 
 
 # ============================================================
@@ -70,6 +72,87 @@ def is_fixed_point(s, tol=None):
     if tol is None:
         tol = mp.mpf(10) ** (-mp.mp.dps // 2)
     return mp.almosteq(sigma(s), s, abs_eps=tol)
+
+
+# ============================================================
+# Finite-sector operator model
+# ============================================================
+
+def _validate_sector_dimension(dim_per_sector):
+    if not isinstance(dim_per_sector, (int, np.integer)):
+        raise TypeError("dim_per_sector must be an integer")
+    if dim_per_sector < 1:
+        raise ValueError("dim_per_sector must be positive")
+    return int(dim_per_sector)
+
+
+def sigma_matrix(dim_per_sector=2):
+    """Build the sector-swapping matrix for the finite model.
+
+    The total space is ``H_boson direct_sum H_fermion``. The matrix maps
+    ``(boson, fermion)`` to ``(fermion, boson)`` and therefore satisfies
+    ``sigma_matrix @ sigma_matrix = I``.
+    """
+    dimension = _validate_sector_dimension(dim_per_sector)
+    matrix = np.zeros((2 * dimension, 2 * dimension), dtype=float)
+    identity = np.eye(dimension)
+    matrix[:dimension, dimension:] = identity
+    matrix[dimension:, :dimension] = identity
+    return matrix
+
+
+def sigma_eigenvalues(dim_per_sector=2):
+    """Return the eigenvalues of the finite sector-swapping matrix."""
+    return np.linalg.eigvalsh(sigma_matrix(dim_per_sector))
+
+
+def sigma_fixed_locus(dim_per_sector=2):
+    """Return an orthonormal basis for the ``+1`` eigenspace of sigma."""
+    matrix = sigma_matrix(dim_per_sector)
+    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+    return eigenvectors[:, np.isclose(eigenvalues, 1.0)]
+
+
+def _symmetric_random_matrix(dimension, seed=None):
+    rng = np.random.default_rng(seed)
+    matrix = rng.standard_normal((dimension, dimension))
+    return (matrix + matrix.T) / 2
+
+
+def sigma_plus_hamiltonian(dim_per_sector=2, seed=None):
+    """Build a real symmetric Hamiltonian on the first sector."""
+    dimension = _validate_sector_dimension(dim_per_sector)
+    return _symmetric_random_matrix(dimension, seed)
+
+
+def supersymmetric_hamiltonian(dim_per_sector=2, seed=None):
+    """Build a block-diagonal finite Hamiltonian for two sectors."""
+    dimension = _validate_sector_dimension(dim_per_sector)
+    rng = np.random.default_rng(seed)
+    plus = rng.standard_normal((dimension, dimension))
+    minus = rng.standard_normal((dimension, dimension))
+    hamiltonian = np.zeros((2 * dimension, 2 * dimension))
+    hamiltonian[:dimension, :dimension] = (plus + plus.T) / 2
+    hamiltonian[dimension:, dimension:] = (minus + minus.T) / 2
+    return hamiltonian
+
+
+def witten_index(h_plus, h_minus, tol=1e-8):
+    """Return ``dim(ker(H_plus)) - dim(ker(H_minus))`` numerically."""
+    plus = np.asarray(h_plus, dtype=float)
+    minus = np.asarray(h_minus, dtype=float)
+    if plus.ndim != 2 or minus.ndim != 2:
+        raise ValueError("Hamiltonians must be two-dimensional square matrices")
+    if plus.shape[0] != plus.shape[1] or minus.shape[0] != minus.shape[1]:
+        raise ValueError("Hamiltonians must be square matrices")
+    if tol <= 0:
+        raise ValueError("tol must be positive")
+
+    plus_eigenvalues = np.linalg.eigvalsh(plus)
+    minus_eigenvalues = np.linalg.eigvalsh(minus)
+    plus_zero_count = np.count_nonzero(np.abs(plus_eigenvalues) < tol)
+    minus_zero_count = np.count_nonzero(np.abs(minus_eigenvalues) < tol)
+    return int(plus_zero_count - minus_zero_count)
 
 
 # ============================================================

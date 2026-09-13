@@ -16,6 +16,7 @@
 """Tests for the speculative dimension-shift involution."""
 
 import mpmath as mp
+import numpy as np
 import pytest
 
 from riemann_framework.dimension_shift import (
@@ -25,6 +26,12 @@ from riemann_framework.dimension_shift import (
     check_involution,
     is_fixed_point,
     sigma,
+    sigma_eigenvalues,
+    sigma_fixed_locus,
+    sigma_matrix,
+    sigma_plus_hamiltonian,
+    supersymmetric_hamiltonian,
+    witten_index,
 )
 from riemann_framework.zeta import set_precision
 
@@ -74,3 +81,69 @@ def test_first_zeros_are_preserved_by_sigma():
     results = check_functional_equation_consistency(num_zeros=3)
 
     assert all(result["both_zero"] for result in results)
+
+
+def test_sigma_matrix_is_a_hermitian_involution():
+    """The finite sector swap is symmetric and squares to identity."""
+    matrix = sigma_matrix(dim_per_sector=3)
+
+    assert matrix.shape == (6, 6)
+    assert np.array_equal(matrix, matrix.T)
+    assert np.allclose(matrix @ matrix, np.eye(6))
+    assert np.array_equal(sigma_eigenvalues(3), [-1, -1, -1, 1, 1, 1])
+
+
+def test_sigma_fixed_locus_has_one_vector_per_sector_dimension():
+    """The +1 eigenspace contains symmetric sector pairs."""
+    basis = sigma_fixed_locus(dim_per_sector=3)
+
+    assert basis.shape == (6, 3)
+    assert np.allclose(sigma_matrix(3) @ basis, basis)
+
+
+def test_hamiltonians_are_symmetric_and_seeded():
+    """Finite Hamiltonians are symmetric and reproducible with a seed."""
+    plus = sigma_plus_hamiltonian(dim_per_sector=3, seed=7)
+    full = supersymmetric_hamiltonian(dim_per_sector=3, seed=7)
+
+    assert np.allclose(plus, plus.T)
+    assert np.allclose(full, full.T)
+    assert np.array_equal(plus, sigma_plus_hamiltonian(3, seed=7))
+    assert full.shape == (6, 6)
+
+
+def test_witten_index_counts_zero_modes():
+    """The numerical index counts kernels of the two sector Hamiltonians."""
+    h_plus = np.diag([0.0, 2.0, 3.0])
+    h_minus = np.diag([0.0, 0.0, 4.0])
+
+    assert witten_index(h_plus, h_minus) == -1
+    assert witten_index(h_plus, h_plus) == 0
+
+
+def test_witten_index_is_zero_for_symmetric_random_sectors():
+    """Seeded random sectors normally have no zero modes in either block."""
+    hamiltonian = supersymmetric_hamiltonian(dim_per_sector=5, seed=42)
+    h_plus = hamiltonian[:5, :5]
+    h_minus = hamiltonian[5:, 5:]
+
+    assert witten_index(h_plus, h_minus) == 0
+
+
+@pytest.mark.parametrize("dimension", [0, -1, 1.5, "2"])
+def test_sector_dimension_must_be_positive_integer(dimension):
+    """Reject invalid finite-sector dimensions."""
+    with pytest.raises((TypeError, ValueError)):
+        sigma_matrix(dimension)
+
+
+def test_witten_index_rejects_non_square_hamiltonians():
+    """Reject arrays that cannot represent sector Hamiltonians."""
+    with pytest.raises(ValueError):
+        witten_index(np.zeros((2, 3)), np.zeros((2, 2)))
+
+
+
+
+
+
