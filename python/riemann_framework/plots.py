@@ -35,7 +35,7 @@ def plot_explicit_formula():
     """Plot 1: Explicit formula."""
     X_MAX = 200
     x_values = np.arange(2, X_MAX + 1)
-    pi_values = np.array([prime_count(x) for x in x_values])
+    pi_values = np.array([prime_count(int(x)) for x in x_values])
 
     zero_counts = [0, 5, 20, 50, 100]
     approx_curves = {}
@@ -110,7 +110,7 @@ def plot_error_amplitude():
     """Plot 3: Error amplitude vs. number of zeros."""
     X_MAX = 200
     x_values = np.arange(2, X_MAX + 1)
-    pi_values = np.array([prime_count(x) for x in x_values])
+    pi_values = np.array([prime_count(int(x)) for x in x_values])
 
     nz_range = [0, 1, 2, 5, 10, 20, 50, 100, 200]
     max_errors = []

@@ -17,14 +17,21 @@
 
 """Temporary diagnostic: find the best sigma for regularization."""
 
+from pathlib import Path
+import sys
+
 import numpy as np
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "python"))
+
 from riemann_framework.explicit_formula import prime_count, li_approx
 from riemann_framework.zeta import set_precision
 
 set_precision(25)
 
 x_values = np.arange(10, 200)
-pi_values = np.array([prime_count(x) for x in x_values])
+pi_values = np.array([prime_count(int(x)) for x in x_values])
 
 for sigma in [0.1, 0.3, 0.5, 1.0, 2.0]:
     errors = []

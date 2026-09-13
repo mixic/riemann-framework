@@ -11,9 +11,13 @@ numerically consistent with the functional equation of the zeta function.
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 import mpmath as mp
 import numpy as np
+
+
+mpc: Any = mp.mpc
 
 
 # ============================================================
@@ -165,11 +169,11 @@ def check_involution(tol=None):
         tol = mp.mpf(10) ** (-mp.mp.dps // 2)
 
     test_points = [
-        mp.mpc("0.5", "14.134725"),
-        mp.mpc("0.3", "10.0"),
-        mp.mpc("0.7", "-5.0"),
-        mp.mpc("0.5", "0.0"),
-        mp.mpc("2.0", "3.0"),
+        mpc(mp.mpf("0.5"), mp.mpf("14.134725")),
+        mpc(mp.mpf("0.3"), mp.mpf("10.0")),
+        mpc(mp.mpf("0.7"), mp.mpf("-5.0")),
+        mpc(mp.mpf("0.5"), mp.mpf("0.0")),
+        mpc(mp.mpf("2.0"), mp.mpf("3.0")),
     ]
 
     results = []
@@ -196,7 +200,7 @@ def check_fixed_locus(tol=None):
 
     results = []
     for re_part in ["0.0", "0.25", "0.5", "0.75", "1.0"]:
-        s = mp.mpc(re_part, "10.0")
+        s = mpc(mp.mpf(re_part), mp.mpf("10.0"))
         results.append({
             "Re(s)": re_part,
             "is_fixed": is_fixed_point(s, tol=tol),

@@ -136,7 +136,6 @@ def ks_test_against(eigenvalues, reference="gue", unfold=True):
         return {"ks_stat": float("nan"), "p_value": float("nan")}
 
     if reference == "gue":
-        cdf = lambda x: stats.ks_1samp(spacings, lambda s: _gue_cdf(s)).statistic
         return _ks_against_cdf(spacings, _gue_cdf)
     elif reference == "poisson":
         return _ks_against_cdf(spacings, lambda s: 1 - np.exp(-s))

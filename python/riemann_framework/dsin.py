@@ -32,7 +32,8 @@ The simulation evaluates:
 """
 
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Optional
 
 
 def _validate_dimension(dim_per_sector: int) -> int:
@@ -98,7 +99,7 @@ def sigma_eigenstates(dim_per_sector: int):
 def build_channel_hamiltonian(
     dim_per_sector: int,
     coupling: float = 1.0,
-    seed: int = None,
+    seed: Optional[int] = None,
 ) -> np.ndarray:
     """
     Build a channel Hamiltonian H that commutes with sigma.
@@ -381,7 +382,7 @@ def run_simulation(
     rng = np.random.default_rng(seed)
     sigma = build_sigma(d)
     hamiltonian = build_channel_hamiltonian(
-        d, coupling=coupling, seed=rng.integers(0, 2**31)
+        d, coupling=coupling, seed=int(rng.integers(0, 2**31))
     )
 
     errors = 0
