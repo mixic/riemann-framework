@@ -146,6 +146,21 @@ The Lean formalization should grow from small independent facts:
 None of these lemmas proves RH. Their purpose is to make the algebraic core
 precise before attempting analytic or spectral claims.
 
+**Status.** Items 1 and 2 are done in `lean/RiemannFramework/DimensionShift.lean`
+(`sigma_squared`, `sigma_injective`, `sigma_not_fixed`), which needs no Mathlib
+import. The general involution layer is in progress in
+`lean/RiemannFramework/InvolutionEigenspace.lean`:
+
+- done: for an endomorphism `T` with `T * T = 1` over any field, the `+1` and
+  `-1` eigenspaces are the kernels of `T - 1` and `T + 1`
+  (`eigenspace_one_eq_ker_sub_one`, `eigenspace_neg_one_eq_ker_add_one`), and
+  `T - 1` and `T + 1` annihilate each other (`sub_one_comp_add_one`,
+  `add_one_comp_sub_one`);
+- open: the matching range descriptions, the equal-dimension and
+  complementary results, and item 4 above. These reduce to a rank-nullity
+  computation over `Nat` (`finrank` coercions plus `Nat` truncated
+  subtraction) that has not yet been closed.
+
 ## Priority 5: Arithmetic Grounding
 
 The dimension-shift model currently has no derived prime structure. Future work
