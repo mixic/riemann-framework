@@ -136,7 +136,53 @@ The following major goals remain unresolved:
 Recording these open failures prevents the project from confusing a working
 prototype with a completed theory.
 
-## 10. Falsification Grid Result
+## 10. A Lift Confined to the Fixed Locus Cannot Test the Fixed Locus
+
+The shift-zeta programme asked whether lifting the Euler product to a graded
+algebra `A = A0 + omega*A1` forces the zeros into `Fix(sigma) = A0`. The
+construction built for that purpose cannot answer the question, and the reason
+is structural rather than numerical.
+
+Every local factor is a polynomial in the single element
+`gamma_tau = ((1+tau)/2)I + ((1-tau)/2)omega`, so the whole Euler product lies
+in the two-dimensional algebra `C[gamma_tau]`. There is no interaction *between*
+primes: the product is a product of functions of one generator. At `tau = 1` the
+generator is the identity, so the product is scalar and sits in `Fix(sigma)` by
+construction.
+
+An object placed inside the fixed locus by definition cannot serve as evidence
+about whether zeros are forced there. The general lesson: **check that a
+proposed test can fail before running it.** If the construction satisfies the
+conclusion identically, the test is vacuous.
+
+Numerically the framework behaves as follows (600 primes; details in
+`docs/shift_zeta_result.md`):
+
+- the algebra is well-defined and `sigma` is an algebra homomorphism;
+- the graded trace is `sigma`-invariant and the supertrace is
+  `sigma`-anti-invariant -- two different functionals, easily confused;
+- at `tau = 1` the graded trace equals the classical Euler product term by term
+  (relative error `5.1e-4` at `s = 2`, which is pure truncation);
+- for `tau != 1` it departs from `zeta` by 11% to 44% at `s = 2` and fails the
+  completion symmetry with residuals `1e-2` to `1e-1`.
+
+## 11. Truncated Euler Products Cannot Locate Zeros
+
+The zero comparison for the shift-zeta is undecidable, and the reason is worth
+recording separately because it will recur.
+
+At `tau = 1` the graded trace *is* the classical partial Euler product, so
+whatever a zero-finding scan reports there is pure truncation artefact. A
+sign-change scan on the critical line, `t` in `[0.5, 30]`, with 300 primes
+reports **28 sign changes against 4 classical zeros**, of which 24 are spurious.
+
+That control settles the methodology: the truncated Euler product oscillates
+near the critical line and does not locate zeros at any accessible truncation.
+Any future zero comparison must use an analytically continued or otherwise
+accelerated representation, not the raw product. A failure to resolve zeros is
+not evidence that the zeros differ.
+
+## 12. Falsification Grid Result
 
 The default falsification grid was run with:
 

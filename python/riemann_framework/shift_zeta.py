@@ -209,31 +209,91 @@ def compare_traces(
 
 
 # ============================================================
+# Baseline helpers
+# ============================================================
+
+def classical_partial_euler(s, primes) -> mp.mpc:
+    """The truncated classical Euler product `prod_p 1/(1 - p^{-s})`.
+
+    This is the right baseline for the graded product: at `tau = 1` the graded
+    trace equals this object term by term, so comparing against it cancels the
+    Euler truncation error, which at the first zeta zero is around `1e-1` with
+    40 primes and would otherwise swamp the signal.
+    """
+    value = mp.mpc(1)
+    for p in primes:
+        value *= 1 / (1 - mp.mpf(p) ** (-mp.mpc(s)))
+    return value
+
+
+def graded_to_classical_ratio(s, tau, primes) -> mp.mpc:
+    """`Z_A(s, tau).trace() / classical_partial_euler(s, primes)`.
+
+    Both sides are finite products over the same primes, so truncation largely
+    cancels and the ratio isolates the effect of the grading. At `tau = 1` the
+    ratio is exactly 1.
+    """
+    graded = shift_zeta_element(s, tau, primes).trace()
+    classical = classical_partial_euler(s, primes)
+    if abs(classical) < mp.mpf(10) ** (-30):
+        raise ZeroDivisionError("classical partial product vanished")
+    return graded / classical
+
+
+def ratio_profile(tau, s_values, n_primes: int = DEFAULT_N_PRIMES) -> dict:
+    """Ratio of the graded trace to the classical partial product over `s`."""
+    primes = first_primes(n_primes)
+    ratios = []
+    for s in s_values:
+        try:
+            ratios.append(graded_to_classical_ratio(s, tau, primes))
+        except ZeroDivisionError:
+            ratios.append(mp.mpc("nan"))
+    return {
+        "tau": float(tau),
+        "s_values": [complex(s) for s in s_values],
+        "ratios": [complex(r) for r in ratios],
+        "n_primes": n_primes,
+    }
+
+
+# ============================================================
 # The functional equation
 # ============================================================
 
 def completed_zeta(s):
-    """The completed zeta function `xi(s) = pi^{-s/2} Gamma(s/2) zeta(s)`.
-
-    The classical completion, satisfying `xi(s) = xi(1-s)`.
-    """
+    """The completed zeta function `xi(s) = pi^{-s/2} Gamma(s/2) zeta(s)`,
+    satisfying `xi(s) = xi(1-s)`."""
     s = mp.mpc(s)
     return mp.pi ** (-s / 2) * mp.gamma(s / 2) * mp.zeta(s)
 
 
 def functional_equation_residual(
-    s_values=(2, 3, 4, mp.mpf("2.5")),
+    s_values=(mp.mpf("2.5"), mp.mpf("3.5"), mp.mpf("4.5")),
     n_primes: int = DEFAULT_N_PRIMES,
 ) -> list[dict]:
-    """Test `Z_A(s)` against `Z_A(1-s)` after completing with the classical factor.
+    """Test completion symmetry for the graded trace against a classical control.
 
-    Two things are returned per sample point: the residual of the classical
-    completed zeta function (a control, which should sit at numerical
-    precision) and the residual of the same completion applied to the truncated
-    graded product for several `tau`.
+    Each sample point reports:
 
-    The Euler product alone is not symmetric under `s -> 1-s`; the completion
-    `pi^{-s/2} Gamma(s/2)` is what supplies the symmetry in the classical case.
+    - `classical_residual`: `|xi(s) - xi(1-s)| / |xi(s)|` using mpmath's zeta.
+      This is a control and sits at numerical precision.
+    - `tau_<t>_residual`: the formally identical completion applied to the
+      graded trace.
+
+    Two traps this function avoids, both of which produced meaningless
+    residuals in an earlier version:
+
+    1. `Gamma(s/2)` has poles at `s = 0, -2, -4, ...`, so the reflected point
+       `1-s` must avoid them. The defaults `2.5, 3.5, 4.5` reflect to
+       `-1.5, -2.5, -3.5`, which are pole-free.
+    2. The Euler product converges only for `Re(s) > 1`. The reflected side
+       `1-s` has `Re < 0`, where the product diverges, so no graded evaluation
+       exists there. The classical analytic continuation is used on that side
+       instead, which means the graded residual is *not* a test of a graded
+       functional equation -- it measures the mismatch between the graded
+       product at `s` and the classical continuation at `1-s`. The
+       `reflected_convergent` flag records this.
     """
     primes = first_primes(n_primes)
     results = []
@@ -249,21 +309,27 @@ def functional_equation_residual(
         entry = {
             "s": complex(s),
             "classical_residual": float(classical_residual),
+            "reflected_convergent": bool(mp.re(reflected) > 1),
         }
 
         for tau in (mp.mpf(1), mp.mpf(0), mp.mpf("0.5")):
             try:
-                left = shift_zeta_element(s, tau, primes)
-                right = shift_zeta_element(reflected, tau, primes)
-                factor_s = mp.pi ** (-s / 2) * mp.gamma(s / 2)
-                factor_r = mp.pi ** (-reflected / 2) * mp.gamma(reflected / 2)
-                left_value = left.trace() * factor_s
-                right_value = right.trace() * factor_r
-                residual = abs(left_value - right_value) / max(
-                    abs(left_value), mp.mpf(10) ** (-30)
+                left = shift_zeta_element(s, tau, primes).trace()
+                factor_left = mp.pi ** (-s / 2) * mp.gamma(s / 2) * left
+
+                if mp.re(reflected) > 1:
+                    right = shift_zeta_element(reflected, tau, primes).trace()
+                else:
+                    right = mp.zeta(reflected)
+
+                factor_right = (
+                    mp.pi ** (-reflected / 2) * mp.gamma(reflected / 2) * right
+                )
+                residual = abs(factor_left - factor_right) / max(
+                    abs(factor_left), mp.mpf(10) ** (-30)
                 )
                 entry[f"tau_{float(tau):g}_residual"] = float(residual)
-            except ZeroDivisionError:
+            except (ZeroDivisionError, ValueError):
                 entry[f"tau_{float(tau):g}_residual"] = float("nan")
 
         results.append(entry)
@@ -277,108 +343,120 @@ def functional_equation_residual(
 
 @dataclass
 class ZeroComparison:
-    """Deviation of shift-zeta zeros from the classical zeros."""
+    """Comparison of the graded zero set with the classical zero set."""
 
     tau: float
     classical_zeros: list
-    shift_values_at_zeros: list
-    max_absolute_value: float
-    extra_zeros_found: list
+    ratios_at_zeros: list
+    ratio_spread: float
+    ratio_at_controls: list
+    mean_ratio_at_zeros: float
+    mean_ratio_at_controls: float
     explanation: str
     metadata: dict = field(default_factory=dict)
 
 
-def scan_for_extra_zeros(
-    tau,
-    t_max: float = 60.0,
-    samples: int = 2400,
-    threshold: float = 0.05,
-    n_primes: int = DEFAULT_N_PRIMES,
-) -> list[complex]:
-    """Coarse scan for sign changes of the shift-zeta on the critical line.
-
-    Returns the locations where the real part changes sign. This is a coarse
-    diagnostic intended to catch gross disagreement, not to certify zeros.
-    """
-    primes = first_primes(n_primes)
-    previous_t = None
-    previous_value = None
-    crossings: list[complex] = []
-
-    for index in range(samples + 1):
-        t = -t_max + 2 * t_max * index / samples
-        point = mp.mpc(mp.mpf("0.5"), t)
-        try:
-            value = shift_zeta(point, tau, primes)
-        except ZeroDivisionError:
-            previous_t = None
-            previous_value = None
-            continue
-
-        if previous_value is not None and previous_value.real * value.real < 0:
-            crossings.append(complex(mp.mpf("0.5"), (previous_t + t) / 2))
-
-        previous_t = t
-        previous_value = value
-
-    return crossings
-
-
 def compare_zeros(
     tau=1,
-    n_zeros: int = 8,
-    n_primes: int = DEFAULT_N_PRIMES,
-    scan: bool = True,
+    n_zeros: int = 6,
+    n_primes: int = 200,
+    t_controls=(11.0, 16.0, 25.0, 33.0),
 ) -> ZeroComparison:
-    """Evaluate the shift-zeta at classical zeros and measure the deviation.
+    """Compare the graded zero set with the classical one via a ratio profile.
 
-    Criterion G6 asks whether the shift-zeta zeros coincide with the classical
-    ones. Evaluating at the classical zeros is the cheap half of that question:
-    if the shift-zeta has a zero there, the value should vanish.
+    The decisive diagnostic is `R(s) = Z_A(s, tau) / classical_partial(s)`,
+    where the classical baseline is the *same truncated product*. Both sides
+    are finite products over the same primes, so the Euler truncation error --
+    around `1e-1` at the first zero with 40 primes, the same order as the
+    signal -- largely cancels, and `R` isolates the effect of the grading.
 
-    Passing is not sufficient on its own -- `c * zeta(s)` for constant `c`
-    passes trivially -- so `extra_zeros_found` reports whether a coarse scan
-    turns up sign changes where the classical function does not vanish.
+    If the graded function vanished at the same points as the classical one,
+    `R` would be of comparable size at the classical zeros and at generic
+    points on the critical line. If the zeros move, `R` is suppressed at the
+    classical zeros and grows elsewhere.
     """
-    zeros = [mp.zetazero(k) for k in range(1, n_zeros + 1)]
-    values = [complex(shift_zeta(zero, tau, n_primes)) for zero in zeros]
-    max_abs = max(abs(v) for v in values) if values else float("nan")
-
-    extra: list[complex] = []
-    if scan:
-        classical_heights = sorted(float(mp.im(z)) for z in zeros)
-        for point in scan_for_extra_zeros(tau, n_primes=n_primes):
-            height = point.imag
-            if min(abs(height - h) for h in classical_heights) > 1.0:
-                extra.append(point)
-
-    if max_abs < 1e-6:
-        explanation = (
-            f"At tau={tau:g} the shift-zeta vanishes at all {n_zeros} tested "
-            f"classical zeros (max |Z| = {max_abs:.3e})."
+    if mp.mpf(tau) == 1:
+        return ZeroComparison(
+            tau=1.0,
+            classical_zeros=[],
+            ratios_at_zeros=[],
+            ratio_spread=float("nan"),
+            ratio_at_controls=[],
+            mean_ratio_at_zeros=float("nan"),
+            mean_ratio_at_controls=float("nan"),
+            explanation=(
+                "tau = 1 is degenerate: the weight is the identity, so the graded "
+                "trace *is* the classical partial Euler product and R(s) is "
+                "identically 1. The zero sets agree trivially, which is exactly "
+                "why this case carries no evidence either way."
+            ),
+            metadata={"n_primes": n_primes, "degenerate": True},
         )
-        if extra:
-            explanation += (
-                f" But the coarse scan also found {len(extra)} sign change(s) away "
-                "from the classical zeros, so the zero sets do not coincide."
+
+    primes = first_primes(n_primes)
+    zeros = [mp.zetazero(k) for k in range(1, n_zeros + 1)]
+
+    ratios_at_zeros = []
+    for zero in zeros:
+        try:
+            ratios_at_zeros.append(graded_to_classical_ratio(zero, tau, primes))
+        except ZeroDivisionError:
+            ratios_at_zeros.append(mp.mpc("nan"))
+
+    ratios_at_controls = []
+    for t in t_controls:
+        point = mp.mpc(mp.mpf("0.5"), mp.mpf(t))
+        try:
+            ratios_at_controls.append(graded_to_classical_ratio(point, tau, primes))
+        except ZeroDivisionError:
+            ratios_at_controls.append(mp.mpc("nan"))
+
+    finite = [abs(r) for r in ratios_at_zeros if not mp.isnan(abs(r))]
+    controls = [abs(r) for r in ratios_at_controls if not mp.isnan(abs(r))]
+
+    mean_zero = float(sum(finite) / len(finite)) if finite else float("nan")
+    mean_control = float(sum(controls) / len(controls)) if controls else float("nan")
+    spread = (
+        float(max(finite) / min(finite))
+        if finite and min(finite) > 0
+        else float("inf")
+    )
+
+    if mean_control > 0 and mean_zero > 0:
+        ratio_of_means = mean_control / mean_zero
+        if ratio_of_means > 5:
+            verdict = (
+                "The graded function is suppressed precisely where the classical "
+                "one vanishes, which is the signature of *different* zeros."
+            )
+        elif ratio_of_means < 0.2:
+            verdict = (
+                "The graded function is *larger* at the classical zeros than at "
+                "control points, which is also inconsistent with a common zero set."
             )
         else:
-            explanation += (
-                " No additional sign changes were found away from the classical "
-                "zeros in the scanned range."
+            verdict = (
+                "The ratio does not separate the classical zeros from control "
+                "points at this truncation, so this diagnostic is inconclusive "
+                "for this tau."
             )
     else:
-        explanation = (
-            f"At tau={tau:g} the shift-zeta does not vanish at the classical zeros "
-            f"(max |Z| = {max_abs:.3e}), so its zeros are not the classical zeros."
-        )
+        verdict = "The ratio could not be computed at this truncation."
+
+    explanation = (
+        f"At tau={tau:g}, mean |R| = {mean_zero:.4e} at the classical zeros "
+        f"(spread {spread:.2f}) versus {mean_control:.4e} at control points. "
+        f"{verdict}"
+    )
 
     return ZeroComparison(
         tau=float(tau),
         classical_zeros=[complex(z) for z in zeros],
-        shift_values_at_zeros=values,
-        max_absolute_value=max_abs,
-        extra_zeros_found=extra,
+        ratios_at_zeros=[complex(r) for r in ratios_at_zeros],
+        ratio_spread=spread,
+        ratio_at_controls=[complex(r) for r in ratios_at_controls],
+        mean_ratio_at_zeros=mean_zero,
+        mean_ratio_at_controls=mean_control,
         explanation=explanation,
-        metadata={"n_primes": n_primes, "n_zeros": n_zeros, "scanned": scan},
+        metadata={"n_primes": n_primes, "n_zeros": n_zeros},
     )

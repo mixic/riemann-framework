@@ -1,0 +1,78 @@
+Shift-zeta analysis
+============================================================
+
+These are diagnostic numbers, not a proof. The outcome is negative/null;
+see docs/shift_zeta_result.md.
+
+Criterion checks
+============================================================
+G1 algebra well-defined (unit, associativity) : PASS
+G2 sigma is an algebra homomorphism            : PASS
+G3 trace invariant under sigma                 : PASS
+F5 supertrace anti-invariant (flips sign)      : PASS (expected)
+G4 shift-zeta returns finite values            : PASS
+F4 involution NOT a homomorphism               : not triggered
+G7 Euler product -> zeta at tau=1, s=2     : PASS (rel err 0.0005149)
+G7 Euler product -> zeta at tau=1, s=5     : PASS (rel err 5.9e-12)
+
+Graded trace vs classical zeta
+============================================================
+   tau | s=2 | s=3 | s=4 | s=5 | s=6 | max rel err
+------------------------------------------------------------------------------
+     1 |   1.64489 |   1.20206 |   1.08232 |   1.03693 |   1.01734 | 2.4208e-05
+     0 |   1.32245 |   1.10103 |   1.04116 |   1.01846 |   1.00867 | 1.9605e-01
+   0.5 |   1.45586 |   1.14790 |   1.06105 |   1.02755 |   1.01297 | 1.1494e-01
+  0.25 |   1.38370 |   1.12364 |   1.05094 |   1.02297 |   1.01081 | 1.5881e-01
+     2 |   2.37212 |   1.33970 |   1.12958 |   1.05664 |   1.02630 | 4.4207e-01
+
+Local factor at tau=1 equals 1/(1-p^-s)
+============================================================
+  p=2 s=2: trace=(1.33333333333 + 0.0j)  1/(1-x)=1.33333333333  supertrace=(0.0 + 0.0j)
+  p=2 s=3: trace=(1.14285714286 + 0.0j)  1/(1-x)=1.14285714286  supertrace=(0.0 + 0.0j)
+  p=3 s=2: trace=(1.125 + 0.0j)  1/(1-x)=1.125  supertrace=(0.0 + 0.0j)
+  p=3 s=3: trace=(1.03846153846 + 0.0j)  1/(1-x)=1.03846153846  supertrace=(0.0 + 0.0j)
+  p=5 s=2: trace=(1.04166666667 + 0.0j)  1/(1-x)=1.04166666667  supertrace=(0.0 + 0.0j)
+  p=5 s=3: trace=(1.00806451613 + 0.0j)  1/(1-x)=1.00806451613  supertrace=(0.0 + 0.0j)
+  p=7 s=2: trace=(1.02083333333 + 0.0j)  1/(1-x)=1.02083333333  supertrace=(0.0 + 0.0j)
+  p=7 s=3: trace=(1.00292397661 + 0.0j)  1/(1-x)=1.00292397661  supertrace=(0.0 + 0.0j)
+
+Functional equation residuals
+============================================================
+  s=(2.5+0j): classical=0.000e+00  tau_0.5_residual=7.596e-02  tau_0_residual=1.458e-01  tau_1_residual=1.984e-06
+  s=(3.5+0j): classical=1.765e-31  tau_0.5_residual=3.039e-02  tau_0_residual=5.959e-02  tau_1_residual=1.001e-09
+  s=(4.5+0j): classical=4.066e-31  tau_0.5_residual=1.345e-02  tau_0_residual=2.663e-02  tau_1_residual=5.914e-13
+  The classical control is at numerical precision. At tau=1 the graded
+  residual is also tiny; for tau != 1 it is 1e-1 to 1e-2, so the graded
+  function does not satisfy the completion symmetry.
+
+Zeros: ratio test at the classical zeros
+============================================================
+  tau=0: mean|R| at zeros=6.1266e+00 at controls=2.8394e+00 spread=1.732
+  tau=0.5: mean|R| at zeros=2.1677e+00 at controls=1.4458e+00 spread=1.196
+  tau=0.9: mean|R| at zeros=1.1354e+00 at controls=1.0510e+00 spread=1.025
+  tau=2: mean|R| at zeros=5.4860e-01 at controls=7.8480e-01 spread=1.060
+
+  The ratio does not separate zeros from control points at any tested
+  tau, so this diagnostic cannot decide whether the zero sets agree.
+  A sign-change scan on the critical line is worse: at tau=1, where the
+  graded trace equals the classical partial product by construction, it
+  reports 28 sign changes against 4 classical zeros in [0.5, 30].
+  The Euler product truncated at a few hundred primes is simply not
+  accurate enough near the critical line to locate zeros.
+
+  Conclusion for G6: UNDECIDABLE at accessible truncation.
+
+Ratio at s in the convergent region
+============================================================
+  tau=0: s=2: 0.803982  s=3: 0.915954  s=5: 0.982194
+  tau=0.5: s=2: 0.885086  s=3: 0.954945  s=5: 0.990953
+  tau=2: s=2: 1.442075  s=3: 1.114505  s=5: 1.019013
+
+Construction is confined to the fixed locus
+============================================================
+  tau=1: gamma_tau = (1.0, 0.0), even=True
+  tau=0: gamma_tau = (0.5, 0.5), even=False
+  tau=0.5: gamma_tau = (0.75, 0.25), even=False
+  tau=0.25: gamma_tau = (0.625, 0.375), even=False
+  tau=2: gamma_tau = (1.5, -0.5), even=False
+  product at tau=1: (a,b)=((1.6407542 + 0.0j), (0.0 + 0.0j)), in Fix(sigma)=True

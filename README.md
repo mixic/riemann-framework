@@ -28,7 +28,55 @@ A passing test is **evidence**, not a mathematical proof.
 | DSIN communication simulation | Working as a toy simulation; no security proof |
 | Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
+| Shift-zeta (graded algebra) | **Null result.** Well-defined and tested; does not answer whether the zeros lie in the fixed locus. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
 | Formal proof of RH | Open problem |
+
+## Shift-zeta: a null result, reported as such
+
+The graded-algebra programme asked whether lifting the Euler product to
+`A = A₀ + ωA₁` forces the zeros of the resulting "shift-zeta" into the fixed
+locus `Fix(σ) = A₀`. It does not: the construction cannot answer the question,
+because it places its own object inside `Fix(σ)` by definition.
+
+What the numbers show (600 primes; full detail in
+[`docs/shift_zeta_result.md`](docs/shift_zeta_result.md)):
+
+- the algebra is well-defined and `σ` is an algebra homomorphism — **G1, G2 pass**;
+- the graded trace is `σ`-invariant and the supertrace is `σ`-*anti*-invariant
+  — **G3 and F5 both hold**, and they are different functionals;
+- at `τ = 1` the graded trace equals the classical Euler product term by term
+  (relative error `5.1e-4` at `s = 2`, pure truncation) — **G7 passes**;
+- for `τ ≠ 1` the trace departs from `ζ` by **11% to 44%** at `s = 2`, and the
+  completion symmetry fails with residuals `1e-2` to `1e-1` against a classical
+  control at numerical precision — **G5 fails**;
+- the zero comparison is **undecidable**: a sign-change scan at `τ = 1`, where
+  the two functions coincide by construction, reports 28 sign changes against 4
+  classical zeros. The truncated Euler product simply cannot locate zeros near
+  the critical line. **G6 is undecidable**, which is a limitation of the method,
+  not a finding about the zeros.
+
+```powershell
+python scripts/run_shift_zeta_analysis.py
+```
+
+No criterion failure here falsifies the Riemann Hypothesis, and nothing above
+is evidence for it. The substantive finding is the structural obstruction: every
+local factor is a polynomial in one element `γ_τ`, so the product never leaves
+the two-dimensional algebra `C[γ_τ]` and there is no interaction between primes.
+
+### Graded trace vs classical zeta
+
+The `τ = 1` curve is the degenerate case, where the graded trace *is* the
+classical Euler product. Every other curve is a different function.
+
+![Graded trace of the shift-zeta against classical zeta](output/shift_zeta_traces.png)
+
+### Euler truncation error
+
+This is what makes the zero comparison undecidable: the error at the working
+truncation is of the same order as the signal near the critical line.
+
+![Euler truncation error at s = 2](output/shift_zeta_convergence.png)
 
 ## Screening candidate ideas
 
@@ -185,6 +233,8 @@ riemann-framework/
 │   │   ├── affine_reduction.py    # Affine-reduction gate for candidate maps
 │   │   ├── primon_gas.py          # Exact anchor: Tr[e^{-sH}] = zeta(s)
 │   │   ├── operator_symmetry.py   # Screens symmetries against the primon H
+│   │   ├── graded_algebra.py      # Z2-graded algebra A = A0 + omega*A1
+│   │   ├── shift_zeta.py          # Lifted Euler product and its comparison
 │   │   ├── lean_runner.py        # Compiles Lean files via subprocess
 │   │   └── plots.py              # Plot generation
 │   │
@@ -197,6 +247,7 @@ riemann-framework/
 │       ├── test_quantum_chaos.py     # Zero statistics tests
 │       ├── test_affine_reduction.py  # Records the affine-reduction result
 │       ├── test_primon_gas.py        # Exact trace identity + the failed lift
+│       ├── test_graded_algebra.py   # Graded algebra and shift-zeta (G1-G7)
 │       └── test_dsin.py              # DSIN simulation tests
 │
 ├── scripts/                      # Helper scripts
