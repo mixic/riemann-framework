@@ -1,0 +1,7 @@
+{
+  "id": "dimension_shift_w",
+  "hypothesis": "There is a discrete involution sigma on the complex numbers, distinct from a rotation, that fixes the critical line Re(s) = 1/2 and represents a genuinely new element extending C, analogous to how i extends R.",
+  "expression": "1 - s_conj",
+  "falsification_criterion": "If the expression can be written as an affine combination of s and conjugate(s), it is not a new algebraic object, only a known map in unfamiliar notation. Separately: if the map treats every prime identically when probed against Euler-factor exponents p^{-s}, it carries no arithmetic content and cannot by itself explain the location of the zeta zeros.",
+  "notes": "This is the sigma(s) = 1 - conjugate(s) map from the dimension-shift module: the reflection implied by the zeta functional equation zeta(s) <-> zeta(1-s), combined with conjugation."
+}

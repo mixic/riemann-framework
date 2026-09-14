@@ -113,6 +113,28 @@ algebra. Its fixed locus is nevertheless exactly `Re(s) = 1/2`, which is the
 property the proposal actually needs. See `docs/dimension_shift_involution.md`
 section 2.1.
 
+### The full vetting pipeline
+
+`riemann_framework/idea_pipeline.py` ties these gates into a five-stage
+pipeline for a candidate "idea" — a small JSON record under `ideas/*.json` that
+must state, up front, what observation would falsify it (stage E, enforced at
+construction). Stages A–D2 reuse the existing modules: the affine gate (B), the
+gap-ratio statistics (C), a multiplicative-coupling probe against Euler factors
+(D), and the primon-gas commutator screen (D2). A verdict never claims an idea
+is correct — it only records how far the idea got before a known limitation or
+a genuinely open question.
+
+```bash
+python scripts/run_idea_pipeline.py
+```
+
+The stage-D probe (`probe_multiplicative_coupling`) was corrected from an
+earlier prototype version whose per-prime relative error cancelled the `log p`
+factor, making its "p-dependent mismatch" flag provably unreachable. The
+corrected comparison is `w(p^{-s})` versus `p^{-w(s)}`, which the identity map
+satisfies exactly (spread ~0) and the reflection `1 - conj(s)` does not
+(spread ~0.28).
+
 ## The primon gas: an exact arithmetic anchor
 
 The one place in this repository where the Euler product is not modelled but
@@ -218,7 +240,9 @@ riemann-framework/
 ├── README.md                     # Main documentation
 ├── LICENSE                       # GPL-3.0
 ├── .gitignore                    # Exclude Python, Lean, VS Code artifacts
+├── pyrightconfig.json            # Type-checker config (extraPaths + mpmath stub)
 ├── lakefile.toml                 # Lean 4 project definition
+├── lake-manifest.json            # Lean dependency manifest (mathlib pin)
 ├── lean-toolchain                # Lean version pin (e.g. leanprover/lean4:v4.x.x)
 │
 ├── lean/                         # Lean 4 formalization
@@ -232,7 +256,6 @@ riemann-framework/
 │   ├── requirements.txt          # numpy, matplotlib, mpmath, pytest
 │   │
 │   ├── riemann_framework/        # Python package
-│   │   ├── __init__.py
 │   │   ├── zeta.py               # mpmath wrapper for ζ(s)
 │   │   ├── zeros.py              # Computation / verification of zeros
 │   │   ├── explicit_formula.py   # Riemann explicit formula
@@ -242,13 +265,27 @@ riemann-framework/
 │   │   ├── dsin.py                # DSIN communication simulation
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
+│   │   ├── falsification_test.py  # DSH falsification grid + verdicts
 │   │   ├── affine_reduction.py    # Affine-reduction gate for candidate maps
+│   │   ├── idea_pipeline.py       # A–E vetting pipeline + Stage-D probe
 │   │   ├── primon_gas.py          # Exact anchor: Tr[e^{-sH}] = zeta(s)
 │   │   ├── operator_symmetry.py   # Screens symmetries against the primon H
 │   │   ├── graded_algebra.py      # Z2-graded algebra A = A0 + omega*A1
+│   │   ├── graded_algebra_even_odd.py # even/odd interface of the graded algebra
 │   │   ├── shift_zeta.py          # Lifted Euler product and its comparison
-│   │   ├── lean_runner.py        # Compiles Lean files via subprocess
-│   │   └── plots.py              # Plot generation
+│   │   ├── cayley_dickson.py      # Cayley-Dickson construction R→C→H→O→…
+│   │   ├── four_squares.py        # Jacobi four-square / sphere→Euler-product
+│   │   ├── lean_runner.py         # Compiles Lean files via subprocess
+│   │   ├── generate_plots.py      # Plot generation entry point
+│   │   ├── test_plot.py           # Plot demo entry point
+│   │   └── plots.py               # Plot generation
+│   │
+│   ├── examples/                  # Runnable idea/analysis examples
+│   │   ├── run_cayley_dickson_example.py    # Cayley-Dickson collapse demo
+│   │   ├── run_dimension_lift_example.py    # Dimension-lift Euler-product check
+│   │   ├── run_dimension_shift_example.py   # Vet dimension-shift idea through A–E
+│   │   ├── run_four_squares_example.py      # Jacobi four-square demo
+│   │   └── run_primon_gas_example.py        # Primon-gas anchor + prime-swap lift
 │   │
 │   └── tests/                    # pytest tests
 │       ├── test_numeric_zeros.py     # Numerical assert
@@ -258,18 +295,32 @@ riemann-framework/
 │       ├── test_dimension_shift_chaos.py # Chaos pipeline tests
 │       ├── test_quantum_chaos.py     # Zero statistics tests
 │       ├── test_affine_reduction.py  # Records the affine-reduction result
+│       ├── test_idea_pipeline.py     # Pipeline + Stage-D probe tests
 │       ├── test_primon_gas.py        # Exact trace identity + the failed lift
-│       ├── test_graded_algebra.py   # Graded algebra and shift-zeta (G1-G7)
+│       ├── test_graded_algebra.py    # Graded algebra and shift-zeta (G1-G7)
+│       ├── test_graded_algebra_even_odd.py # even/odd interface regressions
+│       ├── test_falsification.py     # DSH falsification grid tests
+│       ├── test_cayley_dickson.py    # Cayley-Dickson property checks
+│       ├── test_dimension_lift.py    # Dimension-lift Euler-product checks
+│       ├── test_four_squares.py      # Jacobi four-square checks
 │       └── test_dsin.py              # DSIN simulation tests
 │
 ├── scripts/                      # Helper scripts
-│   ├── setup_lean.sh             # Set up Lean + Mathlib
-│   ├── generate_plots.py          # Generate standard plots
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
 │   ├── run_quantum_chaos_analysis.py # Zero-spacing statistics
 │   ├── check_sigma.py             # Verify the sector-swap involution
 │   ├── run_dsin_analysis.py       # Run DSIN simulations
+│   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
+│   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
+│   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   └── run_falsification.py       # Run DSH grid and write artifacts
+│
+├── ideas/                         # Candidate-idea records (JSON, stage E enforced)
+│   ├── dimension_shift_w.json
+│   ├── dimension_shift_w_lifted_to_primon_gas.json
+│   ├── nonlinear_probe_example.json
+│   ├── dimension_lift_euler_product.yaml
+│   └── dimension_lift_sphere_euler_product.yaml
 │
 ├── docs/                         # Documentation
 │   ├── research_notes.md         # What has been tried so far
@@ -284,7 +335,11 @@ riemann-framework/
 │   ├── lessons_learned.md          # Negative results and limitations
 │   ├── scientific_contribution_assessment.md # Current scientific status
 │   ├── future_work.md               # Engineering and research roadmap
+│   ├── shift_zeta_result.md         # Shift-zeta (graded algebra) negative result
 │   └── verification.md           # How an RH proof is checked
+│
+├── typings/                      # Custom type stubs
+│   └── mpmath/__init__.pyi       # mpmath signatures (fixes Pylance int-param inference)
 │
 ├── output/                       # Generated plots
 │   ├── *.png                     # Plot snapshots embedded in this README

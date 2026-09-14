@@ -80,7 +80,6 @@ built on this algebra, which is negative.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import numbers
 from typing import Sequence, TypeAlias
 
 import mpmath as mp
@@ -89,18 +88,18 @@ import mpmath as mp
 EVEN = 0
 ODD = 1
 
-# The scalar type accepted for `s` and for `tau`.
-#
-# This is `numbers.Number`, not `complex`, and the distinction matters to a type
-# checker: `mpmath.mpf` and `mpmath.mpc` are registered as `numbers.Number` but
-# are *not* subclasses of the builtin `complex`, even though `complex(mpf)`
-# works. Annotating these parameters `complex` therefore rejects every call that
-# passes an `mp.mpf`, which is what the test suite and the shift-zeta module
-# both do (for instance `mp.mpf("2.5")`).
-#
-# `numbers.Number` covers `int`, `float`, `complex`, `mp.mpf` and `mp.mpc`, which
-# is exactly the set of arguments the arithmetic below accepts.
-Scalar: TypeAlias = numbers.Number
+# The scalar type accepted for `s`: a concrete union of the types the arithmetic
+# actually receives. The abstract `numbers.Number` base is *not* a proper
+# supertype here -- a type checker does not treat `int`/`float`/`complex` as
+# subtypes of it -- so the union is spelled out, and `mp.mpf`/`mp.mpc` are
+# included directly.
+Scalar: TypeAlias = int | float | complex | mp.mpf | mp.mpc
+
+# `tau` is a real grading weight (`1`, `0`, `0.5`, `mp.mpf`, ...), never a
+# complex number. A concrete alias lets the code call `float(tau)` and
+# `complex(tau)` without a type checker rejecting the abstract `numbers.Number`
+# base, which declares neither `__float__` nor `__complex__`.
+RealScalar: TypeAlias = int | float | mp.mpf
 
 
 def _tolerance(tol: float | None) -> float:
@@ -221,8 +220,9 @@ class GradedElement:
             raise ZeroDivisionError(
                 f"{self!r} is not invertible (norm {mp.nstr(norm, 6)} is zero)"
             )
-        if self.omega_sq == 1:
-            return GradedElement(self.even / norm, -self.odd / norm, self.omega_sq)
+        # The same formula holds for both signs of `omega_sq`: with
+        # `norm = even^2 - omega_sq*odd^2`, the product
+        # `(even + odd*omega) * (even/norm - odd/norm*omega)` is 1 either way.
         return GradedElement(self.even / norm, -self.odd / norm, self.omega_sq)
 
     def __pow__(self, exponent: int) -> "GradedElement":
@@ -350,7 +350,7 @@ def is_supertrace_zero(a: GradedElement, tol: float | None = None) -> bool:
 # Local factors
 # ============================================================
 
-def local_factor(p: int, s: Scalar, tau: Scalar = 1, omega_sq: int = 1) -> GradedElement:
+def local_factor(p: int, s: Scalar, tau: RealScalar = 1, omega_sq: int = 1) -> GradedElement:
     """The local Euler factor `1 / (1 - p^{-s} * gamma_tau)`.
 
     `gamma_tau = ((1+tau)/2) + ((1-tau)/2)*omega` is an even element with
@@ -358,13 +358,14 @@ def local_factor(p: int, s: Scalar, tau: Scalar = 1, omega_sq: int = 1) -> Grade
 
         1 / (1 - p^{-s})        and        1 / (1 - tau*p^{-s})
 
-    Its supertrace is the first of those, **for every `tau`**:
+    on the `+1` and `-1` eigenspaces of `omega` respectively. The supertrace
+    reads the `-1` eigenspace, so
 
-        supertrace(L_p) = 1 / (1 - p^{-s})
+        supertrace(L_p) = 1 / (1 - tau * p^{-s})
 
-    That is the classical Euler factor, so the product of the supertraces is the
-    classical partial Euler product and converges to `zeta(s)`. At `tau = 1` the
-    two eigenvalues coincide and `L_p` is scalar, which is the degenerate case.
+    which equals the classical factor `1 / (1 - p^{-s})` only at `tau = 1`.
+    At `tau = 1` the two eigenvalues coincide and `L_p` is scalar, which is the
+    degenerate case.
 
     **CORRECTED**: the original returned `even = 1/(1 - p^{-s})` and
     `odd = p^{-s}/(1 - p^{-s})`, i.e. `(1 + p^{-s} omega)/(1 - p^{-s})`. That is
@@ -377,16 +378,21 @@ def local_factor(p: int, s: Scalar, tau: Scalar = 1, omega_sq: int = 1) -> Grade
     if omega_sq not in (-1, 1):
         raise ValueError(f"omega_sq must be +1 or -1, got {omega_sq}")
     x = mp.mpf(p) ** (-mp.mpc(s))
+    # Normalise `tau` to a concrete float before arithmetic. `tau` is typed
+    # `numbers.Number`, and arithmetic directly on that abstract type leaves the
+    # weight's type ambiguous to a checker; `float(tau)` is the same
+    # normalisation `grading_shift` already does.
+    tau = float(tau)
     weight = GradedElement(
-        even=complex((1 + tau) / 2 * mp.mpf(1) * mp.mpf(1)),
-        odd=complex((1 - tau) / 2 * mp.mpf(1) * mp.mpf(1)),
+        even=complex((1.0 + tau) * 0.5),
+        odd=complex((1.0 - tau) * 0.5),
         omega_sq=omega_sq,
     )
     return (GradedElement(1.0, 0.0, omega_sq) - weight * x).inverse()
 
 
 def euler_product(
-    s: Scalar, primes: Sequence[int], tau: Scalar = 1, omega_sq: int = 1
+    s: Scalar, primes: Sequence[int], tau: RealScalar = 1, omega_sq: int = 1
 ) -> GradedElement:
     """The truncated Euler product `prod_p L_p(s, tau)` in the algebra."""
     product = GradedElement(1.0, 0.0, omega_sq)
@@ -442,7 +448,7 @@ def check_trace_invariance(a: GradedElement, tol: float | None = None) -> bool:
 
 
 def check_trace_is_geometric_series(
-    p: int, s: Scalar, tau: Scalar = 1, terms: int = 400, tol: float | None = None
+    p: int, s: Scalar, tau: RealScalar = 1, terms: int = 400, tol: float | None = None
 ) -> bool:
     """True when `L_p` matches its closed form at the given `tau`.
 
@@ -479,7 +485,7 @@ def check_trace_is_geometric_series(
 
 
 def check_euler_product_converges(
-    s: Scalar, primes: Sequence[int], tau: Scalar = 1, tolerance: float = 1e-3
+    s: Scalar, primes: Sequence[int], tau: RealScalar = 1, tolerance: float = 1e-3
 ) -> bool:
     """True when the product of local traces is the classical partial product.
 

@@ -74,19 +74,22 @@ precise rather than as a step toward a proof.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import numbers
 from typing import TypeAlias
 
 import mpmath as mp
 
-# The scalar type accepted for `s` and `tau`.
-#
-# `numbers.Number`, not `complex`: `mpmath.mpf` and `mpmath.mpc` are registered
-# as `numbers.Number` but are not subclasses of the builtin `complex`, so a
-# `complex` annotation rejects callers that pass an `mp.mpf`. `numbers.Number`
-# covers the `int`, `float`, `complex`, `mp.mpf` and `mp.mpc` arguments the
-# arithmetic here accepts.
-Scalar: TypeAlias = numbers.Number
+# The scalar type accepted for `s`: a concrete union of the types the arithmetic
+# actually receives. The abstract `numbers.Number` base is *not* a proper
+# supertype here -- a type checker does not treat `int`/`float`/`complex` as
+# subtypes of it -- so the union is spelled out, and `mp.mpf`/`mp.mpc` are
+# included directly.
+Scalar: TypeAlias = int | float | complex | mp.mpf | mp.mpc
+
+# `tau` is a real grading weight (`1`, `0`, `0.5`, `mp.mpf`, ...), never a
+# complex number. A concrete alias lets the code call `float(tau)` without a
+# type checker rejecting the abstract `numbers.Number` base, which declares no
+# `__float__`.
+RealScalar: TypeAlias = int | float | mp.mpf
 
 # Grading labels.
 EVEN = 0
@@ -109,12 +112,11 @@ class GradedElement:
 
     Coefficients are stored as Python `complex` rather than `mpmath.mpc`, and
     converted to `mp.mpc` on the way out of `trace`, `supertrace` and
-    `matrix_trace`. The reason is arithmetic reliability: `mpmath` scalar `*`
-    and `/` were observed to return wrong results in this execution
-    environment, while Python `complex` is exact for the two-term expressions
-    this algebra needs. Python `complex` also keeps the coefficients exactly
-    representable, which matters because `@dataclass(frozen=True)` derives
-    `__eq__` from them and the tests compare elements for equality.
+    `matrix_trace`. Storing Python `complex` keeps the declared `complex` field
+    type true at runtime (`complex * mp.mpf` would return an `mpmath.mpc`, not a
+    `complex`), and it keeps the coefficients exactly representable, which
+    matters because `@dataclass(frozen=True)` derives `__eq__` from them and
+    the tests compare elements for equality.
     """
 
     a: complex
@@ -261,7 +263,7 @@ class GradedElement:
 # Local factors
 # ============================================================
 
-def grading_shift(tau: Scalar) -> GradedElement:
+def grading_shift(tau: RealScalar) -> GradedElement:
     """The grading-sensitive weight `gamma_tau` used in the local factors.
 
     Interpolates the two sign choices of the grading:
@@ -287,7 +289,7 @@ def grading_shift(tau: Scalar) -> GradedElement:
     return GradedElement((1.0 + tau) * 0.5, (1.0 - tau) * 0.5)
 
 
-def local_factor(p: int, s: Scalar, tau: Scalar = 1) -> GradedElement:
+def local_factor(p: int, s: Scalar, tau: RealScalar = 1) -> GradedElement:
     """The Euler local factor `1 / (1 - p^{-s} * gamma_tau)`.
 
     At `tau = 1` this is `1 / (1 - p^{-s})`, the classical factor. For `tau != 1`
@@ -301,7 +303,7 @@ def local_factor(p: int, s: Scalar, tau: Scalar = 1) -> GradedElement:
     return (GradedElement.identity() - grading_shift(tau).scale(x)).inverse()
 
 
-def local_factor_eigenvalues(p: int, s: Scalar, tau: Scalar = 1) -> tuple[mp.mpc, mp.mpc]:
+def local_factor_eigenvalues(p: int, s: Scalar, tau: RealScalar = 1) -> tuple[mp.mpc, mp.mpc]:
     """The two eigenvalues of the local factor, for diagnostics.
 
     In the eigenbasis of `omega` the element `a + b*omega` is diagonal with

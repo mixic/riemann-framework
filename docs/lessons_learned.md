@@ -286,3 +286,45 @@ console table, `output/falsification_heatmap.png`,
 `output/falsification_histogram.png`, and
 `output/falsification_summary.txt`. These artifacts make the result reviewable
 without treating a generated plot as a proof.
+
+## 14. A Probe Whose Prime-Dependence Cancels Is Not a Probe
+
+The external `rh_idea_framework` prototype's "Stage D" arithmetic probe was
+meant to test whether a candidate map `w` interacts with the Euler product, by
+comparing `w(p^{-s})` against `p^{-w(s)}` for each prime `p`. The code actually
+computed
+
+```text
+lhs = w(-s) * log(p)
+rhs = -w(s) * log(p)
+```
+
+and took the *relative* error `|lhs - rhs| / max(|lhs|, |rhs|)`. Both `lhs` and
+`rhs` carry the same factor `log(p)`, so the factor cancels out of the relative
+error exactly:
+
+```text
+|w(-s) + w(s)| / max(|w(-s)|, |w(s)|)
+```
+
+which contains no `p` at all. The per-prime error was therefore identical for
+every prime, the spread across primes was always ~0, and the probe's
+"p-dependent mismatch" flag (and the pipeline's `"D+"` stage) could never fire.
+The test was silently measuring "is `w` odd under negation", not "does `w`
+distinguish primes".
+
+Two lessons follow.
+
+First, a diagnostic whose headline signal is a *spread across* a parameter must
+be checked for accidental invariance in that parameter. Dimensional analysis on
+the probe's own formula would have caught this in one line.
+
+Second, a numeric gate should be unit-tested against both a map that must pass
+it and a map that must fail it. In the corrected port
+(`riemann_framework/idea_pipeline.py`), `probe_multiplicative_coupling("s")`
+gives spread ~1e-17 (identity commutes with every Euler factor) while
+`probe_multiplicative_coupling("1 - s_conj")` gives spread ~0.28 (the
+reflection genuinely distinguishes primes), and both are asserted in
+`tests/test_idea_pipeline.py`. The corrected comparison is `w(p^{-s})` versus
+`p^{-w(s)}`, evaluated with mpmath so that large map values do not overflow
+Python's complex exponentiation.

@@ -1,0 +1,12 @@
+{
+  "id": "dimension_shift_w_lifted_to_primon_gas",
+  "hypothesis": "The dimension-shift involution can be given real arithmetic content by lifting it onto l^2(N) (the primon gas), realized as the permutation that swaps the exponents of two primes p1, p2 in each integer's factorization. If this operator commutes with the primon Hamiltonian H|n> = log(n)|n>, it would be a genuine symmetry of the one system where zeta(s) is an exact operator trace.",
+  "expression": "s",
+  "falsification_criterion": "If the commutator [W, H] is numerically nonzero on a finite truncation (and does not shrink toward zero as the truncation grows), the proposed operator is not a symmetry of the primon gas. Linear algebra predicts this in advance: any operator commuting with a diagonal matrix of simple spectrum must itself be diagonal, and a nontrivial prime-swap permutation is not diagonal.",
+  "notes": "An operator-level idea: the 'operator' field routes it to stage D2 instead of the complex-plane gates. The placeholder expression 's' is deliberately ignored. This idea is expected, and required by its own criterion, to be recorded as failed.",
+  "operator": {
+    "p1": 2,
+    "p2": 3,
+    "n_max": 500
+  }
+}

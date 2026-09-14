@@ -1,0 +1,47 @@
+id: dimension_lift_euler_product
+hypothesis: >
+  A new number system that increases dimension the way i extended R to C
+  (circle -> sphere -> higher sphere, via Cayley-Dickson doubling: R -> C
+  -> H -> O -> ...) can produce genuine Euler-product-bearing arithmetic
+  content, connecting a higher-dimensional structure to the Riemann zeta
+  function -- not merely a statistical resemblance or a renamed reflection.
+expression: "s"   # placeholder; this idea is tested at the arithmetic/lattice level (four_squares.py), not via stage B's complex-plane expression check
+falsification_criterion: >
+  (1) Algebraic side: by Hurwitz's theorem (1898), a normed division
+  algebra over R exists ONLY in dimensions 1, 2, 4, 8. Any claim of a
+  "clean" higher number system beyond dimension 8 must therefore either
+  accept zero divisors (verified computationally in cayley_dickson.py) or
+  fail as stated; this is a proved mathematical fact, not something the
+  framework tests probabilistically -- it is confirmed by direct
+  construction here so the limit is seen, not merely cited.
+  (2) Arithmetic side: the concrete, checkable claim is that the lift from
+  2D (Gaussian integers, two-square theorem) to 4D (Lipschitz/Hurwitz
+  quaternions, four-square theorem) produces a genuine new Dirichlet
+  series with Euler-product structure: sum sigma(n)/n^s = zeta(s)*zeta(s-1).
+  If numerical verification (four_squares.verify_sigma_dirichlet_series)
+  disagrees with mpmath's zeta(s)*zeta(s-1) beyond numerical tolerance,
+  this specific instance of "dimension lift -> Euler product" is falsified.
+  (3) RH relevance: even if (1) and (2) hold -- which they numerically do,
+  see notes -- this does NOT by itself say anything about the location of
+  zeta's own zeros; zeta(s)*zeta(s-1) is built from zeta evaluated at two
+  points, not a new function whose zeros need to be on the critical line.
+  Any further claim of RH relevance requires showing that the
+  higher-dimensional construction constrains zeta's zeros specifically,
+  which remains open and is not established by this idea record.
+notes: >
+  Verified numerically in this framework:
+  - cayley_dickson.check_properties confirms the Hurwitz collapse exactly
+    at the predicted dimensions (commutativity lost at H, associativity
+    lost at O, zero divisors appear at 16).
+  - four_squares.verify_jacobi_formula confirms Jacobi's four-square
+    theorem r4(n) = 8*sum_{d|n, 4 nmid d} d by brute-force lattice-point
+    counting on the 4D sphere, for n = 1..30.
+  - four_squares.verify_sigma_dirichlet_series confirms
+    sum sigma(n)/n^s = zeta(s)*zeta(s-1) to ~1e-5 relative accuracy at
+    s=3, n_max=50000.
+  This is genuine, real Euler-product content produced by lifting from 2D
+  to 4D -- the user's intuition was correct that dimension-lifting CAN
+  produce such structure. What remains unproven, and is the actual open
+  research question, is whether an analogous higher-dimensional
+  construction can produce zeta itself (not zeta(s)*zeta(s-1)) with a
+  mechanism that constrains its zeros to the critical line.

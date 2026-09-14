@@ -73,7 +73,7 @@ def test_inequality_is_also_a_plain_bool():
     assert type(GradedElement(1.0, 2.0) == GradedElement(1.0, 3.0)) is bool
 
 
-def test_equality_with_a_non_element_returns_NotImplemented():
+def test_equality_with_a_non_element_returns_false():
     element = GradedElement(1.0, 2.0)
     assert (element == 5) is False
     assert (element != 5) is True

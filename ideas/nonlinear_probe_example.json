@@ -1,0 +1,7 @@
+{
+  "id": "nonlinear_probe_example",
+  "hypothesis": "A toy nonlinear map w(s) = s * conjugate(s) - s (i.e. |s|^2 - s) is used purely to demonstrate that the pipeline treats non-affine maps differently from affine ones. This is NOT a serious RH proposal.",
+  "expression": "s*s_conj - s",
+  "falsification_criterion": "This example is considered dead on arrival for RH purposes regardless of what stage D reports, because it has no stated connection to the functional equation, the Euler product, or any spectral operator.",
+  "notes": "Included so the runner shows both a stage-B failure and a stage-B pass in the same run."
+}

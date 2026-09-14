@@ -54,20 +54,18 @@ destination. Nothing here proves anything about RH.
 
 from __future__ import annotations
 
-import numbers
 from typing import Sequence, TypeAlias
 
+import mpmath as mp
 import numpy as np
 
-# The scalar type accepted for the exponent `s`.
-#
-# `numbers.Number`, not `complex`: `mpmath.mpf` and `mpmath.mpc` are registered
-# as `numbers.Number` but are not subclasses of the builtin `complex`, so a
-# `complex` annotation rejects every caller that passes an `mp.mpf` -- which the
-# shift-zeta module and the graded algebra both do. `numbers.Number` covers the
-# `int`, `float`, `complex`, `mp.mpf` and `mp.mpc` arguments the arithmetic here
-# accepts.
-Scalar: TypeAlias = numbers.Number
+# The scalar type accepted for the exponent `s`: a concrete union of the types
+# the arithmetic actually receives. `numbers.Number` would also accept `mp.mpf`
+# and `mp.mpc`, but that abstract base declares no `__complex__`, so `complex(s)`
+# on it is rejected by a type checker. The union keeps `complex(s)` valid for
+# every member (int/float/complex via the numeric tower, mpf/mpc via their
+# `__complex__`).
+Scalar: TypeAlias = int | float | complex | mp.mpf | mp.mpc
 
 # Trial-division factorisation. The external prototype used sympy; this
 # repository depends only on mpmath/numpy/scipy, and trial division is exact
@@ -135,13 +133,7 @@ def trace_exp(s: Scalar, n_max: int) -> complex:
 
 
 def zeta_reference(s: Scalar) -> complex:
-    """`zeta(s)` at high precision, via mpmath.
-
-    Imported lazily so that the operator-level tests do not depend on mpmath
-    being present.
-    """
-    import mpmath as mp
-
+    """`zeta(s)` at high precision, via mpmath."""
     mp.mp.dps = 30
     value = mp.zeta(mp.mpc(complex(s).real, complex(s).imag))
     return complex(value)

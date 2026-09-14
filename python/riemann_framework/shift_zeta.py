@@ -56,7 +56,7 @@ from dataclasses import dataclass, field
 
 import mpmath as mp
 
-from .graded_algebra import GradedElement, local_factor
+from .graded_algebra import GradedElement, RealScalar, Scalar, local_factor
 
 # Number of primes used when no explicit set is supplied.
 DEFAULT_N_PRIMES = 60
@@ -79,7 +79,7 @@ def first_primes(count: int) -> list[int]:
 # The Euler product in the algebra
 # ============================================================
 
-def shift_zeta_element(s, tau=1, primes: list[int] | None = None) -> GradedElement:
+def shift_zeta_element(s: Scalar, tau: RealScalar = 1, primes: list[int] | None = None) -> GradedElement:
     """The truncated Euler product `prod_p (1 - p^{-s} gamma_tau)^{-1}` in `A`.
 
     Raises `ZeroDivisionError` if any local factor is singular.
@@ -93,7 +93,7 @@ def shift_zeta_element(s, tau=1, primes: list[int] | None = None) -> GradedEleme
     return product
 
 
-def shift_zeta(s, tau=1, primes: list[int] | None = None):
+def shift_zeta(s: Scalar, tau: RealScalar = 1, primes: list[int] | None = None):
     """The `tau`-weighted shift-zeta: the graded trace of the Euler product.
 
     Returns the coefficient of the identity in `Z_A(s)`, which is the
@@ -102,12 +102,12 @@ def shift_zeta(s, tau=1, primes: list[int] | None = None):
     return shift_zeta_element(s, tau, primes).trace()
 
 
-def shift_zeta_supertrace(s, tau=1, primes: list[int] | None = None):
+def shift_zeta_supertrace(s: Scalar, tau: RealScalar = 1, primes: list[int] | None = None):
     """The supertrace of the Euler product, for comparison."""
     return shift_zeta_element(s, tau, primes).supertrace()
 
 
-def shift_zeta_matrix_trace(s, tau=1, primes: list[int] | None = None):
+def shift_zeta_matrix_trace(s: Scalar, tau: RealScalar = 1, primes: list[int] | None = None):
     """The ordinary matrix trace of the Euler product."""
     return shift_zeta_element(s, tau, primes).matrix_trace()
 
@@ -357,7 +357,7 @@ class ZeroComparison:
 
 
 def compare_zeros(
-    tau=1,
+    tau: RealScalar = 1,
     n_zeros: int = 6,
     n_primes: int = 200,
     t_controls=(11.0, 16.0, 25.0, 33.0),

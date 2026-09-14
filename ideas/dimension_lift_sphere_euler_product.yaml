@@ -1,0 +1,30 @@
+id: dimension_lift_sphere_euler_product
+hypothesis: >
+  A number system that generalizes i (2D, circle S^1) to higher dimensions
+  (4D quaternions / S^3, 8D octonions / S^7, ...) could naturally produce
+  an Euler-product-bearing structure connected to the Riemann zeta
+  function, because the norm form of each stage is literally a
+  higher-dimensional sphere.
+expression: "s"   # placeholder; this idea is tested at the algebra/lattice level, not via stage B's complex-plane check
+falsification_criterion: >
+  (1) At the algebraic level: the Hurwitz theorem (1898) proves normed
+  division algebras over R exist only in dimensions 1, 2, 4, 8. If a
+  proposed higher-dimensional lift (16+) is checked and found to contain
+  zero divisors, it has stopped being a number system in the sense that
+  matters (division ill-defined), regardless of what arithmetic content it
+  might otherwise carry.
+  (2) At the arithmetic level: producing *an* Euler-product-bearing
+  Dirichlet series from a higher-dimensional lattice (e.g. via Jacobi's
+  four-square theorem, giving zeta(s)*zeta(s-1)) is achievable and is
+  verified numerically in this framework. But this alone does not
+  constitute progress on RH unless the resulting analytic object's zero
+  set can be related back to the zero set of zeta(s) itself, which this
+  idea does not yet attempt.
+notes: >
+  See python/riemann_framework/cayley_dickson.py for the algebraic-collapse check
+  (commutativity lost at dim 4, associativity at dim 8, zero divisors from
+  dim 16), and python/riemann_framework/four_squares.py for the genuine, historically real
+  instance of a 4D structure (the quaternion/Lipschitz-integer norm form)
+  producing an honest Euler product via Jacobi's theorem. Run
+  examples/run_cayley_dickson_example.py and
+  examples/run_four_squares_example.py.
