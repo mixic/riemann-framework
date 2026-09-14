@@ -200,6 +200,26 @@ Two further lessons:
   resolve the zeros" and "the zeros differ" are different claims. Both mistakes
   were made here before the control settled it.
 
+### The asymmetry that remains
+
+The comparison settles one direction and not the other, and it is worth being
+explicit rather than letting the figure imply more than it supports.
+
+Settled: the graded trace does **not** reproduce the classical zeros. The
+`tau = 1` control dips sharply at every marked zero and the `tau = 0` trace does
+not, while the ratio is 3.5 to 7.5 there and tightly clustered across six
+independent heights.
+
+Not settled: *where* the graded zeros are. Locating them by the deepest minima
+of the raw product fails. At `tau = 0.5` the minima reproduce the `tau = 1`
+positions to within 0.05 against classical-zero deviations of 0.02 to 0.10,
+which means they are tracking truncation rather than the function. A localisation
+claim needs an analytic continuation of `Z_A` into the critical strip, and none
+has been built.
+
+General form: **a comparison can falsify a match without being able to certify a
+mismatch in position.** Say which direction the evidence runs.
+
 ## 12. Falsification Grid Result
 
 The default falsification grid was run with:

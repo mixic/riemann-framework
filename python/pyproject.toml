@@ -12,3 +12,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Make `riemann_framework` importable without installing the package, so the
+# suite runs both as `pytest python/tests` from the repository root and as
+# `pytest tests` from this directory.
+pythonpath = ["."]

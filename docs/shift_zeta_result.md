@@ -196,14 +196,22 @@ share the classical zeros, being 3.5 to 7.5 times larger at those heights for
 
 ## Reproducing
 
+The script lives at the repository root under `scripts/`, so it is **not**
+reachable as `python scripts/...` from inside `python/`. Either of these works,
+because the script re-executes itself from the repository root if started
+elsewhere:
+
 ```powershell
+# from the repository root
 python scripts/run_shift_zeta_analysis.py
 python -m pytest python/tests/test_graded_algebra.py -q
+
+# or from python/
+python ../scripts/run_shift_zeta_analysis.py
+python -m pytest tests/test_graded_algebra.py -q
 ```
 
-Both commands run from the repository root; the script inserts the `python`
-directory on `sys.path` itself, so there is no need to `cd python` first. The
-analysis writes four figures plus `output/shift_zeta_summary.txt`:
+The analysis writes four figures plus `output/shift_zeta_summary.txt`:
 
 | File | What it shows |
 |:---|:---|
@@ -211,3 +219,22 @@ analysis writes four figures plus `output/shift_zeta_summary.txt`:
 | `shift_zeta_convergence.png` | Euler truncation error vs number of primes |
 | `shift_zeta_critical_line.png` | exact `\|ζ(1/2+it)\|` against the raw graded product |
 | `shift_zeta_comparison.png` | graded trace on the critical line with the classical zeros marked, and the `τ = 1` control |
+
+### What the zero figures can and cannot settle
+
+`shift_zeta_comparison.png` is the one that carries the G6 evidence, and it is
+worth being precise about what it shows, because the two directions are not
+equally supported.
+
+**Supported:** the graded trace does not reproduce the classical zeros. At
+`τ = 1` the trace is the classical product by construction and dips sharply at
+every marked zero; at `τ = 0` it shows no corresponding dips, and the ratio
+`|Z_A(ρ,τ)| / |Z_A(ρ,1)|` is 3.5 to 7.5 there, tightly clustered across six
+independent zeros.
+
+**Not supported:** any statement about *where* the graded zeros actually are.
+Attempting to locate them by the deepest local minima of the raw product fails:
+at `τ = 0.5` the minima reproduce the `τ = 1` positions to within 0.05, which
+means they are tracking truncation rather than the function. Locating the graded
+zeros would need an analytic continuation of `Z_A` into the critical strip,
+which has not been constructed.

@@ -38,10 +38,23 @@ Outcome is negative/null; see docs/shift_zeta_result.md.
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import runpy
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "python"))
+
+# Re-exec from the repository root if invoked from elsewhere. The frozen
+# bootstrap below matters: a plain `if __name__` guard does not hold when the
+# script re-runs itself via runpy, and would recurse forever.
+if __name__ == "__main__" and Path.cwd() != PROJECT_ROOT and not os.environ.get(
+    "_SHIFT_ZETA_BOOTSTRAPPED"
+):
+    os.environ["_SHIFT_ZETA_BOOTSTRAPPED"] = "1"
+    os.chdir(PROJECT_ROOT)
+    runpy.run_path(str(Path(__file__).resolve()), run_name="__main__")
+    sys.exit(0)
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
