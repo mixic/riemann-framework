@@ -29,11 +29,26 @@ become "a new element extending C" again in the documentation.
 import pytest
 
 from riemann_framework.affine_reduction import (
+    AffineReduction,
     ExpressionError,
     check_affine_reduction,
     fixed_locus_is_critical_line,
     parse_expression,
 )
+
+
+def _coefficients(result: AffineReduction) -> tuple[complex, complex, complex]:
+    """Return the recovered coefficients, asserting they are present.
+
+    `assert result.is_affine` does not narrow `coefficients` from
+    `tuple[complex, complex, complex] | None`: the dataclass carries no such
+    refinement, so a type checker still sees an unpacking of an optional as an
+    error (`"None" is not iterable`). This helper makes the requirement explicit
+    and gives the checker a non-optional return type.
+    """
+    coefficients = result.coefficients
+    assert coefficients is not None, "an affine result always carries coefficients"
+    return coefficients
 
 
 # ============================================================
@@ -51,7 +66,7 @@ def test_dimension_shift_prototype_is_affine():
 
     assert result.is_affine, result.explanation
     assert not result.clears_gate
-    a, b, c = result.coefficients
+    a, b, c = _coefficients(result)
     assert abs(a) < 1e-9
     assert abs(b + 1) < 1e-9
     assert abs(c - 1) < 1e-9
@@ -92,7 +107,7 @@ def test_known_affine_maps_are_flagged(expression):
 
 def test_coefficients_are_recovered_exactly():
     result = check_affine_reduction("2*s - 3*s_conj + 4")
-    a, b, c = result.coefficients
+    a, b, c = _coefficients(result)
     assert abs(a - 2) < 1e-9
     assert abs(b + 3) < 1e-9
     assert abs(c - 4) < 1e-9
