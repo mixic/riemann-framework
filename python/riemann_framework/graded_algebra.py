@@ -74,8 +74,19 @@ precise rather than as a step toward a proof.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import numbers
+from typing import TypeAlias
 
 import mpmath as mp
+
+# The scalar type accepted for `s` and `tau`.
+#
+# `numbers.Number`, not `complex`: `mpmath.mpf` and `mpmath.mpc` are registered
+# as `numbers.Number` but are not subclasses of the builtin `complex`, so a
+# `complex` annotation rejects callers that pass an `mp.mpf`. `numbers.Number`
+# covers the `int`, `float`, `complex`, `mp.mpf` and `mp.mpc` arguments the
+# arithmetic here accepts.
+Scalar: TypeAlias = numbers.Number
 
 # Grading labels.
 EVEN = 0
@@ -250,7 +261,7 @@ class GradedElement:
 # Local factors
 # ============================================================
 
-def grading_shift(tau) -> GradedElement:
+def grading_shift(tau: Scalar) -> GradedElement:
     """The grading-sensitive weight `gamma_tau` used in the local factors.
 
     Interpolates the two sign choices of the grading:
@@ -261,17 +272,22 @@ def grading_shift(tau) -> GradedElement:
     are invertible elements of `A0` for `tau != 0`, which is what makes them
     admissible weights on the even part.
 
-    Coefficients are built from Python floats rather than mpmath scalars. That
-    is deliberate: mpmath scalar `*` and `/` are unreliable in this execution
-    environment (observed: `mp.mpf(1) / mp.mpf(2)` and `(1 + mp.mpf(0)) * 0.5`
-    both returning `0.5`), whereas Python arithmetic is exact for these
-    two-term expressions. mpmath is re-entered on the way out.
+    Coefficients are built from Python floats rather than mpmath scalars, and
+    the constructor normalises them to `complex`. That keeps the declared
+    `complex` field type true at runtime: `complex * mp.mpf` returns an
+    `mpmath.mpc`, and storing that in a field annotated `complex` is a real
+    violation, not a typing nicety.
+
+    An earlier version of this docstring blamed an mpmath arithmetic defect in
+    the execution environment for observed wrong values here. That diagnosis was
+    wrong: the values were correct, and the apparent anomaly was a mistake in
+    reading them. mpmath scalar arithmetic is not unreliable.
     """
     tau = float(tau)
     return GradedElement((1.0 + tau) * 0.5, (1.0 - tau) * 0.5)
 
 
-def local_factor(p: int, s, tau=1) -> GradedElement:
+def local_factor(p: int, s: Scalar, tau: Scalar = 1) -> GradedElement:
     """The Euler local factor `1 / (1 - p^{-s} * gamma_tau)`.
 
     At `tau = 1` this is `1 / (1 - p^{-s})`, the classical factor. For `tau != 1`
@@ -285,7 +301,7 @@ def local_factor(p: int, s, tau=1) -> GradedElement:
     return (GradedElement.identity() - grading_shift(tau).scale(x)).inverse()
 
 
-def local_factor_eigenvalues(p: int, s, tau=1) -> tuple[mp.mpc, mp.mpc]:
+def local_factor_eigenvalues(p: int, s: Scalar, tau: Scalar = 1) -> tuple[mp.mpc, mp.mpc]:
     """The two eigenvalues of the local factor, for diagnostics.
 
     In the eigenbasis of `omega` the element `a + b*omega` is diagonal with

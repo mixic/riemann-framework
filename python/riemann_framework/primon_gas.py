@@ -54,7 +54,20 @@ destination. Nothing here proves anything about RH.
 
 from __future__ import annotations
 
+import numbers
+from typing import Sequence, TypeAlias
+
 import numpy as np
+
+# The scalar type accepted for the exponent `s`.
+#
+# `numbers.Number`, not `complex`: `mpmath.mpf` and `mpmath.mpc` are registered
+# as `numbers.Number` but are not subclasses of the builtin `complex`, so a
+# `complex` annotation rejects every caller that passes an `mp.mpf` -- which the
+# shift-zeta module and the graded algebra both do. `numbers.Number` covers the
+# `int`, `float`, `complex`, `mp.mpf` and `mp.mpc` arguments the arithmetic here
+# accepts.
+Scalar: TypeAlias = numbers.Number
 
 # Trial-division factorisation. The external prototype used sympy; this
 # repository depends only on mpmath/numpy/scipy, and trial division is exact
@@ -109,7 +122,7 @@ def primon_hamiltonian(n_max: int) -> np.ndarray:
     return np.diag(hamiltonian_diagonal(n_max))
 
 
-def trace_exp(s: complex, n_max: int) -> complex:
+def trace_exp(s: Scalar, n_max: int) -> complex:
     """Truncated partition function: `Tr_N[e^{-s H}] = sum_{n=1}^{N} n^{-s}`.
 
     This equals the partial sum of the Dirichlet series for zeta, which is the
@@ -121,7 +134,7 @@ def trace_exp(s: complex, n_max: int) -> complex:
     return complex(np.sum(n ** (-complex(s))))
 
 
-def zeta_reference(s: complex):
+def zeta_reference(s: Scalar) -> complex:
     """`zeta(s)` at high precision, via mpmath.
 
     Imported lazily so that the operator-level tests do not depend on mpmath
@@ -134,7 +147,9 @@ def zeta_reference(s: complex):
     return complex(value)
 
 
-def trace_convergence(s: complex, truncations=(10, 100, 1_000, 10_000, 100_000)) -> dict:
+def trace_convergence(
+    s: Scalar, truncations: Sequence[int] = (10, 100, 1_000, 10_000, 100_000)
+) -> dict:
     """Check `Tr_N[e^{-sH}] -> zeta(s)` as `N` grows, for `Re(s) > 1`.
 
     The defining series diverges for `Re(s) <= 1`, so this is only meaningful

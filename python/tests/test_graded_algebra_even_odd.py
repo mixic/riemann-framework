@@ -88,6 +88,65 @@ def test_default_omega_sq_is_plus_one():
     assert GradedElement(1.0, 2.0).omega_sq == 1
 
 
+# ============================================================
+# The coefficient invariant: fields are declared `complex`
+# ============================================================
+
+def test_constructor_normalises_coefficients_to_complex():
+    """Regression: the fields are annotated `complex` but stored floats.
+
+    Every arithmetic method assumes `complex`, and `complex * mp.mpf` returns
+    an `mpmath.mpc`, so without normalisation the declared field type is false
+    at runtime.
+    """
+    for element in (
+        GradedElement(2.0, -3.0),
+        GradedElement(mp.mpf("0.5"), mp.mpf("0.25")),
+        GradedElement(2, -3),
+        GradedElement(complex(2, 1), complex(0, -1)),
+    ):
+        assert type(element.even) is complex
+        assert type(element.odd) is complex
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        lambda e: e * mp.mpf("0.5"),
+        lambda e: e / mp.mpf("2"),
+        lambda e: e + mp.mpf("1"),
+        lambda e: e - mp.mpf("1"),
+        lambda e: e * 0.5,
+        lambda e: e * 2,
+        lambda e: -e,
+        lambda e: e.inverse(),
+        lambda e: e**2,
+        lambda e: sigma(e),
+        lambda e: project_to_fix(e),
+        lambda e: project_to_anti(e),
+    ],
+)
+def test_operations_preserve_the_complex_coefficient_type(operation):
+    """Regression: `e * mp.mpf("0.5")` used to store `mpmath.mpf` fields."""
+    result = operation(GradedElement(2.0, -3.0))
+    assert type(result.even) is complex
+    assert type(result.odd) is complex
+
+
+@pytest.mark.parametrize("tau", [1, 0, mp.mpf("0.5"), 2])
+def test_local_factor_coefficients_are_python_complex(tau):
+    """Regression: local_factor used to return `mpmath.mpc` coefficients."""
+    factor = local_factor(2, 2, tau)
+    assert type(factor.even) is complex
+    assert type(factor.odd) is complex
+
+
+def test_euler_product_coefficients_are_python_complex():
+    product = euler_product(2, PRIMES_20[:5], mp.mpf("0.5"))
+    assert type(product.even) is complex
+    assert type(product.odd) is complex
+
+
 def test_omega_squares_to_plus_one_by_default():
     omega = GradedElement(0.0, 1.0)
     square = omega * omega

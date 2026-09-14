@@ -138,8 +138,26 @@ class GradedElement:
     omega_sq: int = 1
 
     def __post_init__(self) -> None:
+        """Validate `omega_sq` and normalise the coefficients to `complex`.
+
+        The normalisation is not cosmetic. Every arithmetic method assumes
+        `complex` coefficients, and without it the following all produced values
+        that violated the declared field type:
+
+            GradedElement(2.0, -3.0)      -> float coefficients
+            element * mp.mpf("0.5")       -> mpmath.mpf coefficients
+            element / mp.mpf("2")         -> mpmath.mpf coefficients
+            local_factor(...)             -> mpmath.mpc coefficients
+
+        `complex` accepts `int`, `float`, `complex`, `mp.mpf` and `mp.mpc`, and
+        the coefficients this algebra produces stay exactly representable.
+        Assigning through `object.__setattr__` is required because the dataclass
+        is frozen.
+        """
         if self.omega_sq not in (-1, 1):
             raise ValueError(f"omega_sq must be +1 or -1, got {self.omega_sq}")
+        object.__setattr__(self, "even", complex(self.even))
+        object.__setattr__(self, "odd", complex(self.odd))
 
     # ------------------------------------------------------------
     # Arithmetic
