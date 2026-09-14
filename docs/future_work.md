@@ -189,6 +189,33 @@ must address:
 A model that reproduces only GUE statistics remains a universality-class model,
 not an arithmetic model of zeta.
 
+### 5.1 The primon gas supplies an exact anchor
+
+`python/riemann_framework/primon_gas.py` implements the one operator in this
+project whose trace provably is the Euler product: on `l^2(N)` with
+`H|n> = log(n)|n>`, `Tr[e^{-sH}] = zeta(s)` for `Re(s) > 1`. This closes the
+first two bullets above in the only sense currently available:
+
+- `log(p)` weights arise as the oscillator energies, one bosonic mode per prime;
+- the Euler product is recovered exactly, from unique factorisation, not fitted.
+
+**Status:** implemented and tested. What remains open is everything from the
+third bullet onward: the eigenvalues are `log(n)`, not the zero ordinates, so
+the Riemann-von Mangoldt density and the zero-to-spectrum correspondence are
+untouched. This anchors M6, not M7.
+
+### 5.2 Use the anchor as a target, not just a demonstration
+
+Any proposed symmetry should now be tested against `H` rather than only against
+GUE statistics. `python/riemann_framework/operator_symmetry.py` does this and
+records a negative result: the natural lift of the dimension-shift involution
+onto `l^2(N)` -- permuting prime exponents -- provably cannot commute with `H`,
+because `H` has simple spectrum and the permutation is not diagonal. See
+`docs/central_hypothesis.md` section 3.2 for the caveats that travel with it.
+
+**Next:** a candidate that acts on a non-diagonal representation, in the spirit
+of the Bost-Connes Galois action, rather than a basis permutation.
+
 ## Priority 6: DSIN Research Track
 
 DSIN should remain explicitly downstream and speculative. Future work should:

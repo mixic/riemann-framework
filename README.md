@@ -27,6 +27,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
 | DSIN communication simulation | Working as a toy simulation; no security proof |
 | Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
+| Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Formal proof of RH | Open problem |
 
 ## Screening candidate ideas
@@ -51,6 +52,40 @@ functional-equation reflection composed with conjugation, so it adds no new
 algebra. Its fixed locus is nevertheless exactly `Re(s) = 1/2`, which is the
 property the proposal actually needs. See `docs/dimension_shift_involution.md`
 section 2.1.
+
+## The primon gas: an exact arithmetic anchor
+
+The one place in this repository where the Euler product is not modelled but
+*provably present*. On `l^2(N)` with basis `|n>` and `H|n> = log(n)|n>`,
+
+```text
+Tr[e^{-sH}] = sum_n n^{-s} = zeta(s)      exactly, for Re(s) > 1
+```
+
+— Julia (1990), Spector (1990), refined into the Bost-Connes system (1995). The
+Euler product falls out of unique factorisation: `l^2(N)` is the Fock space of
+independent bosonic oscillators, one per prime, with energy `log(p)`.
+
+```python
+from riemann_framework.primon_gas import trace_convergence
+
+result = trace_convergence(2.0, truncations=(10, 100, 1000, 10_000, 100_000))
+print(result["relative_errors"])   # decreasing, ~0.6/N at s = 2
+```
+
+This gives candidate symmetries a real target instead of a statistical one:
+does your proposed symmetry commute with the one operator whose trace is the
+Euler product? `riemann_framework/operator_symmetry.py` runs that test and
+records a **negative result** — the natural lift of the dimension-shift
+involution onto `l^2(N)`, swapping two primes' exponents, *provably cannot*
+commute with `H`, because `H` has simple spectrum while the permutation is not
+diagonal.
+
+Two things this does **not** do: the eigenvalues of `H` are `log(n)`, not the
+imaginary parts of the zeta zeros, so it anchors the Euler product and not the
+zero locations; and the obstruction above is a statement about basis
+permutations specifically, not about the dimension-shift programme as a whole.
+See `docs/central_hypothesis.md` section 3.
 
 ## Goal
 
@@ -148,6 +183,8 @@ riemann-framework/
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
 │   │   ├── affine_reduction.py    # Affine-reduction gate for candidate maps
+│   │   ├── primon_gas.py          # Exact anchor: Tr[e^{-sH}] = zeta(s)
+│   │   ├── operator_symmetry.py   # Screens symmetries against the primon H
 │   │   ├── lean_runner.py        # Compiles Lean files via subprocess
 │   │   └── plots.py              # Plot generation
 │   │
@@ -159,6 +196,7 @@ riemann-framework/
 │       ├── test_dimension_shift_chaos.py # Chaos pipeline tests
 │       ├── test_quantum_chaos.py     # Zero statistics tests
 │       ├── test_affine_reduction.py  # Records the affine-reduction result
+│       ├── test_primon_gas.py        # Exact trace identity + the failed lift
 │       └── test_dsin.py              # DSIN simulation tests
 │
 ├── scripts/                      # Helper scripts

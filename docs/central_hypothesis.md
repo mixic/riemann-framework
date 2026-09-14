@@ -86,6 +86,51 @@ A criterion is verified only when the code, assumptions, parameters, and
 passing test or theorem are recorded. Numerical agreement does not establish
 a mathematical correspondence.
 
+### 3.1 An exact arithmetic anchor now exists
+
+The primon gas (Julia 1990, Spector 1990; refined into the Bost-Connes system,
+1995) supplies what this project previously lacked: an operator whose trace
+*provably is* the Euler product. On `l^2(N)` with `H|n> = log(n)|n>`,
+
+```text
+Tr[e^{-sH}] = sum_n n^{-s} = zeta(s)      exactly, for Re(s) > 1.
+```
+
+This is implemented in `python/riemann_framework/primon_gas.py`, and the
+truncated trace is checked against `mpmath`'s `zeta` as `N` grows rather than
+asserted. It matters because it converts an open-ended question -- "does the
+model engage the arithmetic?" -- into a concrete test: does a proposed symmetry
+commute with the one operator whose trace is the Euler product?
+
+It does **not** supply the zeros. The eigenvalues of `H` are `log(n)`, not the
+imaginary parts of the non-trivial zeros. This anchors M6 (arithmetic
+embedding), not M7 (spectral correspondence).
+
+### 3.2 Recorded negative result: the natural lift fails
+
+The most natural attempt to give the dimension-shift involution arithmetic
+content is to lift it onto `l^2(N)` as the permutation swapping the exponents
+of two primes in each integer's factorisation. That lift **cannot** commute
+with `H`, and the reason is structural rather than numerical: `H` is diagonal
+with eigenvalues `log(n)`, which are strictly distinct, so any operator
+commuting with it must itself be diagonal in the `|n>` basis -- while this
+permutation is not. See `python/riemann_framework/operator_symmetry.py` and
+`python/tests/test_primon_gas.py`.
+
+This rules out basis permutations on `l^2(N)` as the route to a symmetry of the
+primon gas. It does not rule out the programme: the Bost-Connes system's Galois
+action, for instance, acts on a different, non-diagonal representation.
+
+Two caveats are recorded with the numbers rather than buried:
+
+- On a finite truncation the swap is only a partial permutation, because
+  partners such as `3^3 = 27` for `8 = 2^3` fall outside it. For the `(2, 3)`
+  swap every truncation with `n_max >= 8` is already affected, so the finite
+  commutator norm describes a boundary-corrected map, not the intended one.
+- The matrix-level obstruction is a finite-dimensional linear-algebra fact. The
+  infinite-dimensional statement needs the unbounded-operator care that this
+  finite test does not exercise.
+
 ## 4. Falsification Criteria
 
 The programme should be abandoned or fundamentally revised if robust evidence
