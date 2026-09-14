@@ -80,12 +80,27 @@ built on this algebra, which is negative.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import numbers
+from typing import Sequence, TypeAlias
 
 import mpmath as mp
 
 # Grading labels, kept for callers that compare against them.
 EVEN = 0
 ODD = 1
+
+# The scalar type accepted for `s` and for `tau`.
+#
+# This is `numbers.Number`, not `complex`, and the distinction matters to a type
+# checker: `mpmath.mpf` and `mpmath.mpc` are registered as `numbers.Number` but
+# are *not* subclasses of the builtin `complex`, even though `complex(mpf)`
+# works. Annotating these parameters `complex` therefore rejects every call that
+# passes an `mp.mpf`, which is what the test suite and the shift-zeta module
+# both do (for instance `mp.mpf("2.5")`).
+#
+# `numbers.Number` covers `int`, `float`, `complex`, `mp.mpf` and `mp.mpc`, which
+# is exactly the set of arguments the arithmetic below accepts.
+Scalar: TypeAlias = numbers.Number
 
 
 def _tolerance(tol: float | None) -> float:
@@ -317,7 +332,7 @@ def is_supertrace_zero(a: GradedElement, tol: float | None = None) -> bool:
 # Local factors
 # ============================================================
 
-def local_factor(p: int, s: complex, tau=1, omega_sq: int = 1) -> GradedElement:
+def local_factor(p: int, s: Scalar, tau: Scalar = 1, omega_sq: int = 1) -> GradedElement:
     """The local Euler factor `1 / (1 - p^{-s} * gamma_tau)`.
 
     `gamma_tau = ((1+tau)/2) + ((1-tau)/2)*omega` is an even element with
@@ -352,7 +367,9 @@ def local_factor(p: int, s: complex, tau=1, omega_sq: int = 1) -> GradedElement:
     return (GradedElement(1.0, 0.0, omega_sq) - weight * x).inverse()
 
 
-def euler_product(s: complex, primes, tau=1, omega_sq: int = 1) -> GradedElement:
+def euler_product(
+    s: Scalar, primes: Sequence[int], tau: Scalar = 1, omega_sq: int = 1
+) -> GradedElement:
     """The truncated Euler product `prod_p L_p(s, tau)` in the algebra."""
     product = GradedElement(1.0, 0.0, omega_sq)
     for p in primes:
@@ -360,7 +377,7 @@ def euler_product(s: complex, primes, tau=1, omega_sq: int = 1) -> GradedElement
     return product
 
 
-def partial_euler_product(s: complex, primes) -> complex:
+def partial_euler_product(s: Scalar, primes: Sequence[int]) -> complex:
     """The classical partial Euler product `prod_p 1/(1 - p^{-s})`."""
     value = mp.mpc(1)
     for p in primes:
@@ -407,7 +424,7 @@ def check_trace_invariance(a: GradedElement, tol: float | None = None) -> bool:
 
 
 def check_trace_is_geometric_series(
-    p: int, s: complex, tau=1, terms: int = 400, tol: float | None = None
+    p: int, s: Scalar, tau: Scalar = 1, terms: int = 400, tol: float | None = None
 ) -> bool:
     """True when `L_p` matches its closed form at the given `tau`.
 
@@ -444,7 +461,7 @@ def check_trace_is_geometric_series(
 
 
 def check_euler_product_converges(
-    s: complex, primes, tau=1, tolerance: float = 1e-3
+    s: Scalar, primes: Sequence[int], tau: Scalar = 1, tolerance: float = 1e-3
 ) -> bool:
     """True when the product of local traces is the classical partial product.
 
