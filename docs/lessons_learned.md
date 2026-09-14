@@ -220,7 +220,35 @@ has been built.
 General form: **a comparison can falsify a match without being able to certify a
 mismatch in position.** Say which direction the evidence runs.
 
-## 12. Falsification Grid Result
+## 12. `numpy.bool` Is Not `bool` to a Type Checker
+
+A type checker rejects
+
+```python
+def is_x(self) -> bool:
+    return np.isclose(self.a, 0.0)
+```
+
+with
+
+```text
+Type "numpy.bool[builtins.bool]" is not assignable to return type "bool"
+```
+
+`np.isclose`, `np.allclose` and `np.array_equal` are declared as returning
+`np.bool[builtins.bool]` in the numpy 2.x stubs. `np.bool_` subclasses `bool`,
+so this works at runtime and every test passes, but the declared annotation is
+a lie to the checker.
+
+Wrap it: `return bool(np.isclose(...))`. Same for `np.isscalar`, and for
+`np.all`/`np.any` applied to an array.
+
+Worth recording because it is invisible in testing: the runtime behaviour is
+correct, so only a static check catches it. Note also that a test asserting
+`is True` or using `assert` will not distinguish the two, since `np.bool_` is
+truthy in the same way.
+
+## 13. Falsification Grid Result
 
 The default falsification grid was run with:
 

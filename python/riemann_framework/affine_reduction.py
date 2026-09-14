@@ -300,13 +300,18 @@ def fixed_locus_is_critical_line(expression: str = "1 - s_conj", samples: int = 
     def sigma(z: complex) -> complex:
         return evaluate(z, z.conjugate())
 
+    # `abs(...) > tol` is a Python bool for Python floats, but a numpy scalar
+    # comparison would yield `np.bool_`, which a type checker refuses to accept
+    # where `bool` is declared (numpy 2.x stubs: `np.isclose` returns
+    # `np.bool[builtins.bool]`). Coercing explicitly keeps the declared return
+    # type honest regardless of what the expression evaluator returns.
     for index in range(samples):
         t = -3.0 + 6.0 * index / (samples - 1)
         on_line = complex(0.5, t)
-        if abs(sigma(on_line) - on_line) > 1e-9:
+        if bool(abs(sigma(on_line) - on_line) > 1e-9):
             return False
         for real_part in (0.25, 0.4, 0.6, 0.75):
             off_line = complex(real_part, t)
-            if abs(sigma(off_line) - off_line) < 1e-9:
+            if bool(abs(sigma(off_line) - off_line) < 1e-9):
                 return False
     return True
