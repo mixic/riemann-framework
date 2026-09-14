@@ -208,14 +208,22 @@ class GradedElement:
             return (np.isclose(self.even, other.even)
                     and np.isclose(self.odd, other.odd))
 
-        which two problems. `np.isclose` returns `np.bool_`, which a type
+        which had two problems. `np.isclose` returns `np.bool_`, which a type
         checker rejects where `bool` is declared (numpy 2.x stubs:
         `np.isclose -> np.bool[builtins.bool]`). And `omega_sq` was ignored, so
         elements of *different* algebras compared equal even though they
         multiply differently.
+
+        Comparison against a non-element returns `False` rather than
+        `NotImplemented`. `NotImplemented` is the more idiomatic signal for a
+        reflected-operator fallback, but it is not a `bool`: `bool(NotImplemented)`
+        raises `TypeError`, and a type checker flags it against the declared
+        return type. Since nothing here defines an `__eq__` that could accept a
+        `GradedElement` as its right operand, the fallback has nothing to fall
+        back to.
         """
         if not isinstance(other, GradedElement):
-            return NotImplemented
+            return False
         if self.omega_sq != other.omega_sq:
             return False
         return bool(
@@ -286,11 +294,11 @@ def supertrace(a: GradedElement) -> complex:
 
     `sigma` trades the two eigenvalues `a0 +- a1`, so this one is not invariant
     under `sigma`; it is the graded companion of `trace`. The two are different
-    objects and conflating them is what produced the original defect.
+    objects, and conflating them is what produced the original defect.
 
-    For the local factor, `supertrace(L_p) = 1/(1 - p^{-s})` independently of
-    the grading weight, which is why the product of the supertraces -- and not
-    the product of the traces -- is the classical Euler product.
+    For the local factor `L_p = 1/(1 - p^{-s} gamma_tau)` this evaluates to
+    `1 / (1 - tau p^{-s})`, which equals the classical `1/(1 - p^{-s})` only at
+    `tau = 1`. It is *not* independent of the grading weight.
     """
     return complex(a.even - a.odd)
 
@@ -301,7 +309,7 @@ def matrix_trace(a: GradedElement) -> complex:
 
 
 def is_supertrace_zero(a: GradedElement, tol: float | None = None) -> bool:
-    """True when the supertrace vanishes, i.e. when `a` is fixed by `sigma`."""
+    """True when the supertrace vanishes, i.e. when `even == odd`."""
     return bool(abs(supertrace(a)) < _tolerance(tol))
 
 
