@@ -22,6 +22,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "python"))
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import numpy as np
 
 from riemann_framework.falsification_test import (
@@ -29,6 +31,7 @@ from riemann_framework.falsification_test import (
     summarize_grid,
 )
 from riemann_framework.quantum_chaos import compare_reference_systems
+from riemann_framework.statistics import REFERENCE_R
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -54,19 +57,29 @@ def _write_summary(summary, references, path):
         output.write(f"  {summary['explanation']}\n")
 
 
-def _plot_artifacts(results):
+def _plot_artifacts(results) -> None:
     dimensions = sorted({result.dim_per_sector for result in results})
     couplings = sorted({result.coupling for result in results})
     symmetry_breaking = sorted({result.symmetry_breaking for result in results})
 
-    fig, axes = plt.subplots(
-        1,
-        len(dimensions),
-        figsize=(5 * len(dimensions), 4),
-        squeeze=False,
-        constrained_layout=True,
+    _plot_grid(dimensions, couplings, symmetry_breaking, results)
+    _plot_distribution(results)
+
+
+def _plot_grid(dimensions, couplings, symmetry_breaking, results) -> None:
+    if not dimensions:
+        return
+
+    figure: Figure = plt.figure(
+        figsize=(5 * len(dimensions), 4), constrained_layout=True
     )
-    for axis, dimension in zip(axes[0], dimensions):
+    panel_axes = figure.subplots(1, len(dimensions), squeeze=False)[0]
+
+    # Declared before the loop so the colorbar below cannot reference an
+    # unbound name. matplotlib's `imshow` always returns an `AxesImage`, but a
+    # static analyzer cannot know the loop body ran at least once.
+    image = None
+    for axis, dimension in zip(panel_axes, dimensions):
         values = np.full((len(symmetry_breaking), len(couplings)), np.nan)
         for result in results:
             if result.dim_per_sector != dimension:
@@ -79,24 +92,44 @@ def _plot_artifacts(results):
         axis.set_xlabel("Coupling")
         axis.set_ylabel("Symmetry breaking")
         axis.set_xticks(range(len(couplings)), [f"{value:g}" for value in couplings])
-        axis.set_yticks(range(len(symmetry_breaking)), [f"{value:g}" for value in symmetry_breaking])
-    fig.colorbar(image, ax=axes.ravel().tolist(), label="Mean r-ratio")
-    fig.suptitle("Dimension-shift falsification grid")
-    fig.savefig(OUTPUT_DIR / "falsification_heatmap.png", dpi=150)
-    plt.close(fig)
+        axis.set_yticks(
+            range(len(symmetry_breaking)),
+            [f"{value:g}" for value in symmetry_breaking],
+        )
 
-    fig, axis = plt.subplots(figsize=(8, 5))
-    axis.hist([result.mean_r for result in results], bins=12, color="steelblue", edgecolor="white")
-    for value, label, color in ((0.386, "Poisson", "red"), (0.530, "GOE", "orange"), (0.599, "GUE", "green")):
-        axis.axvline(value, color=color, linestyle="--", label=f"{label} ({value:.3f})")
+    if image is not None:
+        figure.colorbar(image, ax=list(panel_axes), label="Mean r-ratio")
+
+    figure.suptitle("Dimension-shift falsification grid")
+    figure.savefig(OUTPUT_DIR / "falsification_heatmap.png", dpi=150)
+    plt.close(figure)
+
+
+def _plot_distribution(results) -> None:
+    if not results:
+        return
+
+    figure: Figure = plt.figure(figsize=(8, 5))
+    axis: Axes = figure.subplots()
+    axis.hist(
+        [result.mean_r for result in results],
+        bins=12,
+        color="steelblue",
+        edgecolor="white",
+    )
+    for name, colour in (("Poisson", "red"), ("GOE", "orange"), ("GUE", "green")):
+        value = REFERENCE_R[name.lower()]
+        axis.axvline(
+            value, color=colour, linestyle="--", label=f"{name} ({value:.3f})"
+        )
     axis.set_xlabel("Mean r-ratio")
     axis.set_ylabel("Parameter points")
     axis.set_title("Falsification-grid distribution")
     axis.legend()
     axis.grid(alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(OUTPUT_DIR / "falsification_histogram.png", dpi=150)
-    plt.close(fig)
+    figure.tight_layout()
+    figure.savefig(OUTPUT_DIR / "falsification_histogram.png", dpi=150)
+    plt.close(figure)
 
 
 def main():

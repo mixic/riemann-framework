@@ -25,6 +25,19 @@ from scipy import stats
 
 
 # ============================================================
+# Reference mean gap ratios
+# ============================================================
+
+# Analytic/standard random-matrix values for the mean adjacent-gap ratio
+# (Atas et al., PRL 2013). Hard-coded constants, not fitted.
+REFERENCE_R = {
+    "poisson": 0.386,
+    "goe": 0.530,
+    "gue": 0.599,
+}
+
+
+# ============================================================
 # Level spacing statistics
 # ============================================================
 
@@ -177,14 +190,9 @@ def classify_statistics(eigenvalues, unfold=True):
     Returns the mean r-ratio and the best-fitting reference.
     """
     r = mean_r_ratio(eigenvalues, unfold=unfold)
-    references = {
-        "poisson": 0.386,
-        "goe": 0.530,
-        "gue": 0.599,
-    }
-    best = min(references, key=lambda k: abs(references[k] - r))
+    best = min(REFERENCE_R, key=lambda k: abs(REFERENCE_R[k] - r))
     return {
         "mean_r": r,
         "best_fit": best,
-        "reference_values": references,
+        "reference_values": dict(REFERENCE_R),
     }
