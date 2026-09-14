@@ -15,7 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Run the DSH falsification grid and write reproducible result artifacts."""
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Sequence
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -24,9 +27,11 @@ sys.path.insert(0, str(PROJECT_ROOT / "python"))
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.image import AxesImage
 import numpy as np
 
 from riemann_framework.falsification_test import (
+    FalsificationResult,
     run_grid,
     summarize_grid,
 )
@@ -57,7 +62,7 @@ def _write_summary(summary, references, path):
         output.write(f"  {summary['explanation']}\n")
 
 
-def _plot_artifacts(results) -> None:
+def _plot_artifacts(results: Sequence[FalsificationResult]) -> None:
     dimensions = sorted({result.dim_per_sector for result in results})
     couplings = sorted({result.coupling for result in results})
     symmetry_breaking = sorted({result.symmetry_breaking for result in results})
@@ -66,7 +71,12 @@ def _plot_artifacts(results) -> None:
     _plot_distribution(results)
 
 
-def _plot_grid(dimensions, couplings, symmetry_breaking, results) -> None:
+def _plot_grid(
+    dimensions: Sequence[int],
+    couplings: Sequence[float],
+    symmetry_breaking: Sequence[float],
+    results: Sequence[FalsificationResult],
+) -> None:
     if not dimensions:
         return
 
@@ -75,10 +85,10 @@ def _plot_grid(dimensions, couplings, symmetry_breaking, results) -> None:
     )
     panel_axes = figure.subplots(1, len(dimensions), squeeze=False)[0]
 
-    # Declared before the loop so the colorbar below cannot reference an
-    # unbound name. matplotlib's `imshow` always returns an `AxesImage`, but a
-    # static analyzer cannot know the loop body ran at least once.
-    image = None
+    # Bound before the loop so the colorbar below cannot reference an unbound
+    # name: `dimensions` is non-empty here, but a static analyzer cannot know
+    # the loop body ran at least once.
+    image: AxesImage | None = None
     for axis, dimension in zip(panel_axes, dimensions):
         values = np.full((len(symmetry_breaking), len(couplings)), np.nan)
         for result in results:
@@ -105,7 +115,7 @@ def _plot_grid(dimensions, couplings, symmetry_breaking, results) -> None:
     plt.close(figure)
 
 
-def _plot_distribution(results) -> None:
+def _plot_distribution(results: Sequence[FalsificationResult]) -> None:
     if not results:
         return
 
