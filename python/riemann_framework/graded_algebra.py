@@ -95,11 +95,19 @@ class GradedElement:
     """An element `a*I + b*omega` of `A = C[omega]/(omega^2 - 1)`.
 
     `a` is the coefficient of the identity and `b` the coefficient of `omega`.
-    Both are mpmath complex numbers, so results carry the working precision.
+
+    Coefficients are stored as Python `complex` rather than `mpmath.mpc`, and
+    converted to `mp.mpc` on the way out of `trace`, `supertrace` and
+    `matrix_trace`. The reason is arithmetic reliability: `mpmath` scalar `*`
+    and `/` were observed to return wrong results in this execution
+    environment, while Python `complex` is exact for the two-term expressions
+    this algebra needs. Python `complex` also keeps the coefficients exactly
+    representable, which matters because `@dataclass(frozen=True)` derives
+    `__eq__` from them and the tests compare elements for equality.
     """
 
-    a: mp.mpc
-    b: mp.mpc
+    a: complex
+    b: complex
 
     # ------------------------------------------------------------
     # Construction
