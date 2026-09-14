@@ -29,6 +29,29 @@ A passing test is **evidence**, not a mathematical proof.
 | Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
 | Formal proof of RH | Open problem |
 
+## Screening candidate ideas
+
+The repository includes a small gate for candidate operations on the complex
+slice, adapted from an external idea-vetting prototype. It answers one narrow
+question: is the formula affine in `(s, conjugate(s))`? If so it is a known
+similarity of the plane (rotation/scaling/translation) and not a new algebraic
+object.
+
+```python
+from riemann_framework.affine_reduction import check_affine_reduction
+
+result = check_affine_reduction("1 - s_conj")
+print(result.is_affine)      # True  -> a known affine map
+print(result.coefficients)   # (0j, (-1+0j), (1+0j))  -> 0*s - 1*conj(s) + 1
+```
+
+This records an honest negative result rather than a success: the
+dimension-shift prototype `sigma(s) = 1 - conjugate(s)` is the
+functional-equation reflection composed with conjugation, so it adds no new
+algebra. Its fixed locus is nevertheless exactly `Re(s) = 1/2`, which is the
+property the proposal actually needs. See `docs/dimension_shift_involution.md`
+section 2.1.
+
 ## Goal
 
 The Riemann Hypothesis states that all non-trivial zeros of the
@@ -124,6 +147,7 @@ riemann-framework/
 │   │   ├── dsin.py                # DSIN communication simulation
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
+│   │   ├── affine_reduction.py    # Affine-reduction gate for candidate maps
 │   │   ├── lean_runner.py        # Compiles Lean files via subprocess
 │   │   └── plots.py              # Plot generation
 │   │
@@ -134,6 +158,7 @@ riemann-framework/
 │       ├── test_dimension_shift.py   # Dimension-shift tests
 │       ├── test_dimension_shift_chaos.py # Chaos pipeline tests
 │       ├── test_quantum_chaos.py     # Zero statistics tests
+│       ├── test_affine_reduction.py  # Records the affine-reduction result
 │       └── test_dsin.py              # DSIN simulation tests
 │
 ├── scripts/                      # Helper scripts

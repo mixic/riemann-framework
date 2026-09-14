@@ -114,6 +114,20 @@ modules.
 Replace loosely structured dictionaries in experiment reports with dataclasses
 or typed dictionaries. Document units and meanings for every field.
 
+### 3.3 Screen candidate formulas before building numerics on them
+
+Every candidate operation on the complex slice should be pushed through the
+affine-reduction gate before any numerical work is invested in it. The gate is
+`python/riemann_framework/affine_reduction.py`; an expression that is affine in
+`(s, conjugate(s))` is a known similarity of the plane and is not a new
+algebraic object.
+
+**Status:** implemented, with the dimension-shift prototype recorded as
+failing the gate (`docs/dimension_shift_involution.md`, section 2.1). The gate
+covers closed-form expressions in `s` and `s_conj` only; it says nothing about
+operator-level or arithmetic-level structure, which is where the programme's
+remaining content actually lives.
+
 ### 3.3 Add package entry points
 
 Define command-line entry points in `python/pyproject.toml` for:

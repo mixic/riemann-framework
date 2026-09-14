@@ -5,6 +5,11 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
+# pip scratch directories (leaked into the repo root when a sandboxed install
+# cannot clean up its own temporary directories)
+pip-*/
+.piptmp/
+
 # Lean
 .lake/
 build/
