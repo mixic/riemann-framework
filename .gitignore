@@ -31,6 +31,8 @@ output/*.png
 !output/falsification_summary.txt
 !output/shift_zeta_traces.png
 !output/shift_zeta_convergence.png
+!output/shift_zeta_critical_line.png
+!output/shift_zeta_comparison.png
 !output/shift_zeta_summary.txt
 
 # OS

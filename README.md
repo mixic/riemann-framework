@@ -28,15 +28,14 @@ A passing test is **evidence**, not a mathematical proof.
 | DSIN communication simulation | Working as a toy simulation; no security proof |
 | Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
-| Shift-zeta (graded algebra) | **Null result.** Well-defined and tested; does not answer whether the zeros lie in the fixed locus. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
+| Shift-zeta (graded algebra) | **Negative result.** Well-defined and tested; does **not** reproduce the classical zeros. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
 | Formal proof of RH | Open problem |
 
-## Shift-zeta: a null result, reported as such
+## Shift-zeta: a negative result, reported as such
 
 The graded-algebra programme asked whether lifting the Euler product to
 `A = A₀ + ωA₁` forces the zeros of the resulting "shift-zeta" into the fixed
-locus `Fix(σ) = A₀`. It does not: the construction cannot answer the question,
-because it places its own object inside `Fix(σ)` by definition.
+locus `Fix(σ) = A₀`. It does not.
 
 What the numbers show (600 primes; full detail in
 [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md)):
@@ -49,11 +48,11 @@ What the numbers show (600 primes; full detail in
 - for `τ ≠ 1` the trace departs from `ζ` by **11% to 44%** at `s = 2`, and the
   completion symmetry fails with residuals `1e-2` to `1e-1` against a classical
   control at numerical precision — **G5 fails**;
-- the zero comparison is **undecidable**: a sign-change scan at `τ = 1`, where
-  the two functions coincide by construction, reports 28 sign changes against 4
-  classical zeros. The truncated Euler product simply cannot locate zeros near
-  the critical line. **G6 is undecidable**, which is a limitation of the method,
-  not a finding about the zeros.
+- **G6 fails.** At `τ = 1` — where the trace *is* the classical product, so the
+  method demonstrably can locate zeros — the trace dips sharply exactly at the
+  classical zeros. At `τ = 0` it shows no such dips and is **3.5 to 7.5 times
+  larger** at those heights. The two zero sets do not coincide. This is
+  falsification criterion F1.
 
 ```powershell
 python scripts/run_shift_zeta_analysis.py
@@ -71,10 +70,23 @@ classical Euler product. Every other curve is a different function.
 
 ![Graded trace of the shift-zeta against classical zeta](output/shift_zeta_traces.png)
 
-### Euler truncation error
+### Critical line
 
-This is what makes the zero comparison undecidable: the error at the working
-truncation is of the same order as the signal near the critical line.
+The exact `|ζ(1/2+it)|` with its zeros, against the raw graded product on a log
+scale. The product has no limit on this line: changing the prime count from 100
+to 1500 moves it by more than 5 in absolute value.
+
+![|zeta| and the raw graded product on the critical line](output/shift_zeta_critical_line.png)
+
+### Zeros comparison, with the control that makes it decisive
+
+The right-hand panel is the control. At `τ = 1` the trace *is* the classical
+product and dips sharply at every marked zero — so the method can locate zeros.
+At `τ = 0` (left) it cannot, and does not: its minima lie elsewhere.
+
+![Classical zeros vs the graded trace, with the tau=1 control](output/shift_zeta_comparison.png)
+
+### Euler truncation error
 
 ![Euler truncation error at s = 2](output/shift_zeta_convergence.png)
 

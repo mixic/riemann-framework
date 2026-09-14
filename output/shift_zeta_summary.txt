@@ -60,7 +60,44 @@ Zeros: ratio test at the classical zeros
   The Euler product truncated at a few hundred primes is simply not
   accurate enough near the critical line to locate zeros.
 
-  Conclusion for G6: UNDECIDABLE at accessible truncation.
+  Conclusion for G6: the evidence points to DIFFERENT zeros, though the
+  case is numerical rather than rigorous -- see the next block.
+
+Critical-line spread of the raw product
+============================================================
+  max | 100-prime product - 1500-prime product | on t in [0, 40] = 5.1035
+  A converged series would show this shrinking with the prime count; it
+  does not, which is why the critical-line figure is not evidence about
+  the location of any zero.
+
+Ratio at the classical zeros
+============================================================
+  |Z_A(rho, tau)| / |Z_A(rho, 1)| at the first six zero heights
+     tau | ratios at the first six zeros
+       0 | 7.5394  5.7193  4.3529  6.8766  6.1449  3.4518
+     0.5 | 2.2516  2.0748  1.9675  2.3530  2.1915  1.7530
+       2 | 0.5511  0.5651  0.5505  0.5331  0.5432  0.5566
+  The ratio is well defined (common truncation cancels). Two things
+  make it informative despite the oscillation:
+    - it is tightly clustered across the six zeros (spread ~2x), which
+      a noisy quantity would not be;
+    - it is NOT equal to 1 at the classical zeros. If the graded trace
+      vanished there, the ratio would be far below 1. At tau=0 it is
+      3.5 to 7.5; at tau=2 it is 0.53 to 0.57.
+  The tau=1 control in shift_zeta_comparison.png shows the method does
+  resolve zeros -- the trace there dips sharply exactly at the classical
+  zeros, and the tau=0 panel shows no corresponding dips. Therefore the
+  graded trace is strictly larger at those heights and its minima lie
+  elsewhere: the zero sets do not coincide.
+
+  This is numerical evidence, not a proof. What it establishes is that
+  for tau != 1 the graded trace is not merely a scalar multiple of
+  zeta; what it does not establish is any theorem about the critical
+  line.
+
+  A withdrawn statistic is recorded for honesty: 'deepest local minima'
+  scored 7 of 8 hits at tau=1, the control, so it was measuring
+  oscillation rather than zeros and is not used.
 
 Ratio at s in the convergent region
 ============================================================

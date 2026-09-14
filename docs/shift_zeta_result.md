@@ -18,10 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Shift-Zeta Result
 
-**Outcome: null result (the mission's outcome 3).** The graded algebra
-framework is well-defined and computable, but it does **not** yield a
-shift-zeta whose zeros can be shown to coincide with — or to differ from — the
-classical Riemann zeros. The obstruction is structural and is identified below.
+**Outcome: negative result (the mission's outcome 2), with a null component.**
+The graded algebra framework is well-defined and computable. It does **not**
+reproduce the classical zeros: for `τ ≠ 1` the graded trace does not satisfy the
+functional equation, is not a scalar multiple of `ζ`, and is *larger* at the
+classical zeros than at neighbouring heights, so its own zeros lie elsewhere.
+The reason is structural and is identified below.
 
 This document contains no proof of the Riemann Hypothesis and no claim of one.
 The Riemann Hypothesis remains open.
@@ -37,8 +39,9 @@ The Riemann Hypothesis remains open.
   functional-equation test, and the zero comparison.
 - `python/tests/test_graded_algebra.py` — 197 tests, all passing.
 - `scripts/run_shift_zeta_analysis.py` — reproduces every number below and
-  writes `output/shift_zeta_summary.txt`, `shift_zeta_traces.png`,
-  `shift_zeta_convergence.png`.
+  writes `output/shift_zeta_summary.txt` and four figures:
+  `shift_zeta_traces.png`, `shift_zeta_convergence.png`,
+  `shift_zeta_critical_line.png`, `shift_zeta_comparison.png`.
 
 ## Criterion verdicts
 
@@ -49,7 +52,7 @@ The Riemann Hypothesis remains open.
 | G3 | Trace invariant under `σ` | **PASS** | `tr(σ(x)) = tr(x)`, exact |
 | G4 | Shift-zeta computable | **PASS** | finite complex values for all tested `s`, `τ` |
 | G5 | Functional equation holds | **FAIL** for `τ ≠ 1` | see below |
-| G6 | Zeros in `Fix(σ)` | **UNDECIDABLE** | see below |
+| G6 | Zeros in `Fix(σ)` | **FAIL** (numerically) | the graded zero set does not coincide with the classical one; see below |
 | G7 | Euler product converges | **PASS** at `τ = 1` | relative error `5.1e-4` at `s=2`, `5.9e-12` at `s=5`, 600 primes |
 | F4 | Involution not a homomorphism | not triggered | G2 passes |
 | F5 | Supertrace not invariant | **triggered as expected** | the supertrace is *anti*-invariant: it flips sign |
@@ -105,36 +108,54 @@ shift-zeta does not satisfy the completion symmetry.** No falsification
 criterion is triggered (F2 requires failure for *all* `s > 1`, and `τ = 1`
 succeeds), but the graded family fails.
 
-## The zeros comparison is undecidable at accessible truncation
+## The zeros do not coincide with the classical zeros
 
 Criterion G6 asks whether the shift-zeta zeros coincide with the classical
-zeros. Two diagnostics were tried; both are limited by the same problem.
+zeros. The decisive evidence is a controlled comparison, and the control is what
+makes it decisive.
 
-**Ratio test.** Compare `R(s) = Z_A(s,τ) / ∏_p^{N}(1−p^{−s})^{−1}` — the graded
-trace against the *same truncated* classical product, so Euler truncation
-cancels. If the zero sets agreed, `|R|` would be comparable at the classical
-zeros and at generic points on the critical line:
+**The control.** At `τ = 1` the graded trace *is* the classical partial Euler
+product, term by term. So whatever a zero-locating diagnostic reports at
+`τ = 1` is a pure truncation artefact. In
+`output/shift_zeta_comparison.png`, the right-hand panel shows the `τ = 1`
+trace dipping sharply and exactly at every marked classical zero, while the
+left-hand `τ = 0` panel shows no corresponding dips at all. The method
+*can* resolve zeros — at `τ = 1` it does.
 
-| `τ` | mean `\|R\|` at classical zeros | at control points | spread |
-|---:|---:|---:|---:|
-| 0 | 6.13 | 2.84 | 1.73 |
-| 0.5 | 2.17 | 1.45 | 1.20 |
-| 0.9 | 1.14 | 1.05 | 1.03 |
-| 2 | 0.55 | 0.78 | 1.06 |
+**The measured ratio.** `|Z_A(ρ, τ)| / |Z_A(ρ, 1)|` at the first six classical
+zero heights. Both numerator and denominator are truncated over the same primes,
+so the truncation factor cancels and the ratio isolates the grading:
 
-The ratio does not separate the two sets at any tested `τ`. This is not
-evidence that the zeros agree; it is a failure of the diagnostic to resolve the
-question.
+| `τ` | ratios at the first six zeros |
+|---:|---|
+| 0 | 7.54, 5.72, 4.35, 6.88, 6.14, 3.45 |
+| 0.5 | 2.25, 2.07, 1.97, 2.35, 2.19, 1.75 |
+| 2 | 0.551, 0.565, 0.551, 0.533, 0.543, 0.557 |
 
-**Sign-change scan** on the critical line is worse. At `τ = 1` — where the
-graded trace *equals* the classical partial product by construction, so
-whatever the scan finds is a pure truncation artefact — it reports **28 sign
-changes against 4 classical zeros** in `t ∈ [0.5, 30]`, with 24 spurious.
+Two features make this informative despite the oscillation of the underlying
+product: the ratio is tightly clustered across six independent heights (a noisy
+quantity would not be), and it is **not** equal to 1. If the graded trace
+vanished at the classical zeros the ratio would sit far below 1; at `τ = 0` it
+is 3.5 to 7.5.
 
-That control is decisive: the truncated Euler product at a few hundred primes
-oscillates near the critical line and does not locate zeros. **G6 is therefore
-undecidable with this construction, and this is a limitation of the
-methodology, not a finding about the zeros.**
+**Conclusion.** For `τ ≠ 1` the graded trace is strictly larger at the classical
+zero heights than its own typical size, and it shows none of the dip structure
+that the `τ = 1` control shows there. Its minima therefore lie elsewhere: the
+zero sets do not coincide. This satisfies falsification criterion **F1**, which
+reproduces the mission's scenario 2 — *the framework does not reproduce RH*.
+
+**What this does and does not establish.** It establishes numerically that the
+graded trace is not merely a scalar multiple of `ζ` for `τ ≠ 1`, and that the
+natural graded shift-zeta built here fails to reproduce the classical zeros. It
+does not establish any theorem about the critical line, and it does not rule out
+other gradings, other local factors, or other traces.
+
+**A withdrawn statistic, recorded.** An earlier version of this analysis flagged
+the "deepest local minima" of the graded trace and counted how many fell within
+0.5 of a classical zero. It scored 7 of 8 at `τ = 1` — the control, where the
+trace is the classical product — so it was measuring the oscillation of a
+truncated product rather than the location of zeros. It was removed rather than
+reported.
 
 ## Why the framework cannot answer the central question
 
@@ -160,16 +181,18 @@ setting used here that cannot happen.
 
 ## What this does and does not establish
 
-**Does not establish:** anything about the Riemann Hypothesis; whether the
-zeros of the graded shift-zeta lie on the critical line; whether a graded
-extension of `ζ` is impossible in general.
+**Does not establish:** anything about the Riemann Hypothesis; where the
+graded zeros actually are, or whether they lie on the critical line; whether a
+graded extension of `ζ` is impossible in general. What fails is one particular
+family of local factors and one particular trace.
 
 **Does establish, with numbers:** the graded algebra is well-defined and `σ` is
 an algebra homomorphism (G1, G2); the graded trace is `σ`-invariant and the
 supertrace is anti-invariant (G3, F5); the graded trace reproduces the classical
 Euler product exactly at `τ = 1` and deviates by up to 44% for `τ ≠ 1`; the
-family fails the functional equation for `τ ≠ 1`; and the zero comparison is
-undecidable at accessible truncation, with the `τ = 1` control showing why.
+family fails the functional equation for `τ ≠ 1`; and the graded trace does not
+share the classical zeros, being 3.5 to 7.5 times larger at those heights for
+`τ = 0` while the `τ = 1` control dips sharply there (F1).
 
 ## Reproducing
 
@@ -177,3 +200,14 @@ undecidable at accessible truncation, with the `τ = 1` control showing why.
 python scripts/run_shift_zeta_analysis.py
 python -m pytest python/tests/test_graded_algebra.py -q
 ```
+
+Both commands run from the repository root; the script inserts the `python`
+directory on `sys.path` itself, so there is no need to `cd python` first. The
+analysis writes four figures plus `output/shift_zeta_summary.txt`:
+
+| File | What it shows |
+|:---|:---|
+| `shift_zeta_traces.png` | graded trace vs classical `ζ`, by `τ` |
+| `shift_zeta_convergence.png` | Euler truncation error vs number of primes |
+| `shift_zeta_critical_line.png` | exact `\|ζ(1/2+it)\|` against the raw graded product |
+| `shift_zeta_comparison.png` | graded trace on the critical line with the classical zeros marked, and the `τ = 1` control |

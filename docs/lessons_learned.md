@@ -166,21 +166,39 @@ Numerically the framework behaves as follows (600 primes; details in
 - for `tau != 1` it departs from `zeta` by 11% to 44% at `s = 2` and fails the
   completion symmetry with residuals `1e-2` to `1e-1`.
 
-## 11. Truncated Euler Products Cannot Locate Zeros
+## 11. A Control Is What Makes a Zero Comparison Decisive -- or Not
 
-The zero comparison for the shift-zeta is undecidable, and the reason is worth
-recording separately because it will recur.
+An earlier version of the shift-zeta analysis concluded that the zero
+comparison was undecidable, because a sign-change scan on the critical line
+reported 28 crossings against 4 classical zeros. That conclusion was too
+pessimistic, and the reason is instructive.
 
-At `tau = 1` the graded trace *is* the classical partial Euler product, so
-whatever a zero-finding scan reports there is pure truncation artefact. A
-sign-change scan on the critical line, `t` in `[0.5, 30]`, with 300 primes
-reports **28 sign changes against 4 classical zeros**, of which 24 are spurious.
+The scan was the wrong diagnostic. The right one uses a control: at `tau = 1`
+the graded trace *is* the classical partial Euler product term by term, so
+whatever a diagnostic reports there is pure truncation artefact. Comparing
+`|Z_A(rho, tau)| / |Z_A(rho, 1)|` at the classical zero heights cancels the
+truncation and isolates the grading:
 
-That control settles the methodology: the truncated Euler product oscillates
-near the critical line and does not locate zeros at any accessible truncation.
-Any future zero comparison must use an analytically continued or otherwise
-accelerated representation, not the raw product. A failure to resolve zeros is
-not evidence that the zeros differ.
+| `tau` | ratios at the first six zeros |
+|---:|---|
+| 0 | 7.54, 5.72, 4.35, 6.88, 6.14, 3.45 |
+| 0.5 | 2.25, 2.07, 1.97, 2.35, 2.19, 1.75 |
+| 2 | 0.551, 0.565, 0.551, 0.533, 0.543, 0.557 |
+
+The ratio is tightly clustered across six independent heights and is not 1. At
+`tau = 1` the trace dips sharply exactly at the classical zeros; at `tau = 0`
+it shows no such dips and is 3.5 to 7.5 times larger there. The zero sets do not
+coincide.
+
+Two further lessons:
+
+- **A withdrawn statistic.** Flagging "deepest local minima" and counting
+  matches to classical zeros scored 7 of 8 *at the `tau = 1` control*, where the
+  trace is the classical product. It was measuring the oscillation of a
+  truncated product, not the location of zeros. It was removed, not reported.
+- **Failures of a diagnostic are not findings about the object.** "I cannot
+  resolve the zeros" and "the zeros differ" are different claims. Both mistakes
+  were made here before the control settled it.
 
 ## 12. Falsification Grid Result
 
