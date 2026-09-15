@@ -29,9 +29,11 @@ A passing test is **evidence**, not a mathematical proof.
 | Dimension-shift experiments | Working and exploratory |
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
 | DSIN communication simulation | Working as a toy simulation; no security proof |
-| Lean formalization of RH | Involution and eigenspace lemmas; RH formalization not started |
+| Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Shift-zeta (graded algebra) | **Negative result.** Well-defined and tested; does **not** reproduce the classical zeros. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
+| Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
+| Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
 
 ## Shift-zeta: a negative result, reported as such
@@ -118,14 +120,29 @@ section 2.1.
 
 ### The full vetting pipeline
 
+Because this repository accumulates speculative proposals, every candidate idea, old or new, is expected to pass through the same gate before it is taken seriously. This is implemented in `riemann_framework/idea_pipeline.py` and documented in `docs/project_critique_and_roadmap.md`.
+
 `riemann_framework/idea_pipeline.py` ties these gates into a five-stage
-pipeline for a candidate "idea" — a small JSON record under `ideas/*.json` that
+pipeline for a candidate "idea",  a small JSON record under `ideas/*.json` that
 must state, up front, what observation would falsify it (stage E, enforced at
 construction). Stages A–D2 reuse the existing modules: the affine gate (B), the
 gap-ratio statistics (C), a multiplicative-coupling probe against Euler factors
 (D), and the primon-gas commutator screen (D2). A verdict never claims an idea
 is correct — it only records how far the idea got before a known limitation or
 a genuinely open question.
+
+
+| Stage | Question | Tooling |
+|:---|:---|:---|
+| **A** — Well-formedness | Is the proposed object/map even well-defined? | Parsing / manual review |
+| **B** — Triviality reduction | Is it secretly an affine combination of `s` and `conjugate(s)` — i.e. a known rotation/reflection in disguise? | `affine_reduction.py`, symbolic (sympy) |
+| **C** — Statistical plausibility | If it produces a spectrum, how does its level-spacing statistic compare to matched Poisson / GOE / GUE baselines? | Gap-ratio statistics with bootstrap confidence intervals |
+| **D** — Arithmetic coupling | Does the map interact with the primes at all (via Euler-factor exponents `p^{-s}`), or only with the geometry of the plane? | Numeric probe against `p^{-s}` |
+| **D2** — Operator realization | If a symmetry is proposed on the *primon gas* (Track 4), does it actually commute with the Hamiltonian? | Commutator norm test |
+| **E** — Falsifiability | Does the idea state, in advance, what observation would count against it? | Enforced by the `ideas/*.json` / `*.yaml` schema at construction time |
+
+No verdict in this pipeline ever says an idea is "true" or "proven" — only how far it got before hitting a known limitation, a statistical mismatch, or a genuinely open question. `ideas/` currently records, among others, `dimension_shift_w` (fails stage B — it is exactly the functional-equation reflection), and `dimension_lift_euler_product` (clears stage B non-trivially and produces a real, if limited, Euler-product identity — see Track 5).
+
 
 ```bash
 python scripts/run_idea_pipeline.py
