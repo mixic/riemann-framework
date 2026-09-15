@@ -77,7 +77,7 @@ corrected comparison is `w(p^{-s})` versus `p^{-w(s)}`, which the identity map
 satisfies exactly (spread ~0) and the reflection `1 - conj(s)` does not
 (spread ~0.28).
 
-## Track 1 — Numerical core
+## Numerical core
 
 The foundation everyone else builds on:
 
@@ -88,7 +88,7 @@ The foundation everyone else builds on:
 
 This layer makes no novel claims; it exists so every other track has a trustworthy ground truth to compare against.
 
-## Track 2 — The dimension-shift programme
+## The dimension-shift programme
 
 ### The central hypothesis
 
@@ -132,7 +132,7 @@ Its fixed locus is nonetheless exactly the critical line, which is the property 
 
 **`dsin.py`** explores whether the dimension-shift structure could underlie a communication protocol. This is explicitly labeled a toy simulation with **no security proof** — it should not be equated with cryptographic protocols like BB84, and the documentation (`docs/dimension_shift_quantum_communication.md`) is explicit about this limitation.
 
-## Track 3 — Shift-zeta: a graded-algebra lift (negative result)
+## Shift-zeta: a graded-algebra lift (negative result)
 
 Full detail in `docs/shift_zeta_result.md`; this is the most rigorously negative result in the repository, and it is reported as such rather than downplayed.
 
@@ -164,7 +164,7 @@ The figures below are diagnostic, not evidence about zero locations; read the ca
 
 ![Euler truncation error at s = 2](output/shift_zeta_convergence.png)
 
-## Track 4 — The primon gas: an exact arithmetic anchor
+## The primon gas: an exact arithmetic anchor
 
 The one place in this repository where the Euler product is not modeled or approximated but **provably present**, due to Julia (1990) and Spector (1990), refined into the Bost–Connes system (1995).
 
