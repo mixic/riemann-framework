@@ -8,6 +8,9 @@ dimension-shift models. The project does **not** claim to prove the Riemann
 Hypothesis; computational results and passing tests are research evidence,
 not a completed mathematical proof.
 
+The project is best understood as a workbench, not a proof attempt: speculative ideas about the zeta function, discrete symmetries, graded algebras, exotic number systems, operator models, are stated precisely, tested against real mathematics and real controls, and reported honestly, including when they fail. The project does not claim to prove RH anywhere in this repository; computational results and passing tests are research evidence, not a completed mathematical proof, and several tracks here *do* fail, on purpose and on record, a negative result obtained by a stated method is worth more than an unfalsifiable claim of progress.
+
+
 ## Disclaimer
 
 This project is **not a proof** of the Riemann Hypothesis. It is a tool to:
