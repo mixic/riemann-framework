@@ -193,7 +193,7 @@ This gives candidate symmetries a genuine target instead of a merely statistical
 
 **What this does not do:** the eigenvalues of `H` are `log(n)`, not the imaginary parts of the zeta zeros. This anchors the Euler product; it says nothing about the location of the zeros. Reaching the zeros requires the much harder, still partially open Connes (1999) adele-class-space construction — see `docs/central_hypothesis.md` §3 for the full discussion of what would still be needed.
 
-## Track 5 — Cayley-Dickson and the four-square theorem: does dimension-lifting create an Euler product?
+## Cayley-Dickson and the four-square theorem: does dimension-lifting create an Euler product?
 
 This track directly tests an intuition: since extending `ℝ` to `ℂ` (via `i`) unlocked new structure, could repeating that doubling — circle → sphere → higher-dimensional sphere — produce something with genuine arithmetic content?
 
