@@ -1,19 +1,22 @@
 # Riemann Framework
 
-Riemann Framework is an experimental research project for exploring and
-verifying approaches to the Riemann Hypothesis (RH). It combines numerical
-experiments in Python with a planned Lean 4 formalization, including
-computations involving zeta zeros, the explicit formula, prime counting, and
-dimension-shift models. The project does **not** claim to prove the Riemann
-Hypothesis; computational results and passing tests are research evidence,
-not a completed mathematical proof.
+Riemann Framework is an experimental workbench for exploring the Riemann
+Hypothesis (RH), not a proof attempt. It combines numerical experiments in
+Python with a Lean 4 formalization, covering zeta zeros, the explicit formula,
+prime counting, dimension-shift models, graded algebras, and exotic number
+systems.
 
-The project is best understood as a workbench, not a proof attempt: speculative ideas about the zeta function, discrete symmetries, graded algebras, exotic number systems, operator models, are stated precisely, tested against real mathematics and real controls, and reported honestly, including when they fail. The project does not claim to prove RH anywhere in this repository; computational results and passing tests are research evidence, not a completed mathematical proof, and several tracks here *do* fail, on purpose and on record, a negative result obtained by a stated method is worth more than an unfalsifiable claim of progress.
-
+Speculative ideas are stated precisely, tested against real mathematics and
+real controls, and reported honestly, including when they fail. Several tracks
+here *do* fail, on purpose and on record: a negative result obtained by a
+stated method is worth more than an unfalsifiable claim of progress. Nothing in
+this repository claims to prove RH; passing tests are research evidence, not a
+completed proof.
 
 ## Disclaimer
 
 This project is **not a proof** of the Riemann Hypothesis. It is a tool to:
+
 - test the RH **numerically** for known zeros,
 - verify **formal proof attempts** in Lean 4,
 - visualize and analyze the **explicit formula**.
@@ -36,72 +39,78 @@ A passing test is **evidence**, not a mathematical proof.
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
 
-## Shift-zeta: a negative result, reported as such
+## The idea-vetting pipeline
 
-The graded-algebra programme asked whether lifting the Euler product to
-`A = A₀ + ωA₁` forces the zeros of the resulting "shift-zeta" into the fixed
-locus `Fix(σ) = A₀`. It does not.
+Because this repository accumulates speculative proposals, every candidate idea
+is expected to pass through the same gate before it is taken seriously. It is
+implemented in `riemann_framework/idea_pipeline.py` and documented in
+`docs/project_critique_and_roadmap.md`.
 
-What the numbers show (600 primes; full detail in
-[`docs/shift_zeta_result.md`](docs/shift_zeta_result.md)):
+An "idea" is a small JSON record under `ideas/*.json` that must state, up
+front, what observation would falsify it (stage E, enforced at construction).
+Stages A–D2 reuse the existing modules:
 
-- the algebra is well-defined and `σ` is an algebra homomorphism — **G1, G2 pass**;
-- the graded trace is `σ`-invariant and the supertrace is `σ`-*anti*-invariant
-  — **G3 and F5 both hold**, and they are different functionals;
-- at `τ = 1` the graded trace equals the classical Euler product term by term
-  (relative error `5.1e-4` at `s = 2`, pure truncation) — **G7 passes**;
-- for `τ ≠ 1` the trace departs from `ζ` by **11% to 44%** at `s = 2`, and the
-  completion symmetry fails with residuals `1e-2` to `1e-1` against a classical
-  control at numerical precision — **G5 fails**;
-- **G6 fails.** At `τ = 1` — where the trace *is* the classical product, so the
-  method demonstrably can locate zeros — the trace dips sharply exactly at the
-  classical zeros. At `τ = 0` it shows no such dips and is **3.5 to 7.5 times
-  larger** at those heights. The two zero sets do not coincide. This is
-  falsification criterion F1.
+| Stage | Question | Tooling |
+|:---|:---|:---|
+| **A** — Well-formedness | Is the proposed object/map even well-defined? | Parsing / manual review |
+| **B** — Triviality reduction | Is it secretly an affine combination of `s` and `conjugate(s)` — i.e. a known rotation/reflection in disguise? | `affine_reduction.py` (numeric second-difference test) |
+| **C** — Statistical plausibility | If it produces a spectrum, how does its level-spacing statistic compare to matched Poisson / GOE / GUE baselines? | Gap-ratio statistics with bootstrap confidence intervals |
+| **D** — Arithmetic coupling | Does the map interact with the primes at all (via Euler-factor exponents `p^{-s}`), or only with the geometry of the plane? | Numeric probe against `p^{-s}` |
+| **D2** — Operator realization | If a symmetry is proposed on the *primon gas* (Track 4), does it actually commute with the Hamiltonian? | Commutator norm test |
+| **E** — Falsifiability | Does the idea state, in advance, what observation would count against it? | Enforced by the `ideas/*.json` / `*.yaml` schema at construction time |
 
-```powershell
-python scripts/run_shift_zeta_analysis.py
+```bash
+python scripts/run_idea_pipeline.py
 ```
 
-No criterion failure here falsifies the Riemann Hypothesis, and nothing above
-is evidence for it. The substantive finding is the structural obstruction: every
-local factor is a polynomial in one element `γ_τ`, so the product never leaves
-the two-dimensional algebra `C[γ_τ]` and there is no interaction between primes.
+No verdict here ever says an idea is "true" or "proven" — only how far it got
+before hitting a known limitation, a statistical mismatch, or a genuinely open
+question. `ideas/` currently records, among others, `dimension_shift_w` (fails
+stage B — it is exactly the functional-equation reflection), and
+`dimension_lift_euler_product` (clears stage B non-trivially and produces a
+real, if limited, Euler-product identity — see Track 5).
 
-### Graded trace vs classical zeta
+The stage-D probe (`probe_multiplicative_coupling`) was corrected from an
+earlier prototype version whose per-prime relative error cancelled the `log p`
+factor, making its "p-dependent mismatch" flag provably unreachable. The
+corrected comparison is `w(p^{-s})` versus `p^{-w(s)}`, which the identity map
+satisfies exactly (spread ~0) and the reflection `1 - conj(s)` does not
+(spread ~0.28).
 
-The `τ = 1` curve is the degenerate case, where the graded trace *is* the
-classical Euler product. Every other curve is a different function.
+## Track 1 — Numerical core
 
-![Graded trace of the shift-zeta against classical zeta](output/shift_zeta_traces.png)
+The foundation everyone else builds on:
 
-### Critical line
+- **`zeta.py` / `zeros.py`** — thin, careful `mpmath` wrappers for evaluating `ζ(s)` and locating/verifying non-trivial zeros to arbitrary precision.
+- **`explicit_formula.py`** — the Riemann–von Mangoldt explicit formula linking sums over zeros to sums over prime powers, with regularization for numerical evaluation.
+- **`spectral_density.py`** — diagnostics comparing a cumulative zero count against the Riemann–von Mangoldt asymptotic `N(T) ~ (T/2π)log(T/2πe)`.
+- **`plots.py` / `generate_plots.py` / `test_plot.py`** — the plotting layer behind every figure in this README.
 
-The exact `|ζ(1/2+it)|` with its zeros, against the raw graded product on a log
-scale. The product has no limit on this line: changing the prime count from 100
-to 1500 moves it by more than 5 in absolute value.
+This layer makes no novel claims; it exists so every other track has a trustworthy ground truth to compare against.
 
-![|zeta| and the raw graded product on the critical line](output/shift_zeta_critical_line.png)
+## Track 2 — The dimension-shift programme
 
-### Zeros comparison, with the control that makes it decisive
+### The central hypothesis
 
-The right-hand panel is the control. At `τ = 1` the trace *is* the classical
-product and dips sharply at every marked zero — so the method can locate zeros.
-At `τ = 0` (left) it cannot, and does not: its minima lie elsewhere.
+Documented in full in `docs/central_hypothesis.md`. The **Dimension-Shift Hypothesis (DSH)** conjectures a family of self-adjoint Hamiltonians `H(λ)` on a `Z₂`-graded Hilbert space, together with a discrete involution `σ`, such that:
 
-![Classical zeros vs the graded trace, with the tau=1 control](output/shift_zeta_comparison.png)
+1. `[H(λ), σ] = 0` in the intended regime;
+2. the spectral density of `H(λ)` matches the Riemann–von Mangoldt asymptotic;
+3. a precisely defined spectral subsequence corresponds to the non-trivial zeta zeros;
+4. a fixed-locus or positivity argument forces those zeros onto `Re(s) = 1/2`;
+5. the local level statistics are GUE-like.
 
-### Euler truncation error
+This is intentionally a stronger requirement than "the model looks chaotic" — GUE statistics alone are cheap and do not by themselves encode the Euler product or any individual zero.
 
-![Euler truncation error at s = 2](output/shift_zeta_convergence.png)
+### The prototype involution
 
-## Screening candidate ideas
+On the complex plane the prototype is the reflection
 
-The repository includes a small gate for candidate operations on the complex
-slice, adapted from an external idea-vetting prototype. It answers one narrow
-question: is the formula affine in `(s, conjugate(s))`? If so it is a known
-similarity of the plane (rotation/scaling/translation) and not a new algebraic
-object.
+```
+σ(s) = 1 - conjugate(s),        σ(σ(s)) = s,        σ(s) = s  ⟺  Re(s) = 1/2
+```
+
+Run through the vetting pipeline (`affine_reduction.py`), this is honestly recorded as a **known affine map** — the functional-equation reflection composed with conjugation — not a new algebraic object:
 
 ```python
 from riemann_framework.affine_reduction import check_affine_reduction
@@ -111,62 +120,67 @@ print(result.is_affine)      # True  -> a known affine map
 print(result.coefficients)   # (0j, (-1+0j), (1+0j))  -> 0*s - 1*conj(s) + 1
 ```
 
-This records an honest negative result rather than a success: the
-dimension-shift prototype `sigma(s) = 1 - conjugate(s)` is the
-functional-equation reflection composed with conjugation, so it adds no new
-algebra. Its fixed locus is nevertheless exactly `Re(s) = 1/2`, which is the
-property the proposal actually needs. See `docs/dimension_shift_involution.md`
-section 2.1.
+Its fixed locus is nonetheless exactly the critical line, which is the property the wider programme actually needs; see `docs/dimension_shift_involution.md` §2.1 for the full discussion of why triviality as an algebraic object does not disqualify it as a *symmetry* to build a Hamiltonian around.
 
-### The full vetting pipeline
+### Chaos models, statistics, and the falsification grid
 
-Because this repository accumulates speculative proposals, every candidate idea, old or new, is expected to pass through the same gate before it is taken seriously. This is implemented in `riemann_framework/idea_pipeline.py` and documented in `docs/project_critique_and_roadmap.md`.
+- **`dimension_shift_chaos.py`** — a family of coupled Hamiltonians built around the sector-swap involution, with a coupling and a symmetry-breaking parameter.
+- **`quantum_chaos.py` / `statistics.py`** — mean adjacent-gap ratio statistics (`⟨r⟩`), matched against Poisson (`≈0.386`), GOE (`≈0.531`), and GUE (`≈0.600`) reference values, with bootstrap confidence intervals.
+- **`falsification_test.py`** — scans a grid over sector dimension, coupling strength, and symmetry breaking (90 parameter points), classifies each as Poisson-like / GOE-like / GUE-like / intermediate, and writes the result to `output/falsification_summary.txt` plus the heatmap and histogram figures below. This is stronger than presenting only favorable plots: it also exposes the parameter regions that do **not** support the target behavior.
 
-`riemann_framework/idea_pipeline.py` ties these gates into a five-stage
-pipeline for a candidate "idea",  a small JSON record under `ideas/*.json` that
-must state, up front, what observation would falsify it (stage E, enforced at
-construction). Stages A–D2 reuse the existing modules: the affine gate (B), the
-gap-ratio statistics (C), a multiplicative-coupling probe against Euler factors
-(D), and the primon-gas commutator screen (D2). A verdict never claims an idea
-is correct — it only records how far the idea got before a known limitation or
-a genuinely open question.
+### DSIN: a toy communication-channel simulation
 
+**`dsin.py`** explores whether the dimension-shift structure could underlie a communication protocol. This is explicitly labeled a toy simulation with **no security proof** — it should not be equated with cryptographic protocols like BB84, and the documentation (`docs/dimension_shift_quantum_communication.md`) is explicit about this limitation.
 
-| Stage | Question | Tooling |
-|:---|:---|:---|
-| **A** — Well-formedness | Is the proposed object/map even well-defined? | Parsing / manual review |
-| **B** — Triviality reduction | Is it secretly an affine combination of `s` and `conjugate(s)` — i.e. a known rotation/reflection in disguise? | `affine_reduction.py`, symbolic (sympy) |
-| **C** — Statistical plausibility | If it produces a spectrum, how does its level-spacing statistic compare to matched Poisson / GOE / GUE baselines? | Gap-ratio statistics with bootstrap confidence intervals |
-| **D** — Arithmetic coupling | Does the map interact with the primes at all (via Euler-factor exponents `p^{-s}`), or only with the geometry of the plane? | Numeric probe against `p^{-s}` |
-| **D2** — Operator realization | If a symmetry is proposed on the *primon gas* (Track 4), does it actually commute with the Hamiltonian? | Commutator norm test |
-| **E** — Falsifiability | Does the idea state, in advance, what observation would count against it? | Enforced by the `ideas/*.json` / `*.yaml` schema at construction time |
+## Track 3 — Shift-zeta: a graded-algebra lift (negative result)
 
-No verdict in this pipeline ever says an idea is "true" or "proven" — only how far it got before hitting a known limitation, a statistical mismatch, or a genuinely open question. `ideas/` currently records, among others, `dimension_shift_w` (fails stage B — it is exactly the functional-equation reflection), and `dimension_lift_euler_product` (clears stage B non-trivially and produces a real, if limited, Euler-product identity — see Track 5).
+Full detail in `docs/shift_zeta_result.md`; this is the most rigorously negative result in the repository, and it is reported as such rather than downplayed.
 
+**The question:** does lifting the Euler product into a `Z₂`-graded algebra `A = A₀ + ωA₁` (with `ω² = 1`, involution `σ(x) = ωxω`, and local factors `1/(1 - p^{-s}γ_τ)` where `γ_τ = ((1+τ)/2)I + ((1-τ)/2)ω`) force the zeros of the resulting "shift-zeta" into the fixed locus `Fix(σ) = A₀` (i.e. the critical line's algebraic analogue)?
 
-```bash
-python scripts/run_idea_pipeline.py
+**The answer: no.** Measured over 600 primes:
+
+- The algebra is well-defined, and `σ` is a genuine algebra homomorphism (**G1, G2 pass**).
+- The graded trace is `σ`-invariant; the supertrace is `σ`-*anti*-invariant — these are different, non-conflicting functionals (**G3, F5 both hold**).
+- At `τ = 1` — the degenerate control case — the graded trace equals the classical Euler product term for term (relative error `5.1×10⁻⁴` at `s=2`, pure truncation) (**G7 passes**). This confirms the methodology is sound: the machinery *can* reproduce `ζ` exactly when it is supposed to.
+- For `τ ≠ 1`, the trace departs from `ζ` by **11%–44%** at `s=2`, and the completion (functional-equation) symmetry fails with residuals of `10⁻²`–`10⁻¹`, three to ten orders of magnitude above the numerical noise floor of the `τ=1` control (**G5 fails**).
+- Most decisively: at `τ=1`, where the trace is provably the classical product, it dips sharply and exactly at every classical zero — a positive control showing the diagnostic works. At `τ≠1`, the trace is instead **3.5×–7.5× larger** at those same heights, with no corresponding dip. The zero sets do not coincide (**G6 fails**, triggering falsification criterion **F1**).
+
+**Why it fails, structurally:** every local factor in the graded product is a polynomial in a single element `γ_τ`, so the product never leaves the two-dimensional subalgebra `C[γ_τ]` — there is no interaction between different primes' contributions inside the grading. This is the concrete mechanism, not just an empirical shortfall, and it is the kind of obstruction the framework's own Stage-D arithmetic-coupling test is designed to catch in future proposals before months are spent on them.
+
+No criterion failure here says anything about whether RH is true; it says this specific graded lift does not reproduce the classical zeros, and it explains why in terms that generalize to other naive lifts.
+
+```powershell
+python scripts/run_shift_zeta_analysis.py
 ```
 
-The stage-D probe (`probe_multiplicative_coupling`) was corrected from an
-earlier prototype version whose per-prime relative error cancelled the `log p`
-factor, making its "p-dependent mismatch" flag provably unreachable. The
-corrected comparison is `w(p^{-s})` versus `p^{-w(s)}`, which the identity map
-satisfies exactly (spread ~0) and the reflection `1 - conj(s)` does not
-(spread ~0.28).
+The figures below are diagnostic, not evidence about zero locations; read the caveats in `scripts/run_shift_zeta_analysis.py` before drawing conclusions from them.
 
-## The primon gas: an exact arithmetic anchor
+![Graded trace of the shift-zeta against classical zeta](output/shift_zeta_traces.png)
 
-The one place in this repository where the Euler product is not modelled but
-*provably present*. On `l^2(N)` with basis `|n>` and `H|n> = log(n)|n>`,
+![|zeta| and the raw graded product on the critical line](output/shift_zeta_critical_line.png)
 
-```text
-Tr[e^{-sH}] = sum_n n^{-s} = zeta(s)      exactly, for Re(s) > 1
+![Classical zeros vs the graded trace, with the tau=1 control](output/shift_zeta_comparison.png)
+
+![Euler truncation error at s = 2](output/shift_zeta_convergence.png)
+
+## Track 4 — The primon gas: an exact arithmetic anchor
+
+The one place in this repository where the Euler product is not modeled or approximated but **provably present**, due to Julia (1990) and Spector (1990), refined into the Bost–Connes system (1995).
+
+On `ℓ²(ℕ)` with orthonormal basis `|n⟩`, define the diagonal Hamiltonian
+
+```
+H|n⟩ = log(n)|n⟩
 ```
 
-— Julia (1990), Spector (1990), refined into the Bost-Connes system (1995). The
-Euler product falls out of unique factorisation: `l^2(N)` is the Fock space of
-independent bosonic oscillators, one per prime, with energy `log(p)`.
+Then, exactly, for `Re(s) > 1`:
+
+```
+Tr[e^{-sH}] = Σ_n n^{-s} = ζ(s) = Π_p 1/(1 - p^{-s})
+```
+
+This falls directly out of unique prime factorization: `ℓ²(ℕ)` is the Fock space of independent bosonic oscillators, one per prime `p`, each with energy `log(p)`. `primon_gas.py` implements the finite truncation (`n = 1..N`) and confirms numerically that the truncated trace converges monotonically to `ζ(s)` as `N` grows:
 
 ```python
 from riemann_framework.primon_gas import trace_convergence
@@ -175,29 +189,60 @@ result = trace_convergence(2.0, truncations=(10, 100, 1000, 10_000, 100_000))
 print(result["relative_errors"])   # decreasing, ~0.6/N at s = 2
 ```
 
-This gives candidate symmetries a real target instead of a statistical one:
-does your proposed symmetry commute with the one operator whose trace is the
-Euler product? `riemann_framework/operator_symmetry.py` runs that test and
-records a **negative result** — the natural lift of the dimension-shift
-involution onto `l^2(N)`, swapping two primes' exponents, *provably cannot*
-commute with `H`, because `H` has simple spectrum while the permutation is not
-diagonal.
+This gives candidate symmetries a genuine target instead of a merely statistical one: **does a proposed symmetry commute with the one operator whose trace is the Euler product?** `operator_symmetry.py` runs exactly this test and records a clean negative result: the natural lift of the dimension-shift involution onto `ℓ²(ℕ)` — a permutation swapping two primes' exponents in each integer's factorization — **provably cannot** commute with `H`, because `H` has strictly simple spectrum (`log` is injective on positive integers) and any operator commuting with a diagonal matrix of simple spectrum must itself be diagonal. This rules out an entire natural-looking family of symmetry proposals (basis permutations) in one linear-algebra fact, confirmed numerically at several truncation sizes to show the failure does not shrink with `N`.
 
-Two things this does **not** do: the eigenvalues of `H` are `log(n)`, not the
-imaginary parts of the zeta zeros, so it anchors the Euler product and not the
-zero locations; and the obstruction above is a statement about basis
-permutations specifically, not about the dimension-shift programme as a whole.
-See `docs/central_hypothesis.md` section 3.
+**What this does not do:** the eigenvalues of `H` are `log(n)`, not the imaginary parts of the zeta zeros. This anchors the Euler product; it says nothing about the location of the zeros. Reaching the zeros requires the much harder, still partially open Connes (1999) adele-class-space construction — see `docs/central_hypothesis.md` §3 for the full discussion of what would still be needed.
 
-## Goal
+## Track 5 — Cayley-Dickson and the four-square theorem: does dimension-lifting create an Euler product?
 
-The Riemann Hypothesis states that all non-trivial zeros of the
-Riemann zeta function lie on the critical line `Re(s) = 1/2`.
+This track directly tests an intuition: since extending `ℝ` to `ℂ` (via `i`) unlocked new structure, could repeating that doubling — circle → sphere → higher-dimensional sphere — produce something with genuine arithmetic content?
 
-This framework combines:
-- **Python** (mpmath, numpy, matplotlib) for numerical verification and visualization,
-- **Lean 4 + Mathlib** as a planned formalization target,
-- **pytest** as the test infrastructure (unit-test metaphor for the RH).
+**`cayley_dickson.py`** implements the actual doubling construction `ℝ → ℂ → ℍ → 𝕆 → sedenions → ...` at any power-of-two dimension, and numerically confirms, rather than merely cites, the **Hurwitz theorem (1898)**: a normed division algebra over `ℝ` exists only at dimensions 1, 2, 4, and 8.
+
+| Step | Dimension | Property lost |
+|:---|:---:|:---|
+| `ℝ → ℂ` | 2 | Total order |
+| `ℂ → ℍ` | 4 | Commutativity |
+| `ℍ → 𝕆` | 8 | Associativity |
+| `𝕆 → sedenions` | 16 | Zero-divisor freedom (no longer a division algebra at all) |
+
+Each collapse is demonstrated directly — for the sedenions, by an explicit constructed pair of non-zero elements whose product is (numerically) zero — not asserted from the literature.
+
+**`four_squares.py`** then tests the harder, genuinely useful question: does the lift from 2D (Gaussian integers) to 4D (Lipschitz/Hurwitz quaternions) produce real Euler-product content? **Yes, concretely:** Jacobi's four-square theorem (1834), `r₄(n) = 8·Σ_{d|n, 4∤d} d`, verified here both by brute-force lattice-point counting on the 4-sphere and by formula, yields the genuine Dirichlet-series identity
+
+```
+Σ_n σ(n)/n^s = ζ(s)·ζ(s-1)
+```
+
+confirmed numerically against `mpmath.zeta` to a relative error of `~1.7×10⁻⁵` at `s=3` with 50,000 terms.
+
+**The honest limit**, recorded in `ideas/dimension_lift_euler_product.yaml`: `ζ(s)·ζ(s-1)` is built from ordinary `ζ` evaluated at two separate points — it is not a new function whose own zeros need to sit on any critical line, and it says nothing about where `ζ`'s zeros are. The dimension-lift intuition is validated as producing real arithmetic content at this specific instance; turning that into something that *constrains* `ζ`'s own zeros remains the open, and much harder, part — exactly the gap that has kept every operator-theoretic RH programme, including this one, from closing since Hilbert and Pólya first proposed the idea around 1910–1915.
+
+## Lean 4 formalization
+
+- **`RiemannFramework.lean`** — the aggregate library root.
+- **`RiemannFramework/DimensionShift.lean`** — proves the sector-swap map is an involution.
+- **`RiemannFramework/InvolutionEigenspace.lean`** — eigenspace lemmas for that involution.
+
+This is a first, small, genuinely formally verified result — not a formalization of RH, and the repository does not claim otherwise. `lean_runner.py` compiles these files programmatically as part of the test suite, so formal claims cannot silently rot out of sync with the code.
+
+## What this framework can and cannot validate
+
+**What it can do.** It runs a candidate idea through stages A–D2 (see [The idea-vetting pipeline](#the-idea-vetting-pipeline)) and tells you how far it gets before hitting a known limitation. This is valuable as a **filter against self-deception** — it stops you from spending months on an idea that is actually just a renamed reflection.
+
+**What it cannot do.** It can never confirm that something is a proof of RH — and for a structural reason, not a limitation we could simply fix.
+
+The framework works with **numerical samples and heuristic tests** (a few hundred primes, finite truncations, bootstrap confidence intervals). A test that was not falsified at `N = 100,000` is never a proof for all `N` — that is the fundamental difference between "not empirically falsified" and "mathematically proven." Even if an idea clears every stage A–E, the framework says, at best: "this idea has none of the known pitfalls we know how to check for." That is nowhere close to a proof.
+
+The only part of this repository that even points in the direction of "validating a proof" is Lean 4 — `DimensionShift.lean` and `InvolutionEigenspace.lean` are genuine, machine-verified proofs, but only of small helper lemmas, not of RH itself. An actual proof of RH would have to be **fully formalized in Lean** — every step, every definition, all the way down to Mathlib's axioms — and would then be accepted or rejected by Lean itself, not by this framework. That is an order of magnitude more work than everything currently in `lean/`, and no one in the world has even begun this for RH (formalizing a century-old open problem is a multi-year undertaking even once a proof exists — see Kevin Buzzard's initiative to formalize Fermat's Last Theorem).
+
+**If you genuinely believe you have found something.** Should an idea clear every stage and look mathematically watertight to you:
+
+1. **Don't trust the framework — trust people.** Post the concrete mathematical claim (not the code) on MathOverflow or an appropriate specialist forum and ask for counterexamples.
+2. **Check whether it has already been refuted.** The history of RH is full of promising-looking approaches that fail at a subtle point — often exactly at the Euler-product coupling, as we have seen repeatedly in this repository's own negative results.
+3. **Only then think about formalization** — and even then, the path through Lean/Mathlib is years, not weeks.
+
+**Honest advice, without wanting to take away your motivation:** this framework is an excellent tool for quickly discarding bad ideas and sharpening promising ones. But it is — and structurally can never be more than — a pre-filter. Confirmation of a real proof does not happen through code that prints "PASS"; it happens through human expert scrutiny and, ideally, full formal verification.
 
 ## Generated Results
 
@@ -252,7 +297,6 @@ written by `scripts/run_falsification.py`, which also records the run in
 [`output/falsification_summary.txt`](output/falsification_summary.txt).
 
 ## Project Structure
-
 
 ```
 riemann-framework/
