@@ -56,6 +56,21 @@ OPEN_RH_FILES = [
 ]
 
 
+def test_lean_file_lists_are_current():
+    """Every file named in the lists above must actually exist.
+
+    Without this guard a renamed or deleted module surfaces as a confusing Lean
+    error ("object file ... does not exist") rather than as the real problem:
+    a stale name in this test file.
+    """
+    listed = set(LEAN_FILES + SORRY_FREE_FILES + OPEN_RH_FILES)
+    missing = sorted(f.name for f in listed if not f.exists())
+    assert not missing, (
+        f"Lean files listed in this test no longer exist: {missing}. "
+        f"Update LEAN_FILES / SORRY_FREE_FILES / OPEN_RH_FILES."
+    )
+
+
 @pytest.mark.skipif(
     not RIEMANN_FRAMEWORK_DIR.exists(),
     reason="Lean directory not found",

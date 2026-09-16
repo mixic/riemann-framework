@@ -61,7 +61,8 @@ theorem RHIdea.riemannHypothesisStatement {f : ℂ → ℂ} (h : RHIdea f) :
 
 /--
 The candidate operator stress-tested here: reflection in the critical line,
-`σ(s) = 1 - conj s`. It is the same map as `sigma` in `ZetaConjecture.lean`.
+`σ(s) = 1 - conj s`. It is the same map as `sigma` in `ZetaBridge.lean`, which
+also owns everything Mathlib's functional equation proves about it.
 -/
 def myNewOperator (s : ℂ) : ℂ := 1 - conj s
 
