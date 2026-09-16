@@ -220,11 +220,42 @@ confirmed numerically against `mpmath.zeta` to a relative error of `~1.7×10⁻�
 
 ## Lean 4 formalization
 
-- **`RiemannFramework.lean`** — the aggregate library root.
+Everything under `lean/` is compiled by [`lean_runner.py`](python/riemann_framework/lean_runner.py)
+as part of the test suite, so formal claims cannot silently rot out of sync with the code.
+
+**Sorry-free — genuinely machine-verified:**
+
+- **`RiemannFramework.lean`** — the aggregate library root. It imports only the sorry-free
+  modules below, so `lake build --wfail` stays green.
 - **`RiemannFramework/DimensionShift.lean`** — proves the sector-swap map is an involution.
 - **`RiemannFramework/InvolutionEigenspace.lean`** — eigenspace lemmas for that involution.
 
-This is a first, small, genuinely formally verified result — not a formalization of RH, and the repository does not claim otherwise. `lean_runner.py` compiles these files programmatically as part of the test suite, so formal claims cannot silently rot out of sync with the code.
+**Statements of the target — every one still contains `sorry`, because the problem is open:**
+
+- **`RiemannFramework/RiemannHypothesis.lean`** — a minimal RH statement over Mathlib's `riemannZeta`.
+- **`RiemannFramework/RiemannHypothesis_optimized.lean`** — the Clay Millennium formulation
+  (namespace `Millennium`): `ClayRiemannHypothesis` is proved equivalent to Mathlib's
+  `_root_.RiemannHypothesis` and to the real-part and Riemann `ξ(t)` wordings. This file is a
+  derivative work — see [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+- **`RiemannFramework/ZetaConjecture.lean`** — the framework's own dimension-shift reduction:
+  RH follows *if* every nontrivial zero is fixed by `σ(s) = 1 - conj s`, the reflection in the
+  critical line. The remaining step, `prove_rh_via_dimension_shift`, is `sorry`.
+- **`RiemannFramework/SanityChecks.lean`** — worked examples confirming `σ` behaves as expected.
+
+**The pipeline interface:**
+
+- **`RiemannFramework/NewIdeaTest.lean`** — defines `RHIdea`, the three obligations a candidate
+  operator must discharge: that it is an involution, that its fixed points lie on the critical
+  line (`eval_re`), and that every nontrivial zero is fixed by it (`fixed_on_zeros` — the wall).
+  `RHIdea.riemannHypothesisStatement` proves those obligations are *sufficient* for RH, so the
+  wall is exactly where a candidate is filtered out. The file registers `myNewOperator := 1 - conj s`
+  and discharges the first two; the third is `sorry`, because it is the open problem. What is
+  machine-checked is the implication plus obligations 1–2 — the pipeline is sound, not complete.
+
+This is a first, small, genuinely formally verified result — not a formalization of RH, and the
+repository does not claim otherwise. The test `test_rh_statement_stays_open` actively asserts that
+each RH-target file still reports `sorry`, so an accidental "RH is proved" claim fails the build
+rather than quietly editing the README.
 
 ## What this framework can and cannot validate
 
@@ -303,6 +334,7 @@ riemann-framework/
 │
 ├── README.md                     # Main documentation
 ├── LICENSE                       # GPL-3.0
+├── THIRD_PARTY_NOTICES           # Apache 2.0 attribution (LeanMillenniumPrizeProblems)
 ├── .gitignore                    # Exclude Python, Lean, VS Code artifacts
 ├── pyrightconfig.json            # Type-checker config (extraPaths + mpmath stub)
 ├── lakefile.toml                 # Lean 4 project definition
@@ -310,10 +342,15 @@ riemann-framework/
 ├── lean-toolchain                # Lean version pin (e.g. leanprover/lean4:v4.x.x)
 │
 ├── lean/                         # Lean 4 formalization
-│   ├── RiemannFramework.lean         # Aggregate module (library root)
+│   ├── RiemannFramework.lean         # Aggregate module (library root, sorry-free only)
 │   └── RiemannFramework/
-│       ├── DimensionShift.lean       # Sector swap is an involution
-│       └── InvolutionEigenspace.lean # Involution eigenspace lemmas
+│       ├── DimensionShift.lean       # Sector swap is an involution (sorry-free)
+│       ├── InvolutionEigenspace.lean # Involution eigenspace lemmas (sorry-free)
+│       ├── RiemannHypothesis.lean       # Minimal RH statement (`sorry`)
+│       ├── RiemannHypothesis_optimized.lean # Clay Millennium formulation (`sorry`)
+│       ├── ZetaConjecture.lean          # σ(s) = 1 - conj s reduction (`sorry`)
+│       ├── NewIdeaTest.lean             # `RHIdea` pipeline interface + demo (`sorry`)
+│       └── SanityChecks.lean            # Worked examples for σ
 │
 ├── python/                       # Numerical tests and control logic
 │   ├── pyproject.toml            # Project definition (uv/pip)
@@ -424,8 +461,16 @@ See [`LICENSE`](LICENSE) for the full text.
 Apache License 2.0 and is compatible with GPL v3. See
 [Mathlib LICENSE](https://github.com/leanprover-community/mathlib4/blob/master/LICENSE).
 
+**Note:** `lean/RiemannFramework/RiemannHypothesis_optimized.lean` is a derivative
+work of the Riemann Hypothesis formalization in
+[`lean-dojo/LeanMillenniumPrizeProblems`](https://github.com/lean-dojo/LeanMillenniumPrizeProblems),
+licensed under the Apache License 2.0. Apache 2.0 is compatible with GPL v3;
+the derived portions retain their Apache 2.0 license. The full Apache 2.0
+license text and attribution are in [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
+
 ## Third-Party Software
 
 This project uses third-party dependencies with their own licenses,
-including mpmath, NumPy, Matplotlib, pytest, Lean, and Mathlib. Their
-respective licenses remain applicable to those components.
+including mpmath, NumPy, Matplotlib, pytest, Lean, Mathlib, and portions of
+`lean-dojo/LeanMillenniumPrizeProblems`. Their respective licenses remain
+applicable to those components.

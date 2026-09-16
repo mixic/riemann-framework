@@ -22,22 +22,82 @@ import pytest
 from riemann_framework.lean_runner import check_lean_file
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-LEAN_FILE = PROJECT_ROOT / "lean" / "RiemannFramework" / "RiemannHypothesis.lean"
+LEAN_DIR = PROJECT_ROOT / "lean"
+RIEMANN_FRAMEWORK_DIR = LEAN_DIR / "RiemannFramework"
+
+# Files to check individually
+LEAN_FILES = [
+    RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean",
+    RIEMANN_FRAMEWORK_DIR / "ZetaConjecture.lean",
+    RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis.lean",
+    RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
+    RIEMANN_FRAMEWORK_DIR / "NewIdeaTest.lean",
+    RIEMANN_FRAMEWORK_DIR / "SanityChecks.lean",
+]
+
+# Files that state the Riemann Hypothesis target itself. None of these may ever
+# report a *complete* proof: the statement is open, so a `sorry` (or an `axiom`)
+# must remain. This test exists to turn an accidental "RH is proved" claim into
+# a test failure instead of a quietly edited README.
+OPEN_RH_FILES = [
+    RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis.lean",
+    RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
+    RIEMANN_FRAMEWORK_DIR / "ZetaConjecture.lean",
+]
 
 
 @pytest.mark.skipif(
-    not LEAN_FILE.exists(),
-    reason="Lean file not found",
+    not RIEMANN_FRAMEWORK_DIR.exists(),
+    reason="Lean directory not found",
 )
-def test_riemann_hypothesis_lean():
-    """Check whether the Lean 4 proof is complete (no `sorry`)."""
-    status = check_lean_file(LEAN_FILE, PROJECT_ROOT)
+@pytest.mark.parametrize("lean_file", LEAN_FILES)
+def test_lean_file_compiles(lean_file):
+    """Each Lean file should compile (even with `sorry`)."""
+    status = check_lean_file(lean_file, PROJECT_ROOT)
+    assert status["compiled"], (
+        f"Lean compilation failed for {lean_file.name}:\n{status['output']}"
+    )
 
+
+@pytest.mark.skipif(
+    not RIEMANN_FRAMEWORK_DIR.exists(),
+    reason="Lean directory not found",
+)
+def test_involution_file_has_no_sorry():
+    """The InvolutionEigenspace file should be sorry-free."""
+    lean_file = RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean"
+    status = check_lean_file(lean_file, PROJECT_ROOT)
     assert not status["has_sorry"], (
-        "ERROR: The proof still contains `sorry` – "
-        "the Riemann Hypothesis is NOT formally proven."
+        f"InvolutionEigenspace.lean still contains `sorry`:\n"
+        f"{status['output']}"
     )
     assert status["success"], (
-        f"ERROR: Lean compilation failed:\n{status['output']}"
+        f"Lean compilation failed:\n{status['output']}"
     )
-    print("Formal RH proof successfully verified.")
+
+
+@pytest.mark.skipif(
+    not RIEMANN_FRAMEWORK_DIR.exists(),
+    reason="Lean directory not found",
+)
+@pytest.mark.parametrize("lean_file", OPEN_RH_FILES)
+def test_rh_statement_stays_open(lean_file):
+    """Every RH-target file must still be incomplete.
+
+    `compiled` is expected, but `success` (compiled *and* free of
+    `sorry`/`axiom`) must not hold, because the Riemann Hypothesis is an open
+    problem and this repository does not claim to have proved it.
+    """
+    status = check_lean_file(lean_file, PROJECT_ROOT)
+    assert status["compiled"], (
+        f"Lean compilation failed for {lean_file.name}:\n{status['output']}"
+    )
+    assert status["has_sorry"] or status["has_axiom"], (
+        f"{lean_file.name} no longer contains `sorry` or `axiom`. If this is "
+        f"deliberate, it would mean the Riemann Hypothesis had been proved -- "
+        f"remove this file from OPEN_RH_FILES only after independent "
+        f"verification:\n{status['output']}"
+    )
+    assert not status["success"], (
+        f"{lean_file.name} reports a complete proof:\n{status['output']}"
+    )

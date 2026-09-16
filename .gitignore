@@ -18,6 +18,9 @@ build/
 .vscode/
 *.code-workspace
 
+# DeepSeek Harness session state (rollback snapshots, not project content)
+.dsh/
+
 # Output (Grafiken)
 output/*.png
 !output/.gitkeep
