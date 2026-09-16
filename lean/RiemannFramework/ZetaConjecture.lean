@@ -17,20 +17,20 @@
 /-
   ZetaConjecture.lean
 
-  Formal statement of the Riemann Hypothesis using Mathlib's
-  riemannZeta, together with the reduction via the dimension-shift
-  involution.
+  Formal statement of the Riemann Hypothesis using Mathlib's `riemannZeta`,
+  together with the reduction via the reflection `σ(s) = 1 - conj s`.
 
-  The file compiles with `sorry` placeholders, which mark the
-  open parts of the proof.
+  `ZetaBridge.lean` supplies `σ` and everything the functional equation proves
+  about it. This file states the target and records the single open obligation.
+
+  This file is expected to contain a `sorry`: it is where the open problem is
+  written down. `ZetaBridge.lean` carries no `sorry` at all.
 -/
 
 import Mathlib.NumberTheory.LSeries.RiemannZeta
-import Mathlib.Analysis.Complex.Basic
-import RiemannFramework.InvolutionEigenspace
+import RiemannFramework.ZetaBridge
 
 open Complex
-open scoped ComplexConjugate
 
 namespace RiemannFramework
 
@@ -44,63 +44,65 @@ def RiemannHypothesisStatement : Prop :=
   ∀ (s : ℂ), riemannZeta s = 0 →
     (∃ (n : ℕ), s = -2 * (n + 1)) ∨ s.re = 1 / 2
 
-/-- The dimension-shift involution `σ(s) = 1 - conj(s)` on the complex plane,
-i.e. reflection in the critical line `Re(s) = 1/2`. -/
-def sigma (s : ℂ) : ℂ := 1 - conj s
-
-/-- If `Re(s) = 1/2` then `σ` fixes `s`. -/
-theorem fixed_point_of_re_eq_half {s : ℂ} (h : s.re = 1 / 2) : sigma s = s := by
-  apply Complex.ext
-  · simp [sigma, h]
-    norm_num
-  · simp [sigma]
-
-/-- If `σ` fixes `s` then `Re(s) = 1/2`. -/
-theorem re_of_fixed_point_eq_half {s : ℂ} (h : sigma s = s) : s.re = 1 / 2 := by
-  have h_re : (1 : ℝ) - s.re = s.re := by
-    simpa [sigma] using congrArg Complex.re h
-  linarith
-
 /--
-  **Reduction Theorem:** If every non-trivial zero is a fixed point
-  of the involution σ, then the Riemann Hypothesis holds.
-
-  This reduces the RH to the question: are the non-trivial zeros
-  fixed points of σ?
+  **Reduction via σ:** The RH follows if every non-trivial zero
+  is a fixed point of σ.
 -/
-theorem rh_of_all_zeros_fixed
+theorem rh_of_zeros_fixed_by_sigma
     (h : ∀ (s : ℂ), riemannZeta s = 0 →
       ¬ (∃ (n : ℕ), s = -2 * (n + 1)) → sigma s = s) :
     RiemannHypothesisStatement := by
   intro s hs
   by_cases h_triv : ∃ (n : ℕ), s = -2 * (n + 1)
-  · -- Trivial zero: the disjunction holds by the left branch
-    left
-    exact h_triv
-  · -- Non-trivial zero: apply the hypothesis
-    right
+  · left; exact h_triv
+  · right
     exact re_of_fixed_point_eq_half (h s hs h_triv)
 
 /--
-  **Placeholder Theorem:** The main goal of the dimension-shift program.
+  **The single open obligation of the whole formalization.**
 
-  This is where the framework's helper lemmas from
-  `InvolutionEigenspace.lean` would eventually be applied to show
-  that every non-trivial zero is a fixed point of σ.
+  Every non-trivial zero of `ζ` is a fixed point of `σ`. By
+  `ZetaBridge.riemannHypothesis_iff_no_two_cycle` this is equivalently the
+  statement that there are no `σ`-twin non-trivial zeros.
 
-  Currently marked with `sorry`.
+  This is *not* an analytic side condition waiting to be discharged.
+  `ZetaBridge.riemannZeta_zero_sigma` derives `σ`-invariance of the zero set from
+  Mathlib's functional equation outright, and
+  `ZetaBridge.strip_invariance_imp_fixedness_iff_riemannHypothesisOnStrip` proves
+  that turning that invariance into fixedness is *itself* equivalent to RH.
 -/
-theorem prove_rh_via_dimension_shift : RiemannHypothesisStatement := by
-  apply rh_of_all_zeros_fixed
-  intro s hs h_not_trivial
+theorem zeros_are_fixed_by_sigma :
+    ∀ (s : ℂ), riemannZeta s = 0 →
+      ¬ (∃ (n : ℕ), s = -2 * (n + 1)) → sigma s = s := by
+  intro s hs h_triv
   -- ============================================================
-  -- OPEN: Show that every non-trivial zero of ζ is a fixed point
-  -- of the involution σ(s) = 1 - conj(s).
+  -- OPEN: the central mathematical problem.
   --
-  -- This is the central mathematical content of the framework.
-  -- The functional equation of ζ is the structural reason to
-  -- expect this, but the proof is not yet complete.
+  -- Strategy options:
+  --
+  -- Option A (Analytic): the functional equation gives ζ (1 - s) = 0 from
+  --   ζ s = 0, and conjugation symmetry gives ζ (conj s) = 0, hence
+  --   ζ (σ s) = 0. But that only shows σ s is *also* a zero; it does not give
+  --   σ s = s. By
+  --   `ZetaBridge.strip_invariance_imp_fixedness_iff_riemannHypothesisOnStrip`
+  --   no argument of this shape can succeed: the implication
+  --   "invariance ⟹ fixedness" is itself equivalent to RH.
+  --
+  -- Option B (Spectral): the Hilbert-Pólya route. If the zeros were the
+  --   eigenvalues of a self-adjoint operator commuting with σ, its eigenspaces
+  --   would be σ-invariant, and the fixed locus of σ is the critical line.
+  --   The obstruction is that no such operator is known.
+  --
+  -- Option C (Arithmetic): derive it from the prime structure rather than from
+  --   the geometry of the plane.
   -- ============================================================
   sorry
+
+/--
+  **The main open problem**, in the framework's reduction form.
+-/
+theorem prove_rh_via_sigma : RiemannHypothesisStatement := by
+  apply rh_of_zeros_fixed_by_sigma
+  exact zeros_are_fixed_by_sigma
 
 end RiemannFramework

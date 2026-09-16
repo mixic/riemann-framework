@@ -229,6 +229,18 @@ as part of the test suite, so formal claims cannot silently rot out of sync with
   modules below, so `lake build --wfail` stays green.
 - **`RiemannFramework/DimensionShift.lean`** — proves the sector-swap map is an involution.
 - **`RiemannFramework/InvolutionEigenspace.lean`** — eigenspace lemmas for that involution.
+- **`RiemannFramework/ZetaBridge.lean`** — owns the reflection `σ(s) = 1 - conj s` and bridges it to
+  Mathlib's functional equation, with a machine-checked negative result. It derives `σ`-invariance
+  of the zero set (`ζ s = 0 → ζ (σ s) = 0`) from `Λ(1 - s) = Λ(s)` composed with
+  `ζ(conj s) = conj (ζ s)`, which also closes the classical quadruple symmetry
+  `{ρ, 1 - ρ, conj ρ, 1 - conj ρ}`; proves the fixed locus of `σ` is exactly the critical line;
+  observes that an involution partitions a set into orbits of size 1 or 2, a 2-cycle here being a
+  pair of distinct zeros at the same height whose real parts sum to 1; proves
+  `fixed_on_zeros ⟺ there are no 2-cycles ⟺ RH`; and finally proves that the implication
+  "invariance ⟹ fixedness" is *itself equivalent to RH*. So the functional equation supplies the
+  symmetry but not the absence of 2-cycles — the verdict is that it cannot discharge the wall.
+  Entirely `sorry`-free, and it carries **no** prefactor side condition: since
+  `ζ(1-s) = C(s)·ζ(s)`, the direction `ζ s = 0 → ζ (1-s) = 0` needs no nonvanishing of `C`.
 
 **Statements of the target — every one still contains `sorry`, because the problem is open:**
 
@@ -237,9 +249,10 @@ as part of the test suite, so formal claims cannot silently rot out of sync with
   (namespace `Millennium`): `ClayRiemannHypothesis` is proved equivalent to Mathlib's
   `_root_.RiemannHypothesis` and to the real-part and Riemann `ξ(t)` wordings. This file is a
   derivative work — see [`THIRD_PARTY_NOTICES`](THIRD_PARTY_NOTICES).
-- **`RiemannFramework/ZetaConjecture.lean`** — the framework's own dimension-shift reduction:
-  RH follows *if* every nontrivial zero is fixed by `σ(s) = 1 - conj s`, the reflection in the
-  critical line. The remaining step, `prove_rh_via_dimension_shift`, is `sorry`.
+- **`RiemannFramework/ZetaConjecture.lean`** — the framework's own reduction: `RiemannHypothesisStatement`,
+  `rh_of_zeros_fixed_by_sigma`, and the single open obligation `zeros_are_fixed_by_sigma`, which
+  `prove_rh_via_sigma` consumes. This is the one place in the formalization where the open problem
+  is written down.
 - **`RiemannFramework/SanityChecks.lean`** — worked examples confirming `σ` behaves as expected.
 
 **The pipeline interface:**
@@ -253,9 +266,10 @@ as part of the test suite, so formal claims cannot silently rot out of sync with
   machine-checked is the implication plus obligations 1–2 — the pipeline is sound, not complete.
 
 This is a first, small, genuinely formally verified result — not a formalization of RH, and the
-repository does not claim otherwise. The test `test_rh_statement_stays_open` actively asserts that
-each RH-target file still reports `sorry`, so an accidental "RH is proved" claim fails the build
-rather than quietly editing the README.
+repository does not claim otherwise. The suite pins both directions: `test_rh_statement_stays_open`
+asserts that each RH-target file still reports `sorry`, so an accidental "RH is proved" claim fails
+the build rather than quietly editing the README; and `test_sorry_free_file_is_complete` asserts
+that the files listed as verified above really are `sorry`- and `axiom`-free.
 
 ## What this framework can and cannot validate
 
@@ -346,9 +360,10 @@ riemann-framework/
 │   └── RiemannFramework/
 │       ├── DimensionShift.lean       # Sector swap is an involution (sorry-free)
 │       ├── InvolutionEigenspace.lean # Involution eigenspace lemmas (sorry-free)
+│       ├── ZetaBridge.lean           # σ, FE bridge, 2-cycle gap, verdict (sorry-free)
 │       ├── RiemannHypothesis.lean       # Minimal RH statement (`sorry`)
 │       ├── RiemannHypothesis_optimized.lean # Clay Millennium formulation (`sorry`)
-│       ├── ZetaConjecture.lean          # σ(s) = 1 - conj s reduction (`sorry`)
+│       ├── ZetaConjecture.lean          # RH statement + the open `zeros_are_fixed_by_sigma` (`sorry`)
 │       ├── NewIdeaTest.lean             # `RHIdea` pipeline interface + demo (`sorry`)
 │       └── SanityChecks.lean            # Worked examples for σ
 │

@@ -175,6 +175,86 @@ import. The general involution layer is in progress in
   computation over `Nat` (`finrank` coercions plus `Nat` truncated
   subtraction) that has not yet been closed.
 
+### 4.1 Proven vs. open, by file
+
+This is the honest ledger of the Lean development. "Proven" means the
+declaration compiles with no `sorry` and no `axiom`. The test suite enforces both
+directions of the ledger (`python/tests/test_formal_proof.py`):
+
+- `test_sorry_free_file_is_complete` fails if a module recorded here as proven
+  starts containing a `sorry` or an `axiom`;
+- `test_rh_statement_stays_open` fails if a module recorded here as carrying an
+  open target stops reporting `sorry`, that is, if a claim of having proved RH
+  appears without independent verification.
+
+| File | Proven | Open (`sorry`) |
+|:---|:---|:---|
+| `DimensionShift.lean` | `sigma_squared`, `sigma_injective`, `sigma_not_fixed` | — |
+| `InvolutionEigenspace.lean` | the four kernel/eigenspace and mutual-annihilation lemmas listed above | — (refinements in item 4 above) |
+| `SanityChecks.lean` | all worked examples for `σ` | — |
+| `ZetaBridge.lean` | all 26 declarations: `sigma`, `sigma_re`, `sigma_im`, `sigma_involutive`, `fixed_point_of_re_eq_half`, `re_of_fixed_point_eq_half`, `sigma_fixed_iff_re_eq_half`, `riemannZeta_zero_conj`, `riemannZeta_zero_one_sub`, `riemannZeta_zero_sigma` (`σ`-invariance), `riemannZeta_zero_quadruple`, `rh_iff_zeros_fixed_by_sigma`, `fixed_on_zeros_iff_no_distinct_reflection`, `riemannHypothesis_iff_no_two_cycle`, and the Section 5 verdict | — |
+| `ZetaConjecture.lean` | `RiemannHypothesisStatement`, `rh_of_zeros_fixed_by_sigma`, `prove_rh_via_sigma` | `zeros_are_fixed_by_sigma` |
+| `NewIdeaTest.lean` | `RHIdea`, `RHIdea.riemannHypothesisStatement`, `testMyIdea.is_involution`, `testMyIdea.eval_re` | `testMyIdea.fixed_on_zeros` |
+| `RiemannHypothesis.lean` | the definitions `IsNontrivialZero`, `IsOnCriticalLine` | `riemann_hypothesis` |
+| `RiemannHypothesis_optimized.lean` | the Clay equivalences (`iff_real_part`, `iff_mathlib`, `of_mathlib`, `mathlib`) and every supporting lemma | `clay_prize_riemann_hypothesis` |
+
+The core algebraic result is fully proven: the fixed locus of `σ` is exactly the
+critical line (`sigma_fixed_iff_re_eq_half`). There is exactly one open statement
+in the formalization, written in four syntactic forms across the four files
+above: *every nontrivial zero of `ζ` is fixed by `σ`*.
+
+**Where the gap actually is.** It is *not* in the analytic bridge to Mathlib's
+functional equation. That bridge is complete and `sorry`-free. Composing
+`Λ(1 - s) = Λ(s)` with `ζ(conj s) = conj (ζ s)` proves `ζ s = 0 → ζ (σ s) = 0`,
+so the zero set of `ζ` is `σ`-invariant.
+
+Because `σ` is an involution, `σ`-invariance partitions the zeros into orbits of
+size 1 or 2; and since `σ` preserves the imaginary part while reflecting the real
+part about `1/2`, a size-2 orbit is a *pair of distinct zeros at the same height
+whose real parts sum to 1*. The functional equation therefore reformulates the
+open obligation exactly as
+
+> there are no `σ`-twin nontrivial zeros
+
+(`riemannHypothesis_iff_no_two_cycle`). The functional equation supplies the
+symmetry; it cannot supply the absence of 2-cycles. Indeed
+`strip_invariance_imp_fixedness_iff_riemannHypothesisOnStrip` proves that, since
+invariance is a theorem, the implication "invariance implies fixedness" is
+*itself* equivalent to RH.
+
+**Not a real gap: the `cos (π s / 2)` prefactor.** An earlier draft inside
+`ZetaBridge.lean` took `fixed_on_zeros` to require the functional-equation
+prefactor `2 · (2π)^{-s} · Γ(s) · cos(π s / 2)` to be non-zero, and recorded
+"`Gamma_conj_ne_zero`" and "`cos` non-zero" as open. They are not needed.
+Mathlib's `riemannZeta_one_sub` states
+
+    ζ(1 - s) = 2 * (2 * π) ^ (-s) * Gamma s * cos (π * s / 2) * ζ(s),
+
+so `ζ s = 0` yields `ζ (1 - s) = 0` outright: the left-hand side is
+*proportional* to `ζ s`. Nonvanishing of the prefactor is needed only for the
+converse `ζ (1 - s) = 0 → ζ s = 0`, which `σ`-invariance never uses.
+`riemannZeta_zero_sigma` therefore carries only the side conditions
+`0 < re s < 1` — which make `riemannZeta_one_sub` applicable and are stable under
+`conj` — and no trigonometric or `Γ`-nonvanishing lemma is required. Closing the
+`cos` gap is not a step towards anything; there is no gap there.
+
+Three things had to be fixed before that draft compiled: `open scoped
+ComplexConjugate` (`conj` is scoped notation; `open Complex` alone does not bring
+it in), the `Mathlib.NumberTheory.Harmonic.ZetaAsymp` import (`riemannZeta_conj`
+does not live in the `RiemannZeta` module), and a definition of `sigma` itself,
+which now lives in `ZetaBridge.lean` and is imported by `ZetaConjecture.lean` —
+defining it in the latter would make the import circular. One trap when editing
+this file: unrestricted `simp` **diverges** on any goal containing `conj`, because
+in this Mathlib `starRingEnd_apply` and `star_def` rewrite into each other; use
+`simp only` with an explicit lemma list, or plain `rw`. For the same reason
+`ZetaBridge.lean` deliberately contains no `simp`/`simpa` on a `conj`-containing
+goal, which is why every proof there is a `rw`/`ring`/`linarith` derivation.
+
+**Next step.** Not a trigonometric lemma. The only remaining step is the
+negative half of `riemannHypothesis_iff_no_two_cycle`: show that no 2-cycle
+exists. That is RH, and no side-condition work inside the functional equation can
+supply it.
+
 ## Priority 5: Arithmetic Grounding
 
 The dimension-shift model currently has no derived prime structure. Future work

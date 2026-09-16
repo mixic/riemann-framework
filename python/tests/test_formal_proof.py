@@ -27,12 +27,22 @@ RIEMANN_FRAMEWORK_DIR = LEAN_DIR / "RiemannFramework"
 
 # Files to check individually
 LEAN_FILES = [
+    RIEMANN_FRAMEWORK_DIR / "DimensionShift.lean",
     RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean",
     RIEMANN_FRAMEWORK_DIR / "ZetaConjecture.lean",
+    RIEMANN_FRAMEWORK_DIR / "ZetaBridge.lean",
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis.lean",
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
     RIEMANN_FRAMEWORK_DIR / "NewIdeaTest.lean",
     RIEMANN_FRAMEWORK_DIR / "SanityChecks.lean",
+]
+
+# Files that must be *complete*: compiled, and free of both `sorry` and `axiom`.
+# These are the framework's genuine results, and this list is what keeps them honest.
+SORRY_FREE_FILES = [
+    RIEMANN_FRAMEWORK_DIR / "DimensionShift.lean",
+    RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean",
+    RIEMANN_FRAMEWORK_DIR / "ZetaBridge.lean",
 ]
 
 # Files that state the Riemann Hypothesis target itself. None of these may ever
@@ -63,16 +73,21 @@ def test_lean_file_compiles(lean_file):
     not RIEMANN_FRAMEWORK_DIR.exists(),
     reason="Lean directory not found",
 )
-def test_involution_file_has_no_sorry():
-    """The InvolutionEigenspace file should be sorry-free."""
-    lean_file = RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean"
+@pytest.mark.parametrize("lean_file", SORRY_FREE_FILES)
+def test_sorry_free_file_is_complete(lean_file):
+    """Each genuinely verified file must be sorry-free, with no `axiom` either."""
     status = check_lean_file(lean_file, PROJECT_ROOT)
+    assert status["compiled"], (
+        f"Lean compilation failed for {lean_file.name}:\n{status['output']}"
+    )
     assert not status["has_sorry"], (
-        f"InvolutionEigenspace.lean still contains `sorry`:\n"
-        f"{status['output']}"
+        f"{lean_file.name} contains `sorry`:\n{status['output']}"
+    )
+    assert not status["has_axiom"], (
+        f"{lean_file.name} declares an `axiom`:\n{status['output']}"
     )
     assert status["success"], (
-        f"Lean compilation failed:\n{status['output']}"
+        f"{lean_file.name} is not a complete proof:\n{status['output']}"
     )
 
 
