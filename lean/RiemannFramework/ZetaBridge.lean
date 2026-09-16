@@ -20,6 +20,8 @@ import Mathlib.NumberTheory.Harmonic.ZetaAsymp
 
 open Complex
 open scoped ComplexConjugate
+-- `π` is notation in the `Real` scope; without this it is read as an auto-implicit variable.
+open scoped Real
 
 namespace RiemannFramework
 
@@ -176,6 +178,54 @@ theorem ne_neg_nat_and_ne_one {s : ℂ} (h1 : 0 < s.re) (h2 : s.re < 1) :
     rw [h] at h2
     norm_num at h2
 
+/-- **On the critical strip the cosine factor of the functional equation never vanishes.**
+
+`Complex.cos_eq_zero_iff` states `cos θ = 0 ↔ θ = (2 * k + 1) * π / 2`, so `cos (π * s / 2) = 0`
+forces `s = 2 * k + 1`, an odd integer. Its real part `2 * k + 1` then cannot lie in `(0, 1)`:
+`0 < 2k + 1 < 1` would give `-1/2 < k < 0`, which no integer satisfies. -/
+theorem cos_pi_mul_div_two_ne_zero {s : ℂ} (h1 : 0 < s.re) (h2 : s.re < 1) :
+    cos (π * s / 2) ≠ 0 := by
+  have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+  rw [Complex.cos_ne_zero_iff]
+  rintro k hk
+  have hodd : s = 2 * (k : ℂ) + 1 := by grind
+  have hre : s.re = 2 * (k : ℝ) + 1 := by
+    rw [hodd]
+    simp
+  have hk_lt : (k : ℝ) < 0 := by linarith
+  have hk_neg : k < 0 := by exact_mod_cast hk_lt
+  have hk_le : k ≤ -1 := by omega
+  have hkR : (k : ℝ) ≤ -1 := by exact_mod_cast hk_le
+  linarith
+
+/-- **The functional-equation prefactor never vanishes on the critical strip.**
+
+This is the lemma whose absence made an earlier draft record a `cos`/`Γ` "gap". With
+`0 < re s < 1` we have `Γ s ≠ 0` (`Γ` has no zeros), `cos (π s / 2) ≠ 0` (previous lemma) and
+`2 * (2π)^{-s} ≠ 0`, so the functional equation `ζ (1 - s) = C(s) * ζ s` may be *divided* by
+`C(s)`. That turns the zero symmetry into the equivalence
+`riemannZeta_zero_iff_one_sub` below. -/
+theorem riemannZeta_one_sub_prefactor_ne_zero {s : ℂ} (h1 : 0 < s.re) (h2 : s.re < 1) :
+    2 * (2 * π) ^ (-s) * Gamma s * cos (π * s / 2) ≠ 0 := by
+  have h2π : (2 * (π : ℂ)) ≠ 0 :=
+    mul_ne_zero (by norm_num) (by exact_mod_cast Real.pi_ne_zero)
+  refine mul_ne_zero (mul_ne_zero (mul_ne_zero (by norm_num) ?_) ?_) ?_
+  · rw [cpow_ne_zero_iff]
+    exact Or.inl h2π
+  · exact Complex.Gamma_ne_zero_of_re_pos h1
+  · exact cos_pi_mul_div_two_ne_zero h1 h2
+
+/-- **The functional equation gives the zero symmetry as an equivalence**, on the strip.
+
+The forward direction needs no division (see `riemannZeta_zero_one_sub`); the converse is exactly
+where `riemannZeta_one_sub_prefactor_ne_zero` is used. -/
+theorem riemannZeta_zero_iff_one_sub {s : ℂ} (h1 : 0 < s.re) (h2 : s.re < 1) :
+    riemannZeta s = 0 ↔ riemannZeta (1 - s) = 0 := by
+  obtain ⟨hnonpos, hs1⟩ := ne_neg_nat_and_ne_one h1 h2
+  refine ⟨riemannZeta_zero_one_sub hnonpos hs1, fun h ↦ ?_⟩
+  rw [riemannZeta_one_sub hnonpos hs1] at h
+  exact (mul_eq_zero.mp h).resolve_left (riemannZeta_one_sub_prefactor_ne_zero h1 h2)
+
 /-!
 ## 3. `σ`-invariance of the zero set, from the functional equation
 -/
@@ -210,6 +260,27 @@ theorem riemannZeta_zero_quadruple {ρ : ℂ} (hre : 0 < ρ.re) (hre_lt : ρ.re 
     exact riemannZeta_zero_one_sub hnonpos hs1 hρ
   have hsigma : riemannZeta (1 - conj ρ) = 0 := riemannZeta_zero_sigma hre hre_lt hρ
   exact ⟨hρ, hone_sub, hconj, hsigma⟩
+
+/-- **Conjugation symmetry of the zero set, as an equivalence.** `riemannZeta_conj` gives
+`ζ (conj s) = conj (ζ s)`, and `conj` vanishes only at `0`. -/
+theorem riemannZeta_zero_iff_conj (s : ℂ) :
+    riemannZeta (conj s) = 0 ↔ riemannZeta s = 0 := by
+  rw [riemannZeta_conj, starRingEnd_apply, star_eq_zero]
+
+/-- **`σ`-invariance of the zero set, as an equivalence**, on the strip.
+
+The forward direction is `riemannZeta_zero_sigma`; the converse composes the functional-equation
+equivalence at `conj s` with the conjugation equivalence. -/
+theorem riemannZeta_zero_iff_sigma {s : ℂ} (h1 : 0 < s.re) (h2 : s.re < 1) :
+    riemannZeta s = 0 ↔ riemannZeta (sigma s) = 0 := by
+  have h1' : (0 : ℝ) < (conj s).re := by rw [Complex.conj_re]; exact h1
+  have h2' : (conj s).re < 1 := by rw [Complex.conj_re]; exact h2
+  have hconj : riemannZeta s = 0 ↔ riemannZeta (conj s) = 0 :=
+    (riemannZeta_zero_iff_conj s).symm
+  have hfe : riemannZeta (conj s) = 0 ↔ riemannZeta (1 - conj s) = 0 :=
+    riemannZeta_zero_iff_one_sub h1' h2'
+  have hσ : riemannZeta (sigma s) = 0 ↔ riemannZeta (1 - conj s) = 0 := Iff.rfl
+  exact hconj.trans (hfe.trans hσ.symm)
 
 /-!
 ## 4. Reformulating the wall as the absence of 2-cycles

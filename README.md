@@ -233,14 +233,16 @@ as part of the test suite, so formal claims cannot silently rot out of sync with
   Mathlib's functional equation, with a machine-checked negative result. It derives `σ`-invariance
   of the zero set (`ζ s = 0 → ζ (σ s) = 0`) from `Λ(1 - s) = Λ(s)` composed with
   `ζ(conj s) = conj (ζ s)`, which also closes the classical quadruple symmetry
-  `{ρ, 1 - ρ, conj ρ, 1 - conj ρ}`; proves the fixed locus of `σ` is exactly the critical line;
-  observes that an involution partitions a set into orbits of size 1 or 2, a 2-cycle here being a
-  pair of distinct zeros at the same height whose real parts sum to 1; proves
-  `fixed_on_zeros ⟺ there are no 2-cycles ⟺ RH`; and finally proves that the implication
-  "invariance ⟹ fixedness" is *itself equivalent to RH*. So the functional equation supplies the
-  symmetry but not the absence of 2-cycles — the verdict is that it cannot discharge the wall.
-  Entirely `sorry`-free, and it carries **no** prefactor side condition: since
-  `ζ(1-s) = C(s)·ζ(s)`, the direction `ζ s = 0 → ζ (1-s) = 0` needs no nonvanishing of `C`.
+  `{ρ, 1 - ρ, conj ρ, 1 - conj ρ}`; proves the zero symmetries as *equivalences*
+  (`riemannZeta_zero_iff_one_sub`, `riemannZeta_zero_iff_sigma`), which needs the
+  functional-equation prefactor to be non-zero on the strip
+  (`cos_pi_mul_div_two_ne_zero`, `riemannZeta_one_sub_prefactor_ne_zero`); proves the fixed locus
+  of `σ` is exactly the critical line; observes that an involution partitions a set into orbits of
+  size 1 or 2, a 2-cycle here being a pair of distinct zeros at the same height whose real parts
+  sum to 1; proves `fixed_on_zeros ⟺ there are no 2-cycles ⟺ RH`; and finally proves that the
+  implication "invariance ⟹ fixedness" is *itself equivalent to RH*. So the functional equation
+  supplies the symmetry but not the absence of 2-cycles — the verdict is that it cannot discharge
+  the wall. All 31 declarations are `sorry`-free.
 
 **Statements of the target — every one still contains `sorry`, because the problem is open:**
 
