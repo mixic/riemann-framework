@@ -14,642 +14,468 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-The graded prime monoid: what "a number system whose dimension increases under
-multiplication" means once it is made precise.
+The graded prime-exponent monoid: a number system whose dimension increases
+under multiplication, rather than one that rotates under it.
 
-The intuition, and where it comes from
---------------------------------------
-Extending `R` to `C` added one dimension and unlocked a great deal. If adding a
-dimension did that, perhaps a number system whose dimension grows *as you
-multiply* would do more. `docs/spherical_number_systems.md` asks the resulting
-question in testable form -- "does multiplication of prime objects recover
-unique factorization?" -- and this module answers it.
+Motivation
+----------
+A natural-sounding proposal is: "a number system where 1 is 0-dimensional,
+and multiplying introduces new dimensions the way `i` introduced a second
+one." Taken literally as zero-padding (`1 -> (1,0) -> (1,0,0) -> ...`), this
+has no multiplication rule at all -- it is an embedding, not an algebra, and
+adds nothing.
 
-The answer is narrower than the intuition suggests, in the same way and for the
-same reason that `docs/dimension_shift_involution.md` section 2.1 narrows the
-dimension-shift prototype. That is the point of writing it down.
+There is exactly one multiplication rule that is *forced*, rather than
+chosen, once you ask for the dimension to grow in a way compatible with
+multiplication: encode a number by its vector of prime exponents, and let
+multiplication be coordinatewise addition of exponent vectors. This is not a
+new axiom; it is a restatement of unique factorisation. This module makes
+that restatement precise and computable:
 
-The identification
-------------------
-Let `P` be the primes and let
+    dimension(n) := omega(n), the number of *distinct* primes dividing n
+                    (dimension 0 is the number 1 itself)
+    n            <-> the finite exponent vector (e_2, e_3, e_5, ...) with
+                     n = prod_p p^{e_p}
+    n * m        <-> exponent-vector addition, extended to whichever
+                     dimension the union of the two supports needs
 
-    V = { v : P -> N : v(p) = 0 for all but finitely many p }
+The resulting object is the free abelian monoid on the primes,
+`bigoplus_p N_{>=0}`, presented as a direct limit of `N_{>=0}^k` under the
+"pad with one more coordinate" inclusions -- exactly the
+`1 -> (1,0) -> (1,0,0) -> ...` pattern, but now carrying the one
+multiplication rule that pattern can support, rather than silent padding.
 
-be the finitely supported exponent vectors, stored sparsely as `{prime: exp}`.
-The fundamental theorem of arithmetic says that
-
-    phi : (N_{>0}, x) -> (V, +),       phi(n) = (v_p(n))_p
-
-is a *bijection*, and it is multiplicative by construction.
-
-So `N_{>0}` under multiplication is the **free commutative monoid on the
-primes**. That is the precise content of "dimension increases under
-multiplication": multiplying appends generators, and the exponent vector is the
-bookkeeping. It is not a `Z_2`-grading, not a sphere, and not an extension of
-`C` -- it is the monoid structure ordinary arithmetic already has.
-
-The uniqueness theorem
-----------------------
-"Exponent-vector addition is the only multiplication rule compatible with
-unique factorization" is a theorem, and it is short.
-
-    Theorem. Let phi be as above, and let `star` be ANY operation V x V -> V
-    satisfying
-
-        phi(m n) = phi(m) star phi(n)        for all m, n >= 1.
-
-    Then `star` is componentwise addition.
-
-    Proof. phi is surjective, being a bijection. Given v, w in V, choose m, n
-    with v = phi(m) and w = phi(n). Then
-
-        v star w = phi(m) star phi(n) = phi(m n) = phi(m) + phi(n) = v + w,
-
-    using multiplicativity of `star` in the middle and `v_p(m n) = v_p(m) +
-    v_p(n)` at the end. QED
-
-Note what is *not* assumed: `star` need not be associative, commutative, or
-have an identity. Surjectivity of `phi` alone pins it down everywhere, so
-associativity and commutativity are consequences rather than hypotheses.
-
-The honest reading is therefore deflationary, and worth stating plainly: the
-dimension-increasing multiplication is unique factorization restated. It is not
-an alternative arithmetic that could have come out otherwise, and no choice was
-made. `monoid_contract_report` checks the hypotheses of the theorem over a range;
-`candidate_rule_report` illustrates the conclusion by taking six plausible
-"other" rules and showing where each one first breaks.
-
-One of those six deserves advance notice. The literal "the dimension grows"
-reading -- concatenate the lists of prime factors -- is *not* a different rule.
-It agrees with exponent addition everywhere, because taking a multiset union of
-prime factors and adding exponent vectors are the same operation written two
-ways. The slogan and the algebra are not merely compatible; they are identical.
-
-The grading
------------
-`V` is graded by total degree
-
-    Omega(v) = sum_p v(p)         and       Omega(m n) = Omega(m) + Omega(n).
-
-`Omega(n)` is the number of prime factors of `n` counted with multiplicity, and
-it is the "dimension" in the slogan: the degree of `phi(n)` counts how many
-generators went into building `n`. `V` decomposes as the direct sum of the `V_d`
-over `d >= 0`, each `V_d` finite.
-
-Why this is exactly what makes the primon gas exact
----------------------------------------------------
-`primon_gas.py` builds `H|n> = log(n)|n>` on `l^2(N)` and records
-`Tr[e^{-sH}] = zeta(s)`. The reason the trace factorizes into an Euler product
-is the monoid structure above, in one line: the energy is a *linear functional
-of the exponent vector*,
-
-    log(n) = sum_p v_p(n) log(p) = <lambda, phi(n)>,       lambda_p = log(p),
-
-so summing `n^{-s} = exp(-s <lambda, phi(n)>)` over `N_{>0}` is summing
-`prod_p x_p^{v_p}` over the free commutative monoid, where `x_p = p^{-s}`. A sum
-of a product over a *free commutative* monoid is a product of sums -- that is
-what "free commutative" means -- and the product of sums is the Euler product:
-
-    sum_{v in V} prod_p x_p^{v_p}  =  prod_p sum_{a>=0} x_p^a  =  prod_p 1/(1-x_p).
-
-`euler_box_sum` and `euler_product_formula` compute the two sides of the finite
-version of that identity -- a box `0 <= v_p <= D` over a finite prime basis --
-so the factorization is a checkable identity rather than a slogan. That is the
-whole of the claimed connection: the Euler product is exact because it is the
-generating function of a free commutative monoid.
-
-What this does NOT do
----------------------
-It does not produce a new number system, and it does not touch the zeros. The
-eigenvalues of `H` are `log(n)`, not the imaginary parts of the zeta zeros;
-`docs/spherical_number_systems.md` section 3.4 is explicit that an operator whose
-spectrum *is* the zeros is a separate and still-open construction. Nothing here
-proves anything about the Riemann Hypothesis.
-
-Nor does the uniqueness theorem say that `V` is the only possible setting. It
-says that *given* unique factorization, the operation is forced. Whether some
-richer system could both contain the primes and force the zeros onto a fixed
-locus is exactly the open question, and this module does not answer it.
+Why this belongs in this repository specifically
+--------------------------------------------------
+This is not a sixth speculative track. It is the algebraic object already
+implicit in `primon_gas.py`: `l^2(N)` with basis `|n>` *is* this monoid's
+group algebra, and `Tr[e^{-sH}] = zeta(s)` is exactly the statement that
+summing `n^{-s}` over this graded monoid, weighted multiplicatively,
+produces the Euler product. This module gives that structure an explicit
+name and an explicit isomorphism, and exists mainly to make the connection
+in `bridge_to_primon_gas` below checkable rather than asserted.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from functools import lru_cache
 from itertools import product
-from typing import Callable, Sequence, TypeAlias
 
-import mpmath as mp
-import numpy as np
+from .primon_gas import factorize, trace_exp
 
-from .primon_gas import factorize, zeta_reference
-
-#: A prime factorisation, stored sparsely as `{prime: exponent}` with zero
-#: exponents omitted. The empty vector `{}` is `phi(1)`, the monoid identity.
-ExponentVector: TypeAlias = dict[int, int]
-
-#: A candidate multiplication rule on exponent vectors.
-BinaryRule: TypeAlias = Callable[[ExponentVector, ExponentVector], ExponentVector]
-
-#: Upper bound on the number of box terms enumerated by `euler_box_sum`. The
-#: enumeration is `(degree_cap + 1) ** len(basis)`, which is exponential, so it
-#: is capped rather than left to hang.
-_MAX_BOX_TERMS = 200_000
+# Primes are generated here rather than imported. An earlier revision of this
+# module used `factorint`, `prime` and `primerange` from sympy, which is neither
+# installed nor declared in `pyproject.toml`, so the module did not import at all
+# and its test file failed at collection. This repository depends only on
+# mpmath/numpy/scipy (`affine_reduction.py` records the same decision for its own
+# gate), and `primon_gas.factorize` already does exact trial division.
 
 
-# ============================================================
-# Validation
-# ============================================================
-
-def _is_prime(n: int) -> bool:
-    """Trial-division primality test, used only to validate exponent-vector keys."""
-    if n < 2:
-        return False
-    if n % 2 == 0:
-        return n == 2
-    candidate = 3
-    while candidate * candidate <= n:
-        if n % candidate == 0:
-            return False
-        candidate += 2
-    return True
+@lru_cache(maxsize=None)
+def _primes_up_to(limit: int) -> tuple[int, ...]:
+    """Every prime `<= limit`, by sieve of Eratosthenes."""
+    if limit < 2:
+        return ()
+    sieve = bytearray([1]) * (limit + 1)
+    sieve[0:2] = b"\x00\x00"
+    for candidate in range(2, math.isqrt(limit) + 1):
+        if sieve[candidate]:
+            start = candidate * candidate
+            sieve[start::candidate] = b"\x00" * len(range(start, limit + 1, candidate))
+    return tuple(index for index in range(2, limit + 1) if sieve[index])
 
 
-def _validate_vector(v: ExponentVector, name: str = "v") -> ExponentVector:
-    """Return a normalised copy of `v`, rejecting anything that is not a vector.
+@lru_cache(maxsize=None)
+def _first_primes(count: int) -> tuple[int, ...]:
+    """The first `count` primes, `p_1 ... p_count`, ascending."""
+    if count <= 0:
+        return ()
+    # `p_k` is below `k (log k + log log k)` for k >= 6, and below 16 for the
+    # small cases; double the bound until the sieve is long enough rather than
+    # rely on the estimate holding at the edge.
+    limit = 16 if count < 6 else int(count * (math.log(count) + math.log(math.log(count)))) + 10
+    while len(_primes_up_to(limit)) < count:
+        limit *= 2
+    return _primes_up_to(limit)[:count]
 
-    Keys must be primes -- a "vector indexed by 4" has no meaning in this monoid
-    and would make `from_exponent_vector` return a silently wrong integer.
-    Exponents must be non-negative integers, since `V` is a monoid and not a
-    group. Zero exponents are dropped, so equal vectors compare equal.
+
+@dataclass(frozen=True)
+class GradedPrimeNumber:
+    """An element of the graded prime-exponent monoid: a finite tuple of
+    non-negative exponents `(e_1, e_2, ..., e_k)` for the first `k` primes
+    `(2, 3, 5, ..., p_k)`. Trailing zeros are insignificant (padding), so
+    two tuples that differ only by trailing zeros represent the same
+    element -- this is exactly the direct-limit identification.
     """
-    if not isinstance(v, dict):
-        raise TypeError(f"{name} must be a dict mapping primes to exponents")
-    normalised: ExponentVector = {}
-    for key, exponent in v.items():
-        if not isinstance(key, (int, np.integer)):
-            raise TypeError(f"{name} has a non-integer key {key!r}")
-        prime = int(key)
-        if not _is_prime(prime):
-            raise ValueError(f"{name} has key {prime}, which is not a prime >= 2")
-        if not isinstance(exponent, (int, np.integer)):
-            raise TypeError(f"{name}[{prime}] must be an integer, got {exponent!r}")
-        value = int(exponent)
-        if value < 0:
-            raise ValueError(
-                f"{name}[{prime}] = {value} is negative; V is a monoid, not a group"
-            )
-        if value:
-            normalised[prime] = value
-    return normalised
+
+    exponents: tuple[int, ...]
+
+    def __post_init__(self) -> None:
+        if any(e < 0 for e in self.exponents):
+            raise ValueError("exponents must be non-negative")
+
+    @property
+    def dimension(self) -> int:
+        """`omega(n)`: the number of *distinct* primes with nonzero exponent.
+
+        This must count nonzero entries directly, not `len(self._trimmed())`:
+        an element like `(0, 0, 1, 1)` (representing 5*7=35, with zero
+        exponents at the skipped primes 2 and 3) has no *trailing* zeros to
+        trim, so trimmed length would wrongly report dimension 4 instead of
+        the correct 2. Internal zero exponents (unused primes below the
+        largest one used) must not count towards dimension; only trailing
+        zeros are insignificant padding.
+        """
+        return sum(1 for e in self.exponents if e != 0)
+
+    def _trimmed(self) -> tuple[int, ...]:
+        e = self.exponents
+        while e and e[-1] == 0:
+            e = e[:-1]
+        return e
+
+    def pad_to(self, k: int) -> "GradedPrimeNumber":
+        """Embed this element into the space using the first `k` primes
+        (`k >= current length`), the `1 -> (1,0) -> (1,0,0) -> ...` inclusion
+        made explicit and reversible: `pad_to` never changes `to_int()`."""
+        if k < len(self.exponents):
+            raise ValueError(f"cannot pad down: k={k} < current length {len(self.exponents)}")
+        return GradedPrimeNumber(self.exponents + (0,) * (k - len(self.exponents)))
+
+    def to_int(self) -> int:
+        """The integer `n = prod_i p_i^{e_i}` this element encodes."""
+        n = 1
+        for exponent, p in zip(self.exponents, _first_primes(len(self.exponents))):
+            n *= p ** exponent
+        return n
+
+    def __mul__(self, other: "GradedPrimeNumber") -> "GradedPrimeNumber":
+        """Multiplication = coordinatewise addition of exponent vectors,
+        extended to the larger of the two dimensions -- the one
+        multiplication rule compatible with unique factorisation. This is
+        where "dimension changes under multiplication" becomes concrete: two
+        numbers using disjoint prime supports multiply into something whose
+        dimension is the *sum* of their two dimensions (see
+        `test_multiplication_dimension_is_subadditive_and_exact_on_disjoint_support`)."""
+        k = max(len(self.exponents), len(other.exponents))
+        a, b = self.pad_to(k), other.pad_to(k)
+        return GradedPrimeNumber(tuple(x + y for x, y in zip(a.exponents, b.exponents)))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, GradedPrimeNumber):
+            return NotImplemented
+        return self._trimmed() == other._trimmed()
+
+    def __hash__(self) -> int:
+        return hash(self._trimmed())
+
+    def __repr__(self) -> str:
+        # Deliberately shows the *raw* (possibly zero-padded) exponents, not
+        # the trimmed form: this is what makes `dimension_tower` below able to
+        # visibly demonstrate padding (1,) vs (1,0) vs (1,0,0), even though
+        # `__eq__`/`__hash__` correctly treat them as the same element.
+        return f"GradedPrimeNumber(exponents={self.exponents!r}, dim={self.dimension}, n={self.to_int()})"
 
 
-# ============================================================
-# The identification: N_{>0} <-> V
-# ============================================================
+#: The identity element: dimension 0, the empty exponent tuple, integer 1.
+ONE = GradedPrimeNumber(())
 
-def exponent_vector(n: int) -> ExponentVector:
-    """`phi(n)`: the exponent vector of `n`, with `phi(1) = {}`.
 
-    This is the forward half of the identification between `(N_{>0}, x)` and the
-    free commutative monoid on the primes. It is unique factorisation, read as a
-    statement about a bijection rather than as a statement about integers.
-    """
-    if not isinstance(n, (int, np.integer)):
-        raise TypeError(f"n must be an integer, got {type(n).__name__}")
+def from_int(n: int) -> GradedPrimeNumber:
+    """The canonical embedding `(N_{>0}, x) -> graded prime monoid`: factorise
+    `n` and read off the exponent of each prime up to the largest one
+    dividing `n`. Inverse of `GradedPrimeNumber.to_int`."""
     if n < 1:
-        raise ValueError(f"n must be >= 1, got {n}")
-    return factorize(int(n))
+        raise ValueError("n must be a positive integer")
+    if n == 1:
+        return ONE
+    factors = factorize(n)
+    return GradedPrimeNumber(
+        tuple(factors.get(p, 0) for p in _primes_up_to(max(factors)))
+    )
 
 
-def from_exponent_vector(v: ExponentVector) -> int:
-    """`phi^{-1}(v)`: the integer whose factorisation is `v`, with `phi^{-1}({}) = 1`."""
-    vector = _validate_vector(v)
-    result = 1
-    for prime, exponent in vector.items():
-        result *= prime ** exponent
-    return result
+def dimension_tower(n: int, max_dim: int) -> list[GradedPrimeNumber]:
+    """The `1 -> (1,0) -> (1,0,0) -> ...` tower for a single element `n`,
+    i.e. `from_int(n)` padded to every dimension from its *current ambient
+    length* up to `max_dim`. All entries `to_int()` to the same `n`; only the
+    ambient dimension changes, which is the padding-alone construction this
+    module's docstring argues is arithmetically inert on its own -- included
+    here so it can be contrasted directly against `__mul__` below, where the
+    dimension change is not inert.
 
-
-def add(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    """Componentwise addition -- the monoid operation, and (see the module
-    docstring) the only operation compatible with unique factorisation."""
-    left = _validate_vector(u, "u")
-    right = _validate_vector(v, "v")
-    result = dict(left)
-    for prime, exponent in right.items():
-        total = result.get(prime, 0) + exponent
-        if total:
-            result[prime] = total
-        else:
-            result.pop(prime, None)
-    return result
-
-
-def total_degree(v: ExponentVector) -> int:
-    """`Omega(v)`: the grading, i.e. the number of prime factors with multiplicity."""
-    return sum(_validate_vector(v).values())
-
-
-def distinct_primes(v: ExponentVector) -> tuple[int, ...]:
-    """The support of `v`, ascending: which primes actually occur."""
-    return tuple(sorted(_validate_vector(v)))
-
-
-def prime_basis(n_max: int) -> tuple[int, ...]:
-    """Every prime `<= n_max`, ascending -- the generators used up to `n_max`."""
-    if not isinstance(n_max, (int, np.integer)):
-        raise TypeError("n_max must be an integer")
-    if n_max < 2:
-        raise ValueError(f"n_max must be >= 2, got {n_max}")
-    return tuple(p for p in range(2, int(n_max) + 1) if _is_prime(p))
-
-
-def dense_vector(v: ExponentVector, basis: Sequence[int]) -> tuple[int, ...]:
-    """`v` as a tuple of exponents over a fixed `basis`, for display and comparison."""
-    vector = _validate_vector(v)
-    for prime in basis:
-        if not _is_prime(int(prime)):
-            raise ValueError(f"basis contains {prime}, which is not a prime >= 2")
-    return tuple(vector.get(int(prime), 0) for prime in basis)
-
-
-def energy(v: ExponentVector) -> float:
-    """`<lambda, v> = sum_p v_p log(p)`, the primon-gas energy of the vector.
-
-    This is `log(phi^{-1}(v))` evaluated through the *linear* functional, which
-    is the form that matters: the energy is linear in the exponent vector, and
-    that linearity is why the trace factorises.
+    The tower starts at `len(base.exponents)`, the index of the largest prime
+    dividing `n`, and *not* at `base.dimension`. The two agree only when the
+    exponent tuple has no internal zeros. For `n = 97` the dimension is 1 while
+    the tuple has length 25, and `pad_to(1)` on it is a pad *down*, which raises.
+    An earlier revision started at `base.dimension`, and its guard tested the
+    same quantity, so `dimension_tower` raised for 81 of the first 100 integers
+    -- every `n` not divisible by 2. Pinned by
+    `test_dimension_tower_works_for_elements_with_internal_zeros`.
     """
-    return math.fsum(exponent * math.log(prime) for prime, exponent in sorted(_validate_vector(v).items()))
+    base = from_int(n)
+    start = len(base.exponents)
+    if max_dim < start:
+        raise ValueError(
+            f"max_dim={max_dim} is below the ambient length {start} of "
+            f"from_int({n}) (whose dimension is {base.dimension}); pad_to cannot "
+            "pad down"
+        )
+    return [base.pad_to(k) for k in range(start, max_dim + 1)]
 
 
-# ============================================================
-# The grading
-# ============================================================
+def verify_monoid_isomorphism(n_max: int) -> "IsomorphismReport":
+    """Check, by direct computation over `1..n_max`, that
+    `from_int` / `to_int` is a bijection intertwining ordinary integer
+    multiplication with graded-monoid multiplication:
 
-def graded_components(n_max: int) -> dict[int, list[int]]:
-    """Group `1..n_max` by `Omega`, i.e. by the degree of their exponent vector.
+        from_int(a) * from_int(b) == from_int(a * b)   for all a, b <= n_max
 
-    This is the "dimension" of the slogan made concrete: `V_d` collects the
-    vectors of total degree `d`, and multiplying moves from `V_d` to `V_{d + d'}`.
+    This is the precise sense in which "the dimension-increasing number
+    system" is not a new set of numbers but a repackaging of
+    `(N_{>0}, x)` that makes the prime-exponent structure, and hence the
+    dimension `omega(n)`, explicit.
     """
-    if not isinstance(n_max, (int, np.integer)):
-        raise TypeError("n_max must be an integer")
-    if n_max < 1:
-        raise ValueError(f"n_max must be >= 1, got {n_max}")
-    components: dict[int, list[int]] = {}
-    for n in range(1, int(n_max) + 1):
-        components.setdefault(total_degree(exponent_vector(n)), []).append(n)
-    return components
+    cache: dict[int, GradedPrimeNumber] = {n: from_int(n) for n in range(1, n_max + 1)}
 
+    def element(k: int) -> GradedPrimeNumber:
+        if k not in cache:
+            cache[k] = from_int(k)
+        return cache[k]
 
-# ============================================================
-# Checking the hypotheses of the uniqueness theorem
-# ============================================================
-
-def monoid_contract_report(n_max: int = 500) -> dict:
-    """Check, over `1..n_max`, everything the uniqueness theorem assumes.
-
-    The theorem is proved by surjectivity of `phi` (see the module docstring),
-    which is not something a computation can establish. What a computation can
-    do is confirm that its hypotheses hold where it was checked, and that the
-    conclusions hold there too:
-
-    - `phi` round-trips in both directions on `1..n_max`;
-    - `phi` is multiplicative: `phi(m n) = phi(m) + phi(n)`;
-    - `phi(1) = {}`, the monoid identity;
-    - `Omega` is additive, so the grading is respected.
-
-    A `first_failure` of `None` means every check passed. It does not mean the
-    theorem has been proved by exhaustion.
-    """
-    if not isinstance(n_max, (int, np.integer)):
-        raise TypeError("n_max must be an integer")
-    if n_max < 1:
-        raise ValueError(f"n_max must be >= 1, got {n_max}")
-    n_max = int(n_max)
-
-    forward_failures = [
-        n for n in range(1, n_max + 1)
-        if from_exponent_vector(exponent_vector(n)) != n
-    ]
-    backward_failures = [
-        n for n in range(1, n_max + 1)
-        if exponent_vector(from_exponent_vector(exponent_vector(n))) != exponent_vector(n)
-    ]
-
-    multiplicative_failure = None
-    degree_failure = None
+    mismatches: list[tuple[int, int]] = []
     pairs_checked = 0
-    for m in range(1, n_max + 1):
-        for n in range(1, n_max // m + 1):
+    for a in range(1, n_max + 1):
+        for b in range(1, n_max + 1):
             pairs_checked += 1
-            product_vector = exponent_vector(m * n)
-            if multiplicative_failure is None and product_vector != add(
-                exponent_vector(m), exponent_vector(n)
-            ):
-                multiplicative_failure = (m, n)
-            if degree_failure is None and total_degree(product_vector) != (
-                total_degree(exponent_vector(m)) + total_degree(exponent_vector(n))
-            ):
-                degree_failure = (m, n)
+            if element(a) * element(b) != element(a * b):
+                mismatches.append((a, b))
 
-    return {
-        "n_max": n_max,
-        "pairs_checked": pairs_checked,
-        "round_trip_forward": not forward_failures,
-        "round_trip_backward": not backward_failures,
-        "multiplicative": multiplicative_failure is None,
-        "degree_additive": degree_failure is None,
-        "identity_is_empty_vector": exponent_vector(1) == {},
-        "first_failure": (
-            {"round_trip_forward": forward_failures[:1]} if forward_failures
-            else {"round_trip_backward": backward_failures[:1]} if backward_failures
-            else {"multiplicative": multiplicative_failure} if multiplicative_failure
-            else {"degree_additive": degree_failure} if degree_failure
-            else None
+    round_trip_ok = all(element(n).to_int() == n for n in range(1, n_max + 1))
+
+    return IsomorphismReport(
+        n_max=n_max,
+        pairs_checked=pairs_checked,
+        mismatches=mismatches,
+        round_trip_ok=round_trip_ok,
+        explanation=(
+            f"Checked {pairs_checked} pairs (a,b) with 1<=a,b<={n_max}: "
+            f"{'all' if not mismatches else f'{len(mismatches)} FAILED'} satisfy "
+            "from_int(a)*from_int(b) == from_int(a*b). "
+            f"Round-trip from_int(n).to_int()==n holds for all n<={n_max}: {round_trip_ok}."
         ),
-    }
-
-
-# ============================================================
-# The conclusion, illustrated: other rules and where they break
-# ============================================================
-
-def _prime_factor_list(v: ExponentVector) -> list[int]:
-    """`v` as the sorted list of its prime factors, with multiplicity."""
-    out: list[int] = []
-    for prime in sorted(v):
-        out.extend([prime] * v[prime])
-    return out
-
-
-def _rule_add(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    return add(u, v)
-
-
-def _rule_concatenate_prime_factors(
-    u: ExponentVector, v: ExponentVector
-) -> ExponentVector:
-    """The literal slogan: glue the two lists of prime factors together.
-
-    Included because it is what "the dimension grows" suggests on first reading,
-    and because it turns out to be *the same rule*: recounting the glued list is
-    exponent addition. The report says so rather than pretending to refute it.
-    """
-    out: ExponentVector = {}
-    for prime in _prime_factor_list(u) + _prime_factor_list(v):
-        out[prime] = out.get(prime, 0) + 1
-    return out
-
-
-def _rule_exponent_max(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    out: ExponentVector = {}
-    for prime in set(u) | set(v):
-        value = max(u.get(prime, 0), v.get(prime, 0))
-        if value:
-            out[prime] = value
-    return out
-
-
-def _rule_exponent_product(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    out: ExponentVector = {}
-    for prime in set(u) | set(v):
-        value = u.get(prime, 0) * v.get(prime, 0)
-        if value:
-            out[prime] = value
-    return out
-
-
-def _rule_support_union(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    return {prime: 1 for prime in set(u) | set(v)}
-
-
-def _rule_exponent_xor(u: ExponentVector, v: ExponentVector) -> ExponentVector:
-    out: ExponentVector = {}
-    for prime in set(u) | set(v):
-        value = u.get(prime, 0) ^ v.get(prime, 0)
-        if value:
-            out[prime] = value
-    return out
+    )
 
 
 @dataclass
-class RuleReport:
-    """Where a candidate multiplication rule first contradicts unique factorisation."""
-
-    name: str
-    description: str
-    holds: bool
-    checked: int
-    first_counterexample: tuple[int, int] | None = None
-    expected: int | None = None
-    produced: int | None = None
-
-    @property
-    def summary(self) -> str:
-        if self.holds:
-            return (
-                f"{self.name}: agrees with exponent addition on all "
-                f"{self.checked} pairs checked"
-            )
-        assert self.first_counterexample is not None
-        m, n = self.first_counterexample
-        return (
-            f"{self.name}: fails at {m} x {n} -- unique factorisation requires "
-            f"phi({m}) star phi({n}) = phi({m * n}) = {self.expected}, "
-            f"but the rule gives {self.produced}"
-        )
+class IsomorphismReport:
+    n_max: int
+    pairs_checked: int
+    mismatches: list[tuple[int, int]]
+    round_trip_ok: bool
+    explanation: str
 
 
-#: Candidate rules, and why anyone might propose them.
-CANDIDATE_RULES: tuple[tuple[str, BinaryRule, str], ...] = (
-    ("addition", _rule_add, "componentwise addition of exponents (the theorem's conclusion)"),
-    ("concatenate_prime_factors", _rule_concatenate_prime_factors,
-     "glue the two lists of prime factors: the literal 'the dimension grows' reading"),
-    ("exponent_max", _rule_exponent_max, "keep the larger exponent per prime"),
-    ("exponent_product", _rule_exponent_product, "multiply the exponents per prime"),
-    ("support_union", _rule_support_union, "take the union of the two supports, exponent 1"),
-    ("exponent_xor", _rule_exponent_xor, "xor the exponents per prime"),
-)
+def dimension_of(n: int) -> int:
+    """`omega(n)`, the number of distinct prime factors of `n` -- the
+    "dimension" of `n` in this number system. `dimension_of(1) == 0`."""
+    return from_int(n).dimension
 
 
-def candidate_rule_report(n_max: int = 200) -> list[RuleReport]:
-    """Run every rule in `CANDIDATE_RULES` and find its first counterexample.
+def bridge_to_primon_gas(n_max: int) -> "BridgeReport":
+    """Make explicit the connection to `primon_gas.py` promised in this
+    module's docstring: the graded monoid's elements *are* the basis `|n>`
+    of `l^2(N)`, multiplication in the monoid is what makes
+    `n^{-s} * m^{-s} = (nm)^{-s}` hold, and the Euler product
+    `zeta(s) = prod_p (1-p^{-s})^{-1}` is the generating function of this
+    monoid graded by `dimension_of`, evaluated multiplicatively rather than
+    by total exponent.
 
-    This *illustrates* the uniqueness theorem; it does not establish it. The
-    proof is the surjectivity argument in the module docstring, and no finite
-    enumeration could replace it. What the report adds is concreteness: each
-    plausible rival rule is shown breaking at a specific small pair, so the claim
-    "addition is forced" has something to point at.
+    Concretely: partition `{1, ..., n_max}` by dimension (`omega(n)`), and
+    report, for each dimension, how many integers up to `n_max` have that
+    many distinct prime factors, and what these contribute to the truncated
+    zeta sum at a sample point. This is the same sum `primon_gas.trace_exp`
+    computes; here it is regrouped by the graded structure this module
+    formalises, to make the link between "dimension" and "Euler factor"
+    visible rather than assumed.
     """
-    if not isinstance(n_max, (int, np.integer)):
-        raise TypeError("n_max must be an integer")
-    if n_max < 4:
-        raise ValueError(
-            f"n_max must be >= 4, got {n_max}. Below that the smallest "
-            "counterexamples of the rival rules -- 2 x 2 for `exponent_max` and "
-            "`exponent_xor`, 1 x 4 for `support_union` -- lie outside the range, "
-            "so a rule would be reported as holding without having been tested "
-            "anywhere it fails. A vacuous 'holds' is worse than no report."
+    from collections import defaultdict
+
+    by_dimension: dict[int, list[int]] = defaultdict(list)
+    for n in range(1, n_max + 1):
+        by_dimension[dimension_of(n)].append(n)
+
+    s = 2.0
+    contribution_by_dimension: dict[int, float] = {
+        dim: float(sum(n ** (-s) for n in ns))
+        for dim, ns in sorted(by_dimension.items())
+    }
+    total = sum(contribution_by_dimension.values())
+
+    # Compare against primon_gas here rather than telling the reader to. Note
+    # what this does and does not establish: the two sides are the *same* sum
+    # computed two ways, so it checks that the partition by dimension is
+    # complete and correctly totalled -- it does not check that the sum
+    # factorises. For that, see `euler_product_from_grading` below.
+    direct_trace = trace_exp(s, n_max).real
+    agrees = abs(total - direct_trace) <= 1e-9 * max(1.0, abs(direct_trace))
+
+    lines = [f"Partition of 1..{n_max} by dimension (omega(n)), and each part's"]
+    lines.append(f"contribution to sum n^-{s}:")
+    shown = sorted(contribution_by_dimension.items())
+    cutoff = 15
+    for dim, contribution in shown[:cutoff]:
+        lines.append(
+            f"  dimension {dim}: {len(by_dimension[dim]):5d} integers, "
+            f"contributes {contribution:.6f}"
         )
-    n_max = int(n_max)
+    if len(shown) > cutoff:
+        remaining = len(shown) - cutoff
+        remaining_total = sum(c for _, c in shown[cutoff:])
+        lines.append(f"  ... {remaining} higher dimensions, combined contribution {remaining_total:.6f}")
+    lines.append(f"  total: {total:.6f}  (pi^2/6 = {math.pi**2/6:.6f} as n_max -> inf at s=2)")
+    lines.append(
+        f"  primon_gas.trace_exp({s}, {n_max}) = {direct_trace:.6f}  "
+        f"-> regrouping agrees: {agrees}"
+    )
 
-    reports: list[RuleReport] = []
-    for name, rule, description in CANDIDATE_RULES:
-        checked = 0
-        counterexample: tuple[int, int] | None = None
-        expected: int | None = None
-        produced: int | None = None
-        for m in range(1, n_max + 1):
-            for n in range(1, n_max // m + 1):
-                checked += 1
-                target = exponent_vector(m * n)
-                got = rule(exponent_vector(m), exponent_vector(n))
-                if got != target:
-                    counterexample = (m, n)
-                    expected = m * n
-                    produced = from_exponent_vector(got)
-                    break
-            if counterexample is not None:
-                break
-        reports.append(
-            RuleReport(
-                name=name,
-                description=description,
-                holds=counterexample is None,
-                checked=checked,
-                first_counterexample=counterexample,
-                expected=expected,
-                produced=produced,
-            )
-        )
-    return reports
+    return BridgeReport(
+        n_max=n_max,
+        by_dimension={dim: list(ns) for dim, ns in by_dimension.items()},
+        contribution_by_dimension=contribution_by_dimension,
+        total=total,
+        direct_trace=direct_trace,
+        agrees=agrees,
+        explanation="\n".join(lines),
+    )
 
 
-# ============================================================
-# The Euler product as the generating function of the monoid
-# ============================================================
+@dataclass
+class BridgeReport:
+    n_max: int
+    by_dimension: dict[int, list[int]]
+    contribution_by_dimension: dict[int, float]
+    total: float
+    direct_trace: float
+    agrees: bool
+    explanation: str
 
-def _validate_basis(s: complex, basis: Sequence[int], degree_cap: int):
-    """Validate a prime basis and a degree cap, without reference to cost.
 
-    Cost is checked separately, and only by `euler_box_sum`: the product formula
-    is linear in the number of primes and so has no reason to care how large the
-    box would be if it were enumerated.
+def truncated_euler_product(s: float = 2.0, prime_limit: int = 13) -> float:
+    """`prod_{p <= prime_limit} 1/(1 - p^{-s})`, the Euler product over those primes.
+
+    Cheap and uncapped: linear in the number of primes, with no enumeration of
+    the monoid. This is the value the graded sum approaches as the degree cap is
+    raised, so it is the reference `euler_product_from_grading` compares against.
     """
-    primes = tuple(int(p) for p in basis)
-    for prime in primes:
-        if not _is_prime(prime):
-            raise ValueError(f"basis contains {prime}, which is not a prime >= 2")
-    if len(set(primes)) != len(primes):
-        raise ValueError("basis contains a repeated prime")
-    if not isinstance(degree_cap, (int, np.integer)):
-        raise TypeError("degree_cap must be an integer")
+    basis = _primes_up_to(prime_limit)
+    if not basis:
+        raise ValueError(f"prime_limit={prime_limit} admits no primes; use >= 2")
+    result = 1.0
+    for p in basis:
+        denominator = 1.0 - p ** (-s)
+        if denominator == 0.0:
+            raise ValueError(f"p^{-s} = 1 at p={p}, s={s}; the product diverges")
+        result *= 1.0 / denominator
+    return result
+
+
+def euler_product_from_grading(
+    s: float = 2.0,
+    prime_limit: int = 13,
+    degree_cap: int = 3,
+    grading_weight: float = 1.0,
+) -> "EulerProductReport":
+    """The Euler product as this monoid's generating function, computed both ways.
+
+    The claim in `bridge_to_primon_gas` is that the Euler product is what this
+    number system's zeta-like sum looks like. The checkable form of that is the
+    identity
+
+        sum over exponent vectors v with 0 <= v_p <= D of
+            q^{omega(v)} prod_p p^{-s v_p}
+        =
+        prod_{p <= P} ( 1 + q * sum_{a=1..D} p^{-s a} ),
+
+    where the left side sums over the *monoid* and the right side is one local
+    factor per prime. The local factor is what matters:
+
+        sum_{a >= 0} q^{omega(p^a)} p^{-s a} = 1 + q * p^{-s}/(1 - p^{-s}),
+
+    because `omega(p^a)` is 0 at `a = 0` and 1 for every `a >= 1`. At `q = 1`
+    that is `1 + p^{-s}/(1-p^{-s}) = 1/(1-p^{-s})`, the Euler factor. So the
+    grading by `omega` factorises, and at `q = 1` it factorises into the Euler
+    product itself -- which is the sense in which the monoid structure, not a
+    coincidence of the arithmetic, is what makes the primon gas trace exact.
+
+    Enumerating the monoid is exponential in the number of primes, so the box is
+    kept small and capped; the product side is linear and has no cap.
+    """
+    basis = _primes_up_to(prime_limit)
+    if not basis:
+        raise ValueError(f"prime_limit={prime_limit} admits no primes; use >= 2")
     if degree_cap < 0:
         raise ValueError(f"degree_cap must be >= 0, got {degree_cap}")
-    return primes, int(degree_cap)
-
-
-def euler_box_sum(s: complex, basis: Sequence[int], degree_cap: int) -> complex:
-    """`sum prod_p x_p^{v_p}` over the box `0 <= v_p <= degree_cap`, by enumeration.
-
-    One term per exponent vector in the box, i.e. one term per element of the
-    truncation of the monoid `V`. This is the left-hand side of the identity, and
-    the only function here whose cost is exponential in the basis size.
-    """
-    primes, cap = _validate_basis(s, basis, degree_cap)
-    terms = (cap + 1) ** len(primes)
-    if terms > _MAX_BOX_TERMS:
+    terms = (degree_cap + 1) ** len(basis)
+    if terms > 200_000:
         raise ValueError(
-            f"the box would have {terms} terms, above the cap of {_MAX_BOX_TERMS}; "
-            "reduce degree_cap or the size of the basis, or use "
-            "euler_product_formula, which computes the same value in linear time"
+            f"the box would have {terms} terms; reduce degree_cap or prime_limit"
         )
-    x = {prime: mp.mpc(prime) ** (-mp.mpc(complex(s))) for prime in primes}
 
-    total = mp.mpc(0)
-    for exponents in product(range(cap + 1), repeat=len(primes)):
-        term = mp.mpc(1)
-        for prime, exponent in zip(primes, exponents):
-            if exponent:
-                term *= x[prime] ** exponent
-        total += term
-    return complex(total)
+    # Left side: enumerate the monoid.
+    enumerated = 0.0
+    for exponents in product(range(degree_cap + 1), repeat=len(basis)):
+        omega = sum(1 for e in exponents if e != 0)
+        term = grading_weight ** omega
+        for p, e in zip(basis, exponents):
+            term *= p ** (-s * e)
+        enumerated += term
 
+    # Right side: one local factor per prime.
+    factored = 1.0
+    for p in basis:
+        x = p ** (-s)
+        factored *= 1.0 + grading_weight * sum(x ** a for a in range(1, degree_cap + 1))
 
-def euler_product_formula(s: complex, basis: Sequence[int], degree_cap: int) -> complex:
-    """The same box sum by the product formula: one geometric series per prime.
+    # And the same at q = 1, which must be the truncated Euler product.
+    euler = truncated_euler_product(s, prime_limit)
 
-    `prod_p (1 - x_p^{D+1}) / (1 - x_p)`. The identity between this and
-    `euler_box_sum` is the finite form of "a sum of a product over a free
-    commutative monoid is a product of sums", which is what makes the Euler
-    product exact for the primon gas. This side is cheap, so it is the one to use
-    whenever the box itself is too large to enumerate.
-    """
-    primes, cap = _validate_basis(s, basis, degree_cap)
-    total = mp.mpc(1)
-    for prime in primes:
-        x = mp.mpc(prime) ** (-mp.mpc(complex(s)))
-        total *= sum(x ** a for a in range(cap + 1))
-    return complex(total)
-
-
-def euler_factorization_report(
-    s: complex = 2.0, basis: Sequence[int] | None = None, degree_cap: int = 3
-) -> dict:
-    """Compare the two sides of the box identity and report the difference."""
-    if basis is None:
-        basis = prime_basis(13)
-    primes, cap = _validate_basis(s, basis, degree_cap)
-    box = euler_box_sum(s, primes, cap)
-    formula = euler_product_formula(s, primes, cap)
-    scale = max(abs(box), abs(formula), 1e-300)
-    return {
-        "s": complex(s),
-        "basis": primes,
-        "degree_cap": cap,
-        "terms_enumerated": (cap + 1) ** len(primes),
-        "box_sum": box,
-        "product_formula": formula,
-        "absolute_difference": abs(box - formula),
-        "relative_difference": abs(box - formula) / scale,
-        "agrees": abs(box - formula) / scale < 1e-12,
-    }
+    agree = abs(enumerated - factored) <= 1e-12 * max(1.0, abs(factored))
+    return EulerProductReport(
+        s=s,
+        prime_limit=prime_limit,
+        basis=basis,
+        degree_cap=degree_cap,
+        grading_weight=grading_weight,
+        terms_enumerated=terms,
+        monoid_sum=enumerated,
+        product_of_local_factors=factored,
+        ideal_euler_product=euler,
+        relative_difference=abs(enumerated - factored) / max(1.0, abs(factored)),
+        agrees=agree,
+        explanation=(
+            f"Monoid sum over {terms} exponent vectors = {enumerated:.15f}; "
+            f"product of {len(basis)} local factors = {factored:.15f}; "
+            f"agrees: {agree}. The q=1 local factors give the truncated Euler "
+            f"product, which here is {euler:.15f} -- reached exactly only as "
+            f"degree_cap -> inf, since the box caps every exponent."
+        ),
+    )
 
 
-def smooth_truncation_report(
-    s: complex = 2.0, prime_cap: int = 997, degree_cap: int = 40
-) -> dict:
-    """How far the finite box is from `zeta(s)`, and why it closes up.
-
-    The box over the primes `<= prime_cap` is the sum of `n^{-s}` over the
-    `prime_cap`-smooth numbers whose exponents are at most `degree_cap`. Raising
-    both caps adds terms, so the box approaches `zeta(s)` from below. This is the
-    arithmetic reason the primon gas trace *is* `zeta` rather than merely
-    resembling it; `primon_gas.trace_convergence` measures the same limit along
-    the `n <= N` truncation instead.
-
-    Uses the product formula, so a large basis costs nothing: only the box
-    *enumeration* is exponential.
-    """
-    if complex(s).real <= 1.0:
-        raise ValueError(
-            "Re(s) > 1 is required: below that the sum does not converge to "
-            "zeta(s) without analytic continuation, and the comparison would be "
-            "meaningless rather than merely imprecise."
-        )
-    primes = prime_basis(prime_cap)
-    box = euler_product_formula(s, primes, degree_cap)
-    reference = zeta_reference(s)
-    return {
-        "s": complex(s),
-        "prime_cap": prime_cap,
-        "degree_cap": degree_cap,
-        "basis_size": len(primes),
-        "box_sum": box,
-        "zeta_reference": reference,
-        "absolute_difference": abs(box - reference),
-        "relative_difference": abs(box - reference) / abs(reference),
-    }
+@dataclass
+class EulerProductReport:
+    s: float
+    prime_limit: int
+    basis: tuple[int, ...]
+    degree_cap: int
+    grading_weight: float
+    terms_enumerated: int
+    monoid_sum: float
+    product_of_local_factors: float
+    ideal_euler_product: float
+    relative_difference: float
+    agrees: bool
+    explanation: str

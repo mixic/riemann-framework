@@ -13,314 +13,334 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Tests for the graded prime monoid.
+"""
+Tests for the graded prime-exponent monoid.
 
-The module's headline claim -- that exponent-vector addition is the only
-operation compatible with unique factorisation -- is a theorem proved by
-surjectivity of `phi`, and no test can establish it. What these tests do is
-check the theorem's hypotheses over a range, pin the conclusion against the
-rival rules so the claim has something to point at, and check the box identity
-that connects the monoid to the Euler product.
+The central claims under test: (1) padding alone (`pad_to`) never changes
+which integer an element represents -- it is arithmetically inert; (2) the
+one multiplication rule compatible with unique factorisation (exponent-vector
+addition) is exactly ordinary integer multiplication, checked by brute force
+over a real range rather than asserted; (3) dimension is subadditive in
+general and exactly additive on coprime elements, which is where "dimension
+increases under multiplication" becomes a precise, checkable statement
+instead of a metaphor.
 """
 
+import ast
 import math
+from pathlib import Path
 
+import numpy as np
 import pytest
 
 from riemann_framework.graded_prime_monoid import (
-    CANDIDATE_RULES,
-    add,
-    candidate_rule_report,
-    dense_vector,
-    distinct_primes,
-    energy,
-    euler_box_sum,
-    euler_factorization_report,
-    euler_product_formula,
-    exponent_vector,
-    from_exponent_vector,
-    graded_components,
-    monoid_contract_report,
-    prime_basis,
-    smooth_truncation_report,
-    total_degree,
+    ONE,
+    GradedPrimeNumber,
+    bridge_to_primon_gas,
+    dimension_of,
+    dimension_tower,
+    euler_product_from_grading,
+    from_int,
+    truncated_euler_product,
+    verify_monoid_isomorphism,
 )
-from riemann_framework.primon_gas import factorize, zeta_reference
 
 
-# ============================================================
-# The identification phi : (N_{>0}, x) -> (V, +)
-# ============================================================
-
-def test_exponent_vector_is_the_factorisation():
-    assert exponent_vector(12) == {2: 2, 3: 1}
-    assert exponent_vector(97) == {97: 1}
-    assert exponent_vector(1024) == {2: 10}
-
-
-def test_exponent_vector_of_one_is_the_empty_vector():
-    """`{}` is the monoid identity, so `phi(1)` must be it and not `{1: 1}`."""
-    assert exponent_vector(1) == {}
-    assert from_exponent_vector({}) == 1
-
-
-def test_round_trip_over_a_range():
-    """`phi` is a bijection, which is the hypothesis the uniqueness theorem uses.
-
-    Both directions are checked over a range, on every element rather than on a
-    sample: the backward direction enumerates the image of `phi`, which is the
-    whole of the truncated `V` because `phi` is injective.
-    """
-    for n in range(1, 2001):
-        assert from_exponent_vector(exponent_vector(n)) == n
-        assert exponent_vector(from_exponent_vector(exponent_vector(n))) == exponent_vector(n)
-
-
-def test_exponent_vector_matches_the_primon_gas_factorisation():
-    """The two modules must not drift apart: this one delegates, and says so."""
-    for n in range(1, 501):
-        assert exponent_vector(n) == factorize(n)
-
-
-def test_add_is_componentwise_addition():
-    assert add({2: 2, 3: 1}, {2: 1, 5: 1}) == {2: 3, 3: 1, 5: 1}
-    assert add({}, {2: 1}) == {2: 1}
-    assert add({2: 1}, {}) == {2: 1}
-
-
-def test_add_agrees_with_multiplication():
-    """The whole identification in one assertion: `phi(m n) = phi(m) + phi(n)`."""
-    for m in range(1, 200):
-        for n in range(1, 200):
-            assert exponent_vector(m * n) == add(exponent_vector(m), exponent_vector(n))
-
-
-def test_from_exponent_vector_rejects_a_composite_key():
-    """A vector indexed by 4 is meaningless here and would give a wrong integer."""
-    with pytest.raises(ValueError, match="not a prime"):
-        from_exponent_vector({4: 1})
-
-
-def test_from_exponent_vector_rejects_a_negative_exponent():
-    """`V` is a monoid, not a group: subtraction has nowhere to land."""
-    with pytest.raises(ValueError, match="monoid, not a group"):
-        from_exponent_vector({2: -1})
-
-
-def test_zero_exponents_are_dropped_so_equal_vectors_compare_equal():
-    assert from_exponent_vector({2: 1, 3: 0}) == 2
-    assert total_degree({2: 1, 3: 0}) == 1
-    assert distinct_primes({2: 1, 3: 0}) == (2,)
-
-
-# ============================================================
-# The grading: Omega is the "dimension"
-# ============================================================
-
-def test_total_degree_counts_factors_with_multiplicity():
-    assert total_degree(exponent_vector(12)) == 3   # 2 * 2 * 3
-    assert total_degree(exponent_vector(1)) == 0
-    assert total_degree(exponent_vector(1024)) == 10
-
-
-def test_degree_is_additive_over_a_range():
-    """`Omega(m n) = Omega(m) + Omega(n)`: the grade is what multiplication adds."""
-    for m in range(1, 150):
-        for n in range(1, 150):
-            assert total_degree(exponent_vector(m * n)) == (
-                total_degree(exponent_vector(m)) + total_degree(exponent_vector(n))
-            )
-
-
-def test_graded_components_partition_the_range():
-    components = graded_components(64)
-    flattened = sorted(n for group in components.values() for n in group)
-    assert flattened == list(range(1, 65))
-    # Degree 1 is exactly the primes; degree 0 is exactly 1.
-    assert components[0] == [1]
-    assert components[1] == list(prime_basis(64))
-
-
-def test_energy_is_the_linear_functional_of_the_exponent_vector():
-    """`<lambda, v> = log(phi^{-1}(v))`, which is why the trace factorises.
-
-    The equality is between two computations: the linear functional over the
-    exponent vector, and the logarithm of the integer. It is exact up to
-    floating point, and it is the step that turns a sum over the monoid into a
-    product over primes.
-    """
-    for n in (1, 2, 12, 97, 1024, 720720):
-        assert energy(exponent_vector(n)) == pytest.approx(math.log(n), rel=1e-14)
-
-
-def test_dense_vector_places_exponents_on_the_basis():
-    basis = prime_basis(20)
-    assert dense_vector(exponent_vector(12), basis) == (2, 1, 0, 0, 0, 0, 0, 0)
-    assert dense_vector({}, basis) == (0,) * len(basis)
-
-
-def test_prime_basis_is_the_primes_up_to_the_cap():
-    assert prime_basis(20) == (2, 3, 5, 7, 11, 13, 17, 19)
-    assert prime_basis(2) == (2,)
-    with pytest.raises(ValueError):
-        prime_basis(1)
-
-
-# ============================================================
-# The uniqueness theorem: hypotheses checked, conclusion illustrated
-# ============================================================
-
-def test_monoid_contract_report_finds_no_failure():
-    report = monoid_contract_report(300)
-    assert report["first_failure"] is None
-    assert report["round_trip_forward"]
-    assert report["round_trip_backward"]
-    assert report["multiplicative"]
-    assert report["degree_additive"]
-    assert report["identity_is_empty_vector"]
-    assert report["pairs_checked"] > 1000
-
-
-def test_addition_and_factor_concatenation_are_the_same_rule():
-    """The "dimension grows" reading is not a rival rule; it is this one.
-
-    Gluing the two lists of prime factors and adding the exponent vectors agree
-    everywhere, because a multiset union of prime factors *is* exponent
-    addition. This is asserted rather than argued in prose, since the obvious
-    guess is that concatenation is a different rule that the theorem rules out.
-    """
-    reports = {r.name: r for r in candidate_rule_report(80)}
-    assert reports["addition"].holds
-    assert reports["concatenate_prime_factors"].holds
-    # ... and they agree with each other, not merely with the target separately.
-    for m in range(1, 40):
-        for n in range(1, 40):
-            from riemann_framework.graded_prime_monoid import (
-                _rule_concatenate_prime_factors,
-            )
-
-            assert _rule_concatenate_prime_factors(
-                exponent_vector(m), exponent_vector(n)
-            ) == add(exponent_vector(m), exponent_vector(n))
+def test_one_is_the_zero_dimensional_identity():
+    assert ONE.dimension == 0
+    assert ONE.to_int() == 1
+    assert from_int(1) == ONE
 
 
 @pytest.mark.parametrize(
-    "name", ["exponent_max", "exponent_product", "support_union", "exponent_xor"]
+    "n, expected_dim",
+    [(1, 0), (2, 1), (4, 1), (6, 2), (12, 2), (30, 3), (2 * 3 * 5 * 7, 4)],
 )
-def test_rival_rules_break_unique_factorisation(name):
-    """Each rival rule must fail, and at a pair small enough to inspect by hand.
-
-    The counterexample is checked to be genuine -- that the rule really does
-    produce the integer reported -- so a broken report cannot pass by accident.
-    """
-    reports = {r.name: r for r in candidate_rule_report(120)}
-    report = reports[name]
-    assert not report.holds
-    assert report.first_counterexample is not None
-    m, n = report.first_counterexample
-    assert m * n == report.expected
-    assert report.produced != report.expected
-    assert m * n <= 120
+def test_dimension_is_number_of_distinct_prime_factors(n, expected_dim):
+    assert dimension_of(n) == expected_dim
 
 
-def test_candidate_rule_report_covers_every_declared_rule():
-    names = [name for name, _, _ in CANDIDATE_RULES]
-    assert [r.name for r in candidate_rule_report(30)] == names
-    assert len(names) == len(set(names)), "rule names must be unique"
+def test_round_trip_from_int_to_int():
+    for n in range(1, 500):
+        assert from_int(n).to_int() == n
 
 
-@pytest.mark.parametrize("n_max", [1, 2, 3])
-def test_candidate_rule_report_rejects_a_range_too_small_to_be_informative(n_max):
-    """Below `n_max = 4` a rival rule's first counterexample is out of range.
+def test_padding_never_changes_the_encoded_integer():
+    """Padding alone -- `1 -> (1,0) -> (1,0,0) -> ...` -- is arithmetically
+    inert: it changes the ambient dimension but never the integer, which is
+    exactly the property that makes zero-padding, by itself, not yet a
+    number system (see this module's docstring)."""
+    x = from_int(60)
+    for k in range(x.dimension, x.dimension + 5):
+        padded = x.pad_to(k)
+        assert padded.to_int() == 60
+        assert padded == x  # equality ignores trailing-zero padding
 
-    Without the guard, `exponent_max` and `exponent_xor` are reported as holding
-    at `n_max = 2`, because their first counterexample is `2 x 2` and the loop
-    only visits `n <= n_max // m`. A guard that allowed that would let a
-    directory of reports contain a vacuous pass.
-    """
-    with pytest.raises(ValueError, match=">= 4"):
-        candidate_rule_report(n_max)
+
+def test_padding_down_is_rejected():
+    x = from_int(60)  # dimension 3: (2,1,1)
+    with pytest.raises(ValueError):
+        x.pad_to(x.dimension - 1)
 
 
-def test_the_smallest_useful_range_exposes_every_rival_rule():
-    reports = {r.name: r for r in candidate_rule_report(4)}
-    assert not reports["exponent_max"].holds
-    assert not reports["exponent_xor"].holds
-    assert not reports["support_union"].holds
-    assert reports["addition"].holds
+def test_multiplication_matches_integer_multiplication_directly():
+    a, b = from_int(6), from_int(10)
+    product = a * b
+    assert product.to_int() == 60
+    assert product == from_int(60)
+
+
+def test_multiplication_is_commutative_and_has_identity():
+    for a_int in range(1, 30):
+        a = from_int(a_int)
+        assert a * ONE == a
+        assert ONE * a == a
+        for b_int in range(1, 30):
+            b = from_int(b_int)
+            assert a * b == b * a
+
+
+def test_multiplication_dimension_is_subadditive_and_exact_on_disjoint_support():
+    """Dimension is subadditive in general (shared prime factors don't add a
+    new dimension) and exactly additive when the two factors are coprime --
+    this is the precise sense in which multiplying two "k-dimensional" and
+    "m-dimensional" numbers can produce a "(k+m)-dimensional" one."""
+    # Disjoint support: dim(6)=2 [primes 2,3], dim(35)=2 [primes 5,7] ->
+    # product 210 = 2*3*5*7 has dimension exactly 4.
+    a, b = from_int(6), from_int(35)
+    assert dimension_of(a.to_int()) == 2
+    assert dimension_of(b.to_int()) == 2
+    assert (a * b).dimension == 4
+
+    # Shared support: dim(6)=2, dim(10)=2, but 6*10=60=2^2*3*5 has dimension 3,
+    # not 4 -- strictly subadditive because the prime 2 is shared.
+    a2, b2 = from_int(6), from_int(10)
+    assert (a2 * b2).dimension == 3
+    assert (a2 * b2).dimension <= a2.dimension + b2.dimension
+
+
+def test_verify_monoid_isomorphism_reports_no_mismatches():
+    report = verify_monoid_isomorphism(n_max=80)
+    assert report.mismatches == []
+    assert report.round_trip_ok
+
+
+def test_dimension_tower_preserves_value_and_increases_ambient_length():
+    tower = dimension_tower(12, max_dim=6)
+    assert all(elem.to_int() == 12 for elem in tower)
+    lengths = [len(elem.exponents) for elem in tower]
+    assert lengths == sorted(lengths)
+    assert lengths[0] == dimension_of(12)
+    assert lengths[-1] == 6
+
+
+def test_dimension_tower_rejects_max_dim_below_actual_dimension():
+    with pytest.raises(ValueError):
+        dimension_tower(30, max_dim=1)  # dimension_of(30) == 3
+
+
+def test_negative_exponent_is_rejected():
+    with pytest.raises(ValueError):
+        GradedPrimeNumber((1, -1))
+
+
+def test_bridge_to_primon_gas_reproduces_the_zeta_2_sum():
+    """The graded-by-dimension regrouping must sum to the same truncated
+    zeta(2) value primon_gas.trace_exp computes directly -- this is the
+    checkable half of the claim that this module's structure underlies
+    primon_gas.py, not just a suggestive analogy."""
+    from riemann_framework.primon_gas import trace_exp
+
+    n_max = 3000
+    bridge = bridge_to_primon_gas(n_max)
+    direct = trace_exp(2.0, n_max)
+    assert bridge.total == pytest.approx(direct.real, rel=1e-9)
+
+
+def test_bridge_report_dimension_zero_is_just_the_identity():
+    bridge = bridge_to_primon_gas(100)
+    assert bridge.by_dimension[0] == [1]
+    assert bridge.contribution_by_dimension[0] == pytest.approx(1.0)
 
 
 # ============================================================
-# The Euler product as the generating function of the monoid
+# Regressions: the two defects found on review
 # ============================================================
 
-@pytest.mark.parametrize("s", [2.0, 1.5, 3.0, complex(2.0, 3.0)])
-def test_box_sum_equals_the_product_formula(s):
-    """The finite form of "a sum over a free commutative monoid is a product".
+def test_no_package_module_imports_sympy():
+    """This repository depends only on mpmath/numpy/scipy/matplotlib/pytest.
 
-    Enumerating the monoid (the left side) must equal the product of the
-    per-prime geometric series (the right side). This identity is *why* the
-    primon gas trace factorises, so it is the load-bearing check in this file.
+    `graded_prime_monoid` used to import `factorint`, `prime` and `primerange`
+    from sympy, which is neither installed nor declared in `pyproject.toml`. The
+    module therefore raised `ModuleNotFoundError` on import and its test file
+    failed at *collection*, taking the whole suite down.
+
+    The scan parses import statements rather than searching for the substring:
+    two modules mention sympy in prose to explain why it was *removed*, and a
+    substring search would flag them.
     """
-    basis = prime_basis(13)
-    box = euler_box_sum(s, basis, 3)
-    formula = euler_product_formula(s, basis, 3)
-    assert box == pytest.approx(formula, rel=1e-12)
-
-
-def test_euler_factorization_report_reports_agreement():
-    report = euler_factorization_report(s=2.0)
-    assert report["agrees"]
-    assert report["relative_difference"] < 1e-12
-    assert report["terms_enumerated"] == 4 ** len(report["basis"])
-
-
-def test_box_identity_holds_for_a_larger_box():
-    basis = prime_basis(31)
-    report = euler_factorization_report(s=1.5, basis=basis, degree_cap=2)
-    assert report["agrees"]
-    assert report["terms_enumerated"] == 3 ** len(basis)
-
-
-def test_euler_box_sum_enforces_the_term_cap():
-    """The enumeration is exponential, so it is capped rather than left to hang."""
-    with pytest.raises(ValueError, match="terms"):
-        euler_box_sum(2.0, prime_basis(97), 40)
-
-
-def test_product_formula_has_no_term_cap_because_it_is_cheap():
-    """The same box that the enumeration refuses, the product computes."""
-    value = euler_product_formula(2.0, prime_basis(97), 40)
-    assert abs(value) > 1.0
-
-
-def test_basis_validation_rejects_a_composite_and_a_duplicate():
-    with pytest.raises(ValueError, match="not a prime"):
-        euler_product_formula(2.0, (2, 4), 1)
-    with pytest.raises(ValueError, match="repeated"):
-        euler_product_formula(2.0, (2, 2), 1)
-
-
-def test_smooth_truncation_approaches_zeta_monotonically():
-    """Raising the caps adds exactly the missing terms, so the gap closes.
-
-    The box over the primes `<= P` is the sum over `P`-smooth numbers, so it
-    approaches `zeta(s)` from below. The assertion is on the trend across three
-    increasingly large boxes rather than on one value, because a single
-    agreement is what a fitted constant could also produce.
-    """
-    errors = [
-        smooth_truncation_report(2.0, prime_cap=cap, degree_cap=degree)["relative_difference"]
-        for cap, degree in ((13, 4), (97, 12), (997, 40))
-    ]
-    assert errors == sorted(errors, reverse=True), errors
-    assert errors[-1] < 1e-3, errors[-1]
-    assert smooth_truncation_report(2.0)["zeta_reference"] == pytest.approx(
-        zeta_reference(2.0), rel=1e-12
+    package = Path(__file__).resolve().parent.parent / "riemann_framework"
+    offenders: list[str] = []
+    for path in sorted(package.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            names: list[str] = []
+            if isinstance(node, ast.Import):
+                names = [alias.name.split(".")[0] for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                names = [(node.module or "").split(".")[0]]
+            if "sympy" in names:
+                offenders.append(path.name)
+    assert offenders == [], (
+        f"{offenders} import sympy, which is not installed or declared; the "
+        "modules would fail to import"
     )
 
 
-def test_smooth_truncation_rejects_re_s_at_most_one():
-    """Below `Re(s) = 1` the comparison is meaningless, not merely imprecise."""
-    with pytest.raises(ValueError, match="Re\\(s\\) > 1"):
-        smooth_truncation_report(1.0)
+@pytest.mark.parametrize("n", [3, 5, 7, 10, 14, 35, 97])
+def test_dimension_tower_works_for_elements_with_internal_zeros(n):
+    """`dimension_tower` must start at the ambient *length*, not the dimension.
+
+    The two differ whenever the exponent tuple has an internal zero, i.e. for
+    every `n` not divisible by every smaller prime. `from_int(97)` has dimension
+    1 and length 25, so a tower starting at the dimension called `pad_to(1)` on
+    a length-25 tuple and raised `ValueError`. An earlier revision did exactly
+    that and crashed for 81 of the first 100 integers; its guard tested the same
+    wrong quantity, so it let those calls through. The old tests used 12 and 30,
+    which have no internal zeros, and so missed it.
+    """
+    base = from_int(n)
+    assert len(base.exponents) > base.dimension, "not an internal-zero case"
+
+    tower = dimension_tower(n, max_dim=len(base.exponents) + 3)
+    assert all(element.to_int() == n for element in tower)
+    lengths = [len(element.exponents) for element in tower]
+    assert lengths == sorted(lengths)
+    assert lengths[0] == len(base.exponents)
+    assert lengths[-1] == len(base.exponents) + 3
+
+
+def test_dimension_tower_guard_uses_the_ambient_length_not_the_dimension():
+    """For `n = 97` the dimension is 1 but the tuple needs 25 coordinates.
+
+    A guard phrased in terms of the dimension accepts `max_dim = 2` and then
+    fails deeper in `pad_to`; it must reject it up front.
+    """
+    with pytest.raises(ValueError, match="ambient length"):
+        dimension_tower(97, max_dim=2)
+    # And the smallest legal request works.
+    assert dimension_tower(97, max_dim=25)[0].to_int() == 97
+
+
+def test_internal_zeros_do_not_count_towards_dimension():
+    """`(0, 0, 1, 1)` is 35 = 5*7 and has dimension 2, not 4.
+
+    Trimming trailing zeros would leave this tuple untouched, so dimension must
+    count nonzero entries directly.
+    """
+    assert from_int(35).exponents == (0, 0, 1, 1)
+    assert dimension_of(35) == 2
+    assert dimension_of(5) == 1
+    assert from_int(97).exponents.count(0) == 24
+    assert dimension_of(97) == 1
+
+
+def test_from_int_rejects_zero_and_negatives():
+    for n in (0, -1, -97):
+        with pytest.raises(ValueError):
+            from_int(n)
+
+
+def test_equality_with_a_foreign_type_is_not_asserted():
+    assert (ONE == 1) is False
+    assert (ONE == "1") is False
+
+
+def test_isomorphism_report_counts_every_pair_it_checks():
+    report = verify_monoid_isomorphism(n_max=40)
+    assert report.pairs_checked == 40 * 40
+    assert report.mismatches == []
+
+
+def test_bridge_report_checks_itself_against_primon_gas():
+    """The comparison with `primon_gas.trace_exp` is performed, not described.
+
+    Note the limit honestly: the two sides are the same sum computed two ways,
+    so this checks that the partition by dimension is complete and totalled
+    correctly. It does not check that the sum factorises -- that is
+    `euler_product_from_grading`.
+    """
+    bridge = bridge_to_primon_gas(500)
+    assert bridge.agrees
+    assert bridge.total == pytest.approx(bridge.direct_trace, rel=1e-9)
+
+
+# ============================================================
+# The Euler product as this monoid's generating function
+# ============================================================
+
+@pytest.mark.parametrize("grading_weight", [1.0, 0.5, 0.0])
+def test_monoid_sum_equals_the_product_of_local_factors(grading_weight):
+    """Summing over the monoid equals multiplying one local factor per prime.
+
+    That identity *is* "the Euler product is what this number system's zeta-like
+    sum looks like": a sum of a product over a free commutative monoid is a
+    product of sums. It is checked here rather than asserted in a docstring.
+    """
+    report = euler_product_from_grading(
+        2.0, prime_limit=13, degree_cap=4, grading_weight=grading_weight
+    )
+    assert report.agrees, report.explanation
+    assert report.relative_difference < 1e-12
+    assert len(report.basis) == 6
+
+
+def test_the_local_factor_at_one_is_the_euler_factor():
+    """`sum_a q^{omega(p^a)} p^{-as}` at `q = 1` is `1/(1 - p^{-s})`.
+
+    This is the step that makes the grading by `omega` (distinct primes) give
+    the Euler product, and not merely some regrouping. Checked on the factor
+    itself, free of any truncation of the product.
+    """
+    s, degree_cap = 2.0, 400
+    for p in (2, 3, 7, 97):
+        x = p ** (-s)
+        local = 1.0 + sum(x ** a for a in range(1, degree_cap + 1))
+        assert local == pytest.approx(1.0 / (1.0 - x), rel=1e-12)
+
+
+def test_euler_product_from_grading_is_the_truncated_euler_product_at_q_one():
+    """At `q = 1` the product of local factors is `prod_p (1 + x/(1-x))`.
+
+    With a degree cap the box drops the exponent tail, so the capped value sits
+    strictly *below* `prod_p 1/(1-x)`; raising the cap closes the gap. The
+    uncapped side is computed directly, since enumerating the monoid at a large
+    cap is not possible and is not needed to see the limit.
+    """
+    capped = euler_product_from_grading(2.0, prime_limit=13, degree_cap=2)
+    ideal = truncated_euler_product(2.0, 13)
+    assert capped.product_of_local_factors < ideal
+    assert ideal == pytest.approx(capped.ideal_euler_product, rel=1e-12)
+
+    uncapped = 1.0
+    for p in capped.basis:
+        x = p ** -2.0
+        uncapped *= 1.0 + sum(x ** a for a in range(1, 500))
+    assert uncapped == pytest.approx(ideal, rel=1e-9)
+
+
+def test_truncated_euler_product_is_cheap_and_exact():
+    """No box, no cap: linear in the number of primes."""
+    value = truncated_euler_product(2.0, 1999)
+    assert value < math.pi ** 2 / 6, "a truncation undershoots"
+    assert value == pytest.approx(math.pi ** 2 / 6, rel=1e-3)
+
+
+def test_euler_product_from_grading_rejects_an_oversized_box():
+    with pytest.raises(ValueError, match="terms"):
+        euler_product_from_grading(2.0, prime_limit=97, degree_cap=40)
+
+
+def test_euler_product_from_grading_rejects_a_degenerate_basis():
+    with pytest.raises(ValueError, match="no primes"):
+        euler_product_from_grading(2.0, prime_limit=1)

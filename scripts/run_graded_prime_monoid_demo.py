@@ -14,100 +14,76 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-Demonstrate the graded prime monoid and print the evidence for its claims.
+Demonstrate the graded prime-exponent monoid: why zero-padding alone is
+arithmetically inert, what multiplication rule fixes that, and how the
+resulting structure is the one already underlying primon_gas.py.
 
 Usage (from anywhere):
     python scripts/run_graded_prime_monoid_demo.py
 
-Writes one plot into ``output/``. The mathematics is documented in
+Writes one plot into ``output/``. The mathematics is in
 ``docs/graded_prime_monoid.md``; nothing here proves anything about the Riemann
-Hypothesis, and the module docstring says why.
+Hypothesis.
 """
 
-import os
 from pathlib import Path
 import sys
-
-import runpy
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "python"))
 
-# The plot is written relative to the repository root, so re-exec from there
-# when invoked from elsewhere. The environment variable stops the re-run from
-# recursing.
-if __name__ == "__main__" and Path.cwd() != PROJECT_ROOT and not os.environ.get(
-    "_GRADED_PRIME_MONOID_BOOTSTRAPPED"
-):
-    os.environ["_GRADED_PRIME_MONOID_BOOTSTRAPPED"] = "1"
-    os.chdir(PROJECT_ROOT)
-    runpy.run_path(str(Path(__file__).resolve()), run_name="__main__")
-    sys.exit()
+import math
 
 import matplotlib.pyplot as plt
 
 from riemann_framework.graded_prime_monoid import (
-    add,
-    candidate_rule_report,
-    dense_vector,
-    energy,
-    euler_factorization_report,
-    exponent_vector,
-    from_exponent_vector,
-    graded_components,
-    monoid_contract_report,
-    prime_basis,
-    smooth_truncation_report,
-    total_degree,
+    bridge_to_primon_gas,
+    dimension_of,
+    dimension_tower,
+    euler_product_from_grading,
+    from_int,
+    truncated_euler_product,
+    verify_monoid_isomorphism,
 )
-from riemann_framework.primon_gas import trace_convergence
+from riemann_framework.primon_gas import trace_exp
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 
-# ============================================================
-# Plot: the box approaches zeta from below
-# ============================================================
+def plot_euler_convergence(s: float = 2.0, prime_limits=(13, 97, 997, 9973, 99991)):
+    """The truncated Euler product approaching `zeta(s)` as primes are added.
 
-def plot_truncation_convergence(s: float = 2.0, degree_cap: int = 40):
-    """Plot the box sum against the growing prime basis, and its relative error.
-
-    The box over the primes `<= P` is the sum of `n^{-s}` over the `P`-smooth
-    numbers with exponents at most `degree_cap`. Every increase in `P` adds
-    terms, so the value climbs toward `zeta(s)` from below and the error falls.
-    Both panels are the same data: the left shows the approach, the right shows
-    the gap on a log-log axis so the rate is visible.
+    This is the `q = 1` side of `euler_product_from_grading`: each new prime
+    multiplies in one more local factor `1/(1 - p^{-s})`, so the product climbs
+    toward `zeta(s)` from below. Cheap and uncapped -- no monoid enumeration.
     """
-    prime_caps = [13, 31, 97, 199, 499, 997, 1999]
-    reports = [
-        smooth_truncation_report(s, prime_cap=cap, degree_cap=degree_cap)
-        for cap in prime_caps
-    ]
-    boxes = [r["box_sum"].real for r in reports]
-    errors = [r["relative_difference"] for r in reports]
-    reference = reports[0]["zeta_reference"].real
+    values = [truncated_euler_product(s, limit) for limit in prime_limits]
+    reference = math.pi ** 2 / 6 if s == 2.0 else None
+    errors = [abs(v - reference) / reference for v in values] if reference else []
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     ax = axes[0]
-    ax.plot(prime_caps, boxes, "o-", label="box sum over primes $\\leq P$")
-    ax.axhline(reference, color="gray", linestyle="--",
-               label=f"$\\zeta({s:g})$ = {reference:.9f}")
+    ax.plot(prime_limits, values, "o-", label="truncated Euler product")
+    if reference:
+        ax.axhline(reference, color="gray", linestyle="--",
+                   label=f"$\\zeta({s:g})$ = {reference:.9f}")
     ax.set_xscale("log")
-    ax.set_xlabel("prime cap $P$ (log scale)")
+    ax.set_xlabel("prime limit $P$ (log scale)")
     ax.set_ylabel("value")
-    ax.set_title("The monoid truncation climbs to $\\zeta(s)$ from below")
+    ax.set_title("Local factors multiply toward $\\zeta(s)$")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
     ax = axes[1]
-    ax.plot(prime_caps, errors, "s-", color="darkred")
+    if reference:
+        ax.plot(prime_limits, errors, "s-", color="darkred")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("prime cap $P$ (log scale)")
+    ax.set_xlabel("prime limit $P$ (log scale)")
     ax.set_ylabel("relative error")
-    ax.set_title(f"Gap to $\\zeta({s:g})$, degree cap {degree_cap}")
+    ax.set_title(f"Gap to $\\zeta({s:g})$")
     ax.grid(True, alpha=0.3, which="both")
 
     plt.tight_layout()
@@ -117,82 +93,95 @@ def plot_truncation_convergence(s: float = 2.0, degree_cap: int = 40):
     print(f" Saved: {out}")
 
 
-# ============================================================
-# Main
-# ============================================================
+def main() -> None:
+    print("=" * 70)
+    print("Part 1: padding alone is arithmetically inert")
+    print("=" * 70)
+    print("The tower 1 -> (1,0) -> (1,0,0) -> ... for n=12, padded from its own")
+    print("ambient length up to ambient dimension 6:")
+    for elem in dimension_tower(12, max_dim=6):
+        print(f"  {elem}")
+    print("Every entry decodes back to 12 -- padding changes the ambient space,")
+    print("never the number. This is why zero-padding by itself is a container,")
+    print("not yet a number system (see the module docstring).")
+    print()
+    print("For n=35 = 5*7 the same tower starts at length 4, not at dimension 2:")
+    for elem in dimension_tower(35, max_dim=6):
+        print(f"  {elem}")
+    print()
 
-def main():
-    print("=" * 72)
-    print("Graded prime monoid: (N_{>0}, x)  <->  (V, +)")
-    print("=" * 72)
+    print("=" * 70)
+    print("Part 2: the one multiplication rule unique factorisation forces")
+    print("=" * 70)
+    a, b = from_int(6), from_int(10)
+    product = a * b
+    print(f"{a}")
+    print(f"  * {b}")
+    print(f"  = {product}   (ordinary integer product: 6*10 = {6*10})")
+    print()
+    print("Dimension is subadditive in general, exactly additive on coprime")
+    print("factors -- this is the precise sense in which multiplying a")
+    print("k-dimensional and an m-dimensional number gives a (k+m)-dimensional")
+    print("one:")
+    for x_int, y_int in [(6, 35), (6, 10), (2, 3), (4, 9)]:
+        x, y = from_int(x_int), from_int(y_int)
+        prod = x * y
+        print(
+            f"  dim({x_int})={x.dimension}, dim({y_int})={y.dimension}  ->  "
+            f"dim({x_int}*{y_int}={prod.to_int()})={prod.dimension}"
+        )
+    print()
 
-    print("\n[1] The identification")
-    display_basis = prime_basis(20)
-    for n in (1, 12, 97, 720720):
-        v = exponent_vector(n)
-        print(f"    phi({n}) = {v}")
-        print(f"        dense over primes <= 20: {dense_vector(v, display_basis)}"
-              f"   Omega = {total_degree(v)}   phi^-1 -> {from_exponent_vector(v)}")
-    print(f"    phi(6) + phi(10) = {add(exponent_vector(6), exponent_vector(10))}"
-          f"   phi(60) = {exponent_vector(60)}")
+    print("=" * 70)
+    print("Part 3: this is exactly (N_{>0}, x) -- checked, not assumed")
+    print("=" * 70)
+    report = verify_monoid_isomorphism(n_max=200)
+    print(report.explanation)
+    print()
 
-    print("\n[2] The grading: Omega(n) = the number of prime factors with multiplicity")
-    components = graded_components(64)
-    for degree in sorted(components):
-        members = components[degree]
-        shown = members[:10]
-        suffix = " ..." if len(members) > len(shown) else ""
-        print(f"    Omega = {degree}: {len(members):>3} integers up to 64, e.g. {shown}{suffix}")
-    print("    Omega(m n) = Omega(m) + Omega(n) for every pair up to 300")
+    print("=" * 70)
+    print("Part 4: bridge to primon_gas.py -- same sum, regrouped by dimension")
+    print("=" * 70)
+    n_max = 20_000
+    bridge = bridge_to_primon_gas(n_max)
+    print(bridge.explanation)
+    direct = trace_exp(2.0, n_max)
+    print(f"\nprimon_gas.trace_exp(2.0, {n_max}) = {direct.real:.12f}")
+    print("The two agree because they are the same sum computed two ways: this")
+    print("checks that the partition by dimension is complete, not that the sum")
+    print("factorises. Part 5 does that.")
+    print()
 
-    print("\n[3] The uniqueness theorem: hypotheses, checked over 1..300")
-    contract = monoid_contract_report(300)
-    for key in ("round_trip_forward", "round_trip_backward", "multiplicative",
-                "degree_additive", "identity_is_empty_vector"):
-        print(f"    {key:<26} {contract[key]}")
-    print(f"    pairs checked: {contract['pairs_checked']}")
-    print(f"    first failure: {contract['first_failure']}")
-    print("    (The theorem itself is proved by surjectivity of phi; see the")
-    print("     module docstring. No enumeration could establish it.)")
-
-    print("\n[4] Rival multiplication rules, and where each first breaks")
-    for report in candidate_rule_report(200):
-        mark = "ok  " if report.holds else "FAIL"
-        print(f"    [{mark}] {report.summary}")
-
-    print("\n[5] Why the Euler product is exact: the box identity")
-    report = euler_factorization_report(s=2.0, basis=prime_basis(13), degree_cap=3)
-    print(f"    basis {report['basis']}, degree cap {report['degree_cap']}, "
-          f"{report['terms_enumerated']} monoid elements")
-    print(f"    enumerated box sum : {report['box_sum']:.15f}")
-    print(f"    product formula    : {report['product_formula']:.15f}")
-    print(f"    relative difference: {report['relative_difference']:.3e}")
-    print("    sum over the free commutative monoid = product over primes.")
-
-    print("\n[6] The same box against zeta(2), as the monoid truncation grows")
-    for prime_cap, degree_cap in ((13, 4), (97, 12), (997, 40), (1999, 40)):
-        r = smooth_truncation_report(2.0, prime_cap=prime_cap, degree_cap=degree_cap)
-        print(f"    primes <= {prime_cap:<5} ({r['basis_size']:>3} generators), "
-              f"degree cap {degree_cap:<3}  box = {r['box_sum'].real:.12f}  "
-              f"rel err = {r['relative_difference']:.3e}")
-
-    print("\n[7] The primon gas tie: the energy is linear in the exponent vector")
-    for n in (12, 97, 720720):
-        v = exponent_vector(n)
-        print(f"    <lambda, phi({n})> = {energy(v):.12f}   log({n}) = "
-              f"{__import__('math').log(n):.12f}")
-    convergence = trace_convergence(2.0)
-    print(f"    Tr_N[e^-sH] -> zeta(s): partials "
-          f"{[f'{p:.9f}' for p in convergence['partial_sums']]}")
-    print(f"    zeta(2) = {convergence['zeta_reference']:.9f}, "
-          f"errors decreasing: {convergence['errors_decrease']}")
-
-    print("\n[8] Generating the plot...")
-    plot_truncation_convergence()
-
-    print("\n Demonstration complete.")
-    print(" Reminder: the eigenvalues are log(n), not the zeta ordinates.")
-    print(" Nothing here proves anything about the Riemann Hypothesis.")
+    print("=" * 70)
+    print("Part 5: the Euler product is this monoid's zeta-like sum")
+    print("=" * 70)
+    print("Summing q^omega(v) over the exponent-vector monoid must equal the")
+    print("product of one local factor per prime. The local factor is")
+    print("  sum_a q^omega(p^a) p^-as = 1 + q * p^-s/(1 - p^-s),")
+    print("which at q = 1 is exactly 1/(1 - p^-s) -- the Euler factor.")
+    for q in (1.0, 0.5):
+        r = euler_product_from_grading(2.0, prime_limit=13, degree_cap=6,
+                                       grading_weight=q)
+        print(f"  q={q}: monoid sum {r.monoid_sum:.12f}  local factors "
+              f"{r.product_of_local_factors:.12f}  agrees={r.agrees}")
+    print()
+    print("And the truncated Euler product approaches zeta(2) as primes are added:")
+    reference = math.pi ** 2 / 6
+    for limit in (13, 97, 997, 9973, 99991):
+        value = truncated_euler_product(2.0, limit)
+        print(f"  primes <= {limit:<7} product = {value:.12f}  "
+              f"rel err = {abs(value - reference) / reference:.3e}")
+    print()
+    print("=" * 70)
+    print("Conclusion: 'a number system whose dimension increases under")
+    print("multiplication' is not a new speculative object once the")
+    print("multiplication rule is pinned down -- it is (N_{>0}, x) viewed")
+    print("through its prime factorisation, and it is the structure that")
+    print("already makes the primon gas's Euler product exact.")
+    print("=" * 70)
+    print()
+    print("Generating the plot...")
+    plot_euler_convergence()
 
 
 if __name__ == "__main__":

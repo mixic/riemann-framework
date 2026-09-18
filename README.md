@@ -39,7 +39,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **478 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **483 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -376,29 +376,23 @@ This gives candidate symmetries a genuine target instead of a merely statistical
 
 The sentence above — "this falls directly out of unique prime factorization" — is the claim `graded_prime_monoid.py` makes precise, because "falls directly out of" is exactly where a slogan tends to hide its content.
 
-`(ℕ_{>0}, ×)` is the **free commutative monoid on the primes**. Writing `V` for the finitely supported exponent vectors stored as `{prime: exponent}`, and
+`(ℕ_{>0}, ×)` is the **free abelian monoid on the primes**, presented as the direct limit of `ℕ^k` under the "append one more coordinate" inclusions. Writing `φ(n)` for the exponent vector, the fundamental theorem of arithmetic says `φ` is a bijection. Two things follow.
 
-```
-φ(n) = (v_p(n))_p          φ : (ℕ_{>0}, ×) → (V, +)
-```
+**Exponent-vector addition is forced, not chosen.** If *any* operation `⋆` satisfies `φ(mn) = φ(m) ⋆ φ(n)`, then surjectivity of `φ` gives `v ⋆ w = φ(m) ⋆ φ(n) = φ(mn) = v + w`. Associativity, commutativity and an identity are *not* assumed — they are consequences. So "a number system whose dimension increases under multiplication", made precise, **is** unique factorization restated, and no alternative arithmetic was ever available to choose between.
 
-the fundamental theorem of arithmetic says `φ` is a bijection. Two things follow.
+**The factorization is the monoid structure.** The primon-gas energy is a linear functional of the exponent vector, `log n = Σ_p v_p(n) log p = ⟨λ, φ(n)⟩`, so the trace is a sum of a product over a free commutative monoid — which is a product of sums, i.e. the Euler product. The step that makes the grading by `ω` (distinct primes) give the Euler product rather than some other regrouping is the local factor `Σ_a q^{ω(p^a)} p^{−as} = 1 + q·p^{−s}/(1−p^{−s})`, which at `q = 1` is exactly `1/(1−p^{−s})`. `euler_product_from_grading` checks this by summing over the monoid and multiplying local factors separately — agreeing over 117649 exponent vectors — and the `q = 1` product climbs to `ζ(2)` as primes are added:
 
-**Exponent-vector addition is forced, not chosen.** If *any* operation `⋆` on `V` satisfies `φ(mn) = φ(m) ⋆ φ(n)`, then surjectivity of `φ` gives `v ⋆ w = φ(m) ⋆ φ(n) = φ(mn) = v + w`. Associativity, commutativity and an identity are *not* assumed — they are consequences. So "a number system whose dimension increases under multiplication", made precise, **is** unique factorization restated. No alternative arithmetic was ever available to choose between.
-
-**The factorization is the monoid structure.** The energy is a linear functional of the exponent vector, `log n = Σ_p v_p(n) log p = ⟨λ, φ(n)⟩`, so the trace is a sum of a product over a free commutative monoid — and that is a product of sums, i.e. the Euler product. The finite form is checked directly, enumerating the monoid against multiplying geometric series (`4096` elements, relative difference `3.31e-15`), and the box climbs to `ζ(2)` from below as the prime basis grows:
-
-| prime cap | generators | box sum | relative error |
-|:---|:---|:---|:---|
-| 13 | 6 | 1.616310119471 | 1.74e-02 |
-| 997 | 168 | 1.644725190239 | 1.27e-04 |
-| 1999 | 303 | 1.644838146904 | 5.83e-05 |
+| prime limit | truncated Euler product | relative error |
+|:---|:---|:---|
+| 13 | 1.617917661314 | 1.64e-02 |
+| 997 | 1.644725190239 | 1.27e-04 |
+| 99991 | 1.644932747203 | 8.02e-07 |
 
 `ζ(2) = 1.6449340668482264`.
 
-![The monoid truncation climbing to zeta(2), and the gap on a log-log axis](output/graded_prime_monoid_convergence.png)
+![The Euler product climbing to zeta(2), and the gap on a log-log axis](output/graded_prime_monoid_convergence.png)
 
-[`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) carries the theorem, the six rival rules the module runs against it — four fail at inspectable pairs, and concatenating prime factors turns out to be *the same rule*, not a rival — and the honest scope. This is a precise statement of ordinary arithmetic. It is not a new number system and it does not touch the zeros.
+[`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) carries the theorem, the three inequivalent notions of "dimension" the slogan can mean — only `Ω` is additive; `ω` is subadditive and exact on coprime factors; the ambient length is a `max` — and the honest scope. This is a precise statement of ordinary arithmetic. It is not a new number system and it does not touch the zeros.
 
 ## Cayley-Dickson and the four-square theorem: does dimension-lifting create an Euler product?
 
@@ -506,7 +500,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**478 tests pass** on the current tree. They are not smoke tests: the suite
+**483 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -516,7 +510,7 @@ silently changed meaning.
 | `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
 | `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
-| `test_graded_prime_monoid.py` | 37 | The monoid identification, the uniqueness theorem's hypotheses, the rival rules, and the box identity |
+| `test_graded_prime_monoid.py` | 42 | The monoid identification, the isomorphism check, the bridge, and the Euler factorisation |
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
