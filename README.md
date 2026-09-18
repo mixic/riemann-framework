@@ -31,13 +31,14 @@ A passing test is **evidence**, not a mathematical proof.
 | Explicit-formula calculations and plots | Working |
 | Dimension-shift experiments | Working and exploratory |
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
-| DSIN communication simulation | Working as a toy simulation; no security proof |
+| DSIN communication simulation | Toy simulation with a BB84 baseline (`bb84.py`); tested, no security proof |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Shift-zeta (graded algebra) | **Negative result.** Well-defined and tested; does **not** reproduce the classical zeros. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
+| Test suite | **429 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -130,7 +131,91 @@ Its fixed locus is nonetheless exactly the critical line, which is the property 
 
 ### DSIN: a toy communication-channel simulation
 
-**`dsin.py`** explores whether the dimension-shift structure could underlie a communication protocol. This is explicitly labeled a toy simulation with **no security proof** — it should not be equated with cryptographic protocols like BB84, and the documentation (`docs/dimension_shift_quantum_communication.md`) is explicit about this limitation.
+**`dsin.py`** explores whether the dimension-shift structure could underlie a
+communication protocol. This is explicitly labeled a toy simulation with **no
+security proof** — it should not be equated with cryptographic protocols like
+BB84, and `docs/dimension_shift_quantum_communication.md` is explicit about the
+limitation.
+
+**The construction.** The state space is a two-sector (graded) Hilbert space
+`H = H_b ⊕ H_f` of dimension `2d`, and the involution is the sector swap
+`σ|b,k⟩ = |f,k⟩`, `σ|f,k⟩ = |b,k⟩`. A bit is encoded in the eigenvalue of `σ`:
+
+| bit | state | `σ` eigenvalue |
+|:---|:---|:---|
+| 0 | `(|b,k⟩ + |f,k⟩)/√2` | `+1` |
+| 1 | `(|b,k⟩ − |f,k⟩)/√2` | `−1` |
+
+The channel Hamiltonian has the block form `[[H_b, V], [Vᵀ, H_f]]` with
+`H_b = H_f` and `V = Vᵀ`, which makes `[H, σ] = 0` **exactly**: the commutator
+norm is `0.00e+00` for every dimension up to `d = 12`, not merely small.
+Detection measures whether the received state is still a `σ` eigenstate.
+
+**Models available.** Noise: `none`, `depolarizing`, `phase` (a relative phase on
+the fermionic sector), `amplitude` (damping of that sector). Attacks:
+`intercept_resend`, `symmetry_breaking`, and `partial_intercept` (intercept a
+fraction `p` of the traffic). `run_simulation` returns the BER, the detection
+rate, and the mean fidelity against the transmitted state. `channel_time`
+defaults to `0.0` — no Hamiltonian evolution — so the ideal channel has unit
+fidelity; set it nonzero to include evolution under `H`.
+
+**Measured results** (`python scripts/run_dsin_verification.py`, `n = 500`, seed 42):
+
+| scenario | BER | detection rate |
+|:---|:---|:---|
+| ideal channel | 0.0000 | 0.0000 |
+| depolarizing `p = 0.1` / `0.3` / `0.5` | 0.044 / 0.168 / 0.252 | 0.104 / 0.332 / 0.502 |
+| symmetry-breaking `ε = 0.1` / `0.5` / `1.0` | 0.010 / 0.260 / 0.404 | 1.000 / 1.000 / 1.000 |
+| intercept-resend (mean of 5 seeds) | 0.4528 | 1.0000 |
+
+The detector is a **witness** of symmetry breaking, not a graded measure: any
+departure from the `σ` eigenspace trips it, so the symmetry-breaking and
+intercept-resend detection rates sit at 1.000 even for small `ε`, while the BER
+grows with `ε`. That is the honest reading of the table — the detector answers
+"was the symmetry broken?", not "by how much?". Depolarizing noise gives a graded
+response only because it destroys the state outright with probability `p`, so
+detection tracks `p`.
+
+**A modelling bug found and fixed while writing this up.** The original
+`symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
+*same* random `m`. That vector is `σ`-*odd*, so it lies inside the `−1`
+eigenspace — which is exactly the bit-1 encoding — and left bit-1 states
+undisturbed to machine precision (`|⟨σ⟩| = 1.000000`). The reported "detection
+rate" was therefore ≈ 0.53 **regardless of `ε`**: it was tracking the fraction of
+rounds that happened to encode bit 0, not any detection capability at all. The
+fix perturbs the sectors independently, so the perturbation carries both
+`σ`-even and `σ`-odd parts and disturbs both encodings (`|⟨σ⟩|` drops to ≈ 0.50
+for each). It is recorded here rather than silently corrected because the wrong
+number looked entirely plausible, and
+`test_symmetry_breaking_attack_disturbs_both_encodings` now pins it.
+
+**Comparison with BB84.** `bb84.py` provides the baseline, because a protocol
+claim is meaningless without one. The two protocols do not detect eavesdropping
+the same way, and the comparison is only readable if that is stated:
+
+| depolarizing noise | DSIN BER | BB84 sifted-key QBER | BB84 verdict |
+|:---|:---|:---|:---|
+| 0.00 | 0.0000 | 0.0000 | not detected |
+| 0.10 | 0.0440 | 0.0409 | not detected |
+| 0.20 | 0.0840 | 0.1004 | not detected |
+| 0.30 | 0.1680 | 0.1357 | **detected** |
+
+DSIN watches a per-round symmetry observable, so its detection rate is a genuine
+per-round frequency. BB84 has no per-round detection event: Alice's and Bob's
+bases are chosen independently at random, so they disagree about half the time
+whether or not anyone is listening, and those rounds are simply discarded in
+sifting. BB84 works from the rounds that survive — the sifted key — by estimating
+its error rate and aborting above a threshold (0.11 by default, the value used
+above). An earlier version of `bb84.py` counted basis mismatch as "detection",
+which reported ≈ 0.5 in every row: it was measuring sifting, not eavesdropping.
+`run_bb84` now returns the sifted-key QBER as `ber`, a run-level `detected`
+flag, and `sifting_discard_rate` separately, so the two cannot be confused
+again.
+
+**What this is not.** No security proof, no composable-security claim, and no
+comparison with BB84's security guarantee. There is no detector noise model, no
+finite-key analysis, and no adversary beyond the three attacks above.
+`docs/future_work.md` priority 6 lists what a serious treatment would need.
 
 ## Shift-zeta: a graded-algebra lift (negative result)
 
@@ -291,6 +376,50 @@ The only part of this repository that even points in the direction of "validatin
 
 **Honest advice, without wanting to take away your motivation:** this framework is an excellent tool for quickly discarding bad ideas and sharpening promising ones. But it is — and structurally can never be more than — a pre-filter. Confirmation of a real proof does not happen through code that prints "PASS"; it happens through human expert scrutiny and, ideally, full formal verification.
 
+## Test suite
+
+From `python/`:
+
+```powershell
+python -m pytest tests/ -q
+```
+
+**429 tests pass** on the current tree. They are not smoke tests: the suite
+contains the negative results themselves, a regression test for every bug that
+has been corrected here, and assertions that the Lean development has not
+silently changed meaning.
+
+| Test file | Tests | What it pins down |
+|:---|:---|:---|
+| `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
+| `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
+| `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
+| `test_dsin.py` | 27 | DSIN simulation and the BB84 baseline |
+| `test_affine_reduction.py` | 22 | The affine-reduction gate |
+| `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
+| `test_idea_pipeline.py` | 16 | Pipeline stages A–E and the Stage-D probe |
+| `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
+| `test_dimension_shift.py` | 14 | Dimension-shift operator model |
+| `test_falsification.py` | 9 | DSH falsification grid |
+| `test_explicit_formula.py` | 8 | Explicit-formula calculations |
+| `test_cayley_dickson.py` | 6 | Cayley–Dickson property checks |
+| `test_dimension_shift_chaos.py` | 5 | Chaos pipeline |
+| `test_four_squares.py` | 4 | Jacobi four-square checks |
+| `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
+| `test_numeric_zeros.py` | 2 | Numerical zero verification |
+
+Three of these exist specifically to stop a claim from drifting away from the
+evidence, and all three are enforced rather than documented:
+
+- `test_formal_proof.py::test_rh_statement_stays_open` fails if any file stating
+  the Riemann Hypothesis stops reporting `sorry` — an accidental "RH is proved"
+  claim breaks the build instead of quietly editing this README.
+- `test_formal_proof.py::test_sorry_free_file_is_complete` fails if a file listed
+  as verified starts containing a `sorry` or an `axiom`.
+- `test_formal_proof.py::test_lean_file_lists_are_current` fails if a module is
+  renamed or deleted without updating the lists, so the failure names the real
+  problem instead of surfacing as an opaque Lean object-file error.
+
 ## Generated Results
 
 Plots are generated locally and are not required source files. From the
@@ -300,12 +429,13 @@ repository root, run:
 python python/riemann_framework/test_plot.py
 python scripts/run_dimension_shift_chaos.py
 python scripts/run_falsification.py
+python scripts/run_dsin_verification.py
 ```
 
 The scripts write PNG files to `output/`, including zero plots,
 explicit-formula plots, spectrum comparisons, coupling sweeps, symmetry-breaking
-sweeps, and the falsification grid. The current plot snapshots are included
-below.
+sweeps, the falsification grid, and the DSIN/BB84 comparison. The current plot
+snapshots are included below.
 
 ### Non-trivial zeros in the complex plane
 
@@ -342,6 +472,39 @@ coupling, and symmetry breaking; the histogram shows how those 90 parameter
 points distribute relative to the reference values (dashed lines). Both are
 written by `scripts/run_falsification.py`, which also records the run in
 [`output/falsification_summary.txt`](output/falsification_summary.txt).
+
+### DSIN: BER under three noise models
+
+![DSIN bit error rate under depolarizing, phase, and amplitude noise](output/dsin_ber_vs_noise.png)
+
+Depolarizing and amplitude noise produce a roughly linear rise in BER; phase
+noise is the symmetry-breaking one and is shown against the same axis. The
+dashed line is a random guess.
+
+### DSIN: BER and detection under a symmetry-breaking attack
+
+![DSIN bit error rate and detection rate versus attack strength](output/dsin_attack_analysis.png)
+
+BER grows with the attack strength `ε`, while the detection rate stays pinned at
+1.000: the detector reports whether the symmetry was broken, not how badly.
+
+### DSIN versus BB84
+
+![DSIN compared with the BB84 baseline under depolarizing noise](output/dsin_vs_bb84.png)
+
+The right-hand panel deliberately plots DSIN's per-round detection rate against
+BB84's *sifted-key error rate* — the quantity BB84 actually thresholds — rather
+than BB84's 0/1 verdict, because the two protocols do not detect eavesdropping
+the same way. Reading them as the same kind of number would be a mistake.
+
+### DSIN: the channel commutes with the involution
+
+![Commutator norm between the channel Hamiltonian and the involution](output/dsin_commutator_norm.png)
+
+The commutator norms are exactly `0.0` at machine precision for every dimension
+up to `d = 12`, which a log axis cannot render; they are therefore plotted
+against a stated floor. If the construction ever stopped commuting, the curve
+would lift off the floor immediately.
 
 ## Project Structure
 
@@ -381,6 +544,7 @@ riemann-framework/
 │   │   ├── dimension_shift_chaos.py # Hamiltonian chaos experiments
 │   │   ├── quantum_chaos.py       # Zero-spacing statistics
 │   │   ├── dsin.py                # DSIN communication simulation
+│   │   ├── bb84.py                # BB84 baseline, for comparison with DSIN
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
 │   │   ├── falsification_test.py  # DSH falsification grid + verdicts
@@ -427,7 +591,7 @@ riemann-framework/
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
 │   ├── run_quantum_chaos_analysis.py # Zero-spacing statistics
 │   ├── check_sigma.py             # Verify the sector-swap involution
-│   ├── run_dsin_analysis.py       # Run DSIN simulations
+│   ├── run_dsin_verification.py   # Run DSIN simulations, compare with BB84
 │   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections

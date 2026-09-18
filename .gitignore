@@ -37,6 +37,10 @@ output/*.png
 !output/shift_zeta_critical_line.png
 !output/shift_zeta_comparison.png
 !output/shift_zeta_summary.txt
+!output/dsin_ber_vs_noise.png
+!output/dsin_attack_analysis.png
+!output/dsin_vs_bb84.png
+!output/dsin_commutator_norm.png
 
 # OS
 .DS_Store
