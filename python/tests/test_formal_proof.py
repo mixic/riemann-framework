@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Formal assert: Lean 4 proof without `sorry`."""
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,17 @@ from riemann_framework.lean_runner import check_lean_file
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 LEAN_DIR = PROJECT_ROOT / "lean"
 RIEMANN_FRAMEWORK_DIR = LEAN_DIR / "RiemannFramework"
+
+# `check_lean_file` shells out to `lake`. The CI `python-tests` job installs no
+# Lean toolchain, so the Lean tests must *skip* there rather than fail with
+# FileNotFoundError; the separate `lean-build` job covers the Lean build itself.
+# `test_lean_file_lists_are_current` needs no toolchain and always runs.
+LAKE = shutil.which("lake")
+
+requires_lean = pytest.mark.skipif(
+    not RIEMANN_FRAMEWORK_DIR.exists() or LAKE is None,
+    reason="Lean toolchain (lake) not available",
+)
 
 # Files to check individually
 LEAN_FILES = [
@@ -71,10 +83,7 @@ def test_lean_file_lists_are_current():
     )
 
 
-@pytest.mark.skipif(
-    not RIEMANN_FRAMEWORK_DIR.exists(),
-    reason="Lean directory not found",
-)
+@requires_lean
 @pytest.mark.parametrize("lean_file", LEAN_FILES)
 def test_lean_file_compiles(lean_file):
     """Each Lean file should compile (even with `sorry`)."""
@@ -84,10 +93,7 @@ def test_lean_file_compiles(lean_file):
     )
 
 
-@pytest.mark.skipif(
-    not RIEMANN_FRAMEWORK_DIR.exists(),
-    reason="Lean directory not found",
-)
+@requires_lean
 @pytest.mark.parametrize("lean_file", SORRY_FREE_FILES)
 def test_sorry_free_file_is_complete(lean_file):
     """Each genuinely verified file must be sorry-free, with no `axiom` either."""
@@ -106,10 +112,7 @@ def test_sorry_free_file_is_complete(lean_file):
     )
 
 
-@pytest.mark.skipif(
-    not RIEMANN_FRAMEWORK_DIR.exists(),
-    reason="Lean directory not found",
-)
+@requires_lean
 @pytest.mark.parametrize("lean_file", OPEN_RH_FILES)
 def test_rh_statement_stays_open(lean_file):
     """Every RH-target file must still be incomplete.

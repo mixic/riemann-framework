@@ -16,9 +16,14 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: pip install -r python/requirements.txt
-      - name: Run numerical tests
+      # The whole suite, not just the numerical core. Running only
+      # `test_numeric_zeros.py` (2 of 434 tests) is what let a module-level
+      # import error in `dsin.py` go unnoticed. The Lean assertions inside
+      # `tests/test_formal_proof.py` skip here, because this job installs no
+      # Lean toolchain; the `lean-build` job below covers Lean itself.
+      - name: Run test suite
         working-directory: python
-        run: pytest tests/test_numeric_zeros.py -v
+        run: pytest tests/ -v
 
   lean-build:
     runs-on: ubuntu-latest
