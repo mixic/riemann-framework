@@ -339,7 +339,36 @@ of the Bost-Connes Galois action, rather than a basis permutation.
 
 ## Priority 6: DSIN Research Track
 
-DSIN should remain explicitly downstream and speculative. Future work should:
+**Verdict: the design is closed.** DSIN as specified — a single published
+observable carrying the bit — cannot provide security, and this is now proved
+rather than suspected. Section 4.1 of
+`dimension_shift_quantum_communication.md` shows that no function of its
+statistic bounds the adversary's information, with an explicit attack that
+recovers every bit (`1.0000`) while producing `BER = 0.0000`, detection `0.0000`,
+and a deviation bit-identical to a noiseless channel. Section 4.3 shows the
+entropic route is unavailable to a single-observable design. And §4.4.1 shows
+that the obvious repairs *relocate* the obstruction rather than remove it: the
+adversary's payload measurement is a logical operator, and no stabilizer can see
+one. The one repair that would work — two mutually unbiased observables — is
+high-dimensional QKD, an occupied class with a working composable-secure
+realisation, so it is not a DSIN result.
+
+This closes the *design*, not the repository. The track's one exact positive
+result is untouched: a `sigma`-commuting channel preserves `Fix(sigma)`, with
+`||[H, sigma]||_F = 0.00e+00` at machine precision up to `d = 12`. It was true
+before this track existed and remains a small true theorem. What the track got
+wrong was reading it as a security statement — it says nothing about what an
+adversary can do *inside* the fixed locus, and that is exactly where the attack
+lives.
+
+The requirements below are kept as the record of what was asked for before the
+simulation existed; the status block records what happened to each. Section 4.4
+of the protocol document is an inventory of what a successor would have to
+satisfy. It is not a plan, and it should not be read as the design surviving
+under another name.
+
+Should DSIN ever be revived, it would not be as this design. The original
+requirements were:
 
 - define a complete noise and adversary model;
 - distinguish symmetry covariance from topological protection;
