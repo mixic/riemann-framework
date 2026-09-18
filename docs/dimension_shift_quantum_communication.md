@@ -568,12 +568,17 @@ all four cross overlaps:  0.25  =  1/(2d)
 Both reflections are Hermitian, square to the identity, and evaluate to `+1` on
 their own fixed locus. So direction (b) is a definite object rather than a hope.
 
-**What is not established** — and this is the first thing anyone pursuing it
-should determine — is how large such a family can be. The size of the family is
-the size of the randomness budget `R1` draws on, so it sets how much the sifting
-step costs, and nothing in this document says whether a family of more than two
-unbiased subspaces exists for any `d >= 2`. Until that is settled, direction (b)
-is a well-posed question and not a design.
+**What is not established** is how large such a family can be. That question is
+about *rate*, not about whether security is possible: two bases suffice, as BB84
+shows at `d = 1`, and as high-dimensional QKD shows in practice at far larger `d`
+(§4.4.5). The family size is the randomness budget `R1` draws on, so it sets how
+much the sifting step costs and how many candidates the adversary is guessing
+among, and nothing in this document says whether more than two pairwise-unbiased
+`d`-dimensional fixed loci exist for any `d >= 2`. So direction (b) is a
+well-posed question rather than a design — but the obstacle is efficiency, not
+feasibility, and this paragraph should not be read as a second impossibility
+result. The impossibility result is §4.1, and it is about the current design, not
+about this one.
 
 #### 4.4.4 Direction (c): let the frame itself be the secret
 
@@ -607,6 +612,36 @@ QKD and the sector structure is decoration. That is a falsifiable question about
 design rather than about the current one, it can be answered with the existing
 harness, and it is the cheapest way to find out whether this track has anything
 left in it.
+
+**The baseline for this section — and what it is not.** High-dimensional QKD with
+a mutually unbiased pair is not a proposal; it is an experiment. Chang et al.
+(2026) reconstruct time-frequency joint temporal intensities scan-free, certify
+`668`-dimensional entanglement at local dimension `1021`, and prove a composable
+finite-size key rate of `15.6` kB/s against coherent and collective attacks. That
+is the standard of evidence a claim in this area now has to meet, and it is the
+reason the herald question above is worth asking at all: the class direction (b)
+falls into is occupied, and by something working.
+
+It is *not* a like-for-like baseline for direction (b), and treating it as one
+would not be a harmless simplification but a category error:
+
+- it is **entanglement-based** where DSIN is prepare-and-measure, so its security
+  proof is a different family with different trust assumptions and different
+  attacks;
+- its two bases come from **Fourier duality**, not from two reflections, so the
+  symmetry structure on which direction (b) is built has no counterpart in it —
+  and a single involution could never supply one, since a Hermitian involution's
+  eigenspaces are orthogonal while mutual unbiasedness is the opposite of
+  orthogonal;
+- its "MUBs" span **overlapping but not identical Hilbert spaces**, handled by an
+  explicit double-fair-sampling assumption, so they are an experimentally realised
+  approximation rather than the clean object defined in §4.4.3.
+
+So what transfers is the standard of evidence, not the construction — plus one
+methodological lesson worth copying. The paper states its assumptions and *tests*
+its MUB hypothesis (Frobenius deviation `0.05%` at `d = 1021`) instead of assuming
+it, and it treats basis-dependent loss as a first-class effect rather than an
+afterthought. That is precisely the discipline §4.4.1 says this design lacked.
 
 #### 4.4.6 What would remain true even if direction (b) worked
 
@@ -756,6 +791,7 @@ high-dimensional QKD under other names.
 - Berta, M., Christandl, M., Colbeck, R., Renes, J. M., and Renner, R. (2010). *The uncertainty principle in the presence of quantum memory*. Nature Physics.
 - Cerf, N. J., Bourennane, M., Karlsson, A., and Gisin, N. (2002). *Security of quantum key distribution using d-level systems*. Physical Review Letters.
 - Bartlett, S. D., Rudolph, T., and Spekkens, R. W. (2007). *Reference frames, superselection rules, and quantum information*. Reviews of Modern Physics.
+- Chang, K.-C. et al. (2026). *High-dimensional quantum communication with scalable photonic entanglement in time and frequency*. arXiv:2603.18212.
 - Witten, E. (1981). *Dynamical breaking of supersymmetry*. Nuclear Physics B.
 - Montgomery, H. L. (1973). *The pair correlation of zeros of the zeta function*.
 - Connes, A. (1999). *Trace formula in noncommutative geometry and the zeros of the Riemann zeta function*.
