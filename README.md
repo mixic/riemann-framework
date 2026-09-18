@@ -38,7 +38,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **429 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **434 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -175,6 +175,38 @@ grows with `ε`. That is the honest reading of the table — the detector answer
 "was the symmetry broken?", not "by how much?". Depolarizing noise gives a graded
 response only because it destroys the state outright with probability `p`, so
 detection tracks `p`.
+
+**A total, undetectable break.** The detector tests whether the received state is
+*an* eigenstate of `σ` (`|⟨σ⟩| = 1`) — not whether it is the eigenstate that was
+sent, which the receiver cannot know. That distinction is not academic. Phase
+noise multiplies the fermionic sector by `e^{iφ}`, which sends `⟨σ⟩` to `±cos φ`;
+at `φ = π` it maps the `+1` eigenspace onto the `−1` eigenspace:
+
+| `φ` | BER | detection |
+|:---|:---|:---|
+| `0.25π` | 0.1660 | 1.0000 |
+| `0.50π` | 0.4840 | 1.0000 |
+| `0.75π` | 0.8440 | 1.0000 |
+| **`π`** | **1.0000** | **0.0000** |
+
+So the unitary `diag(I, −I)` inverts **every** transmitted bit while the detector
+reports nothing whatsoever. This is a property of the protocol as modelled, not a
+coding error, and `test_phase_flip_at_pi_inverts_every_bit_and_is_invisible` pins
+it so it cannot be lost silently. It is the concrete instance of the trap that
+`docs/future_work.md` priority 6 names: **symmetry covariance is not protection**.
+Closing it needs a detector that checks eigen*value* consistency, which requires
+either a shared key or a BB84-style basis-sampling check — a protocol redesign,
+not a bug fix.
+
+**No error-rate-to-information relation.** Because the detector trips on any
+departure from the eigenspace, it is binary: a cautious eavesdropper who
+intercepts a tiny fraction of the traffic is caught with the same probability as
+a reckless one, and only the BER responds to the attack strength. In BB84 the two
+are quantitatively linked — Eve's information about the key is bounded by the
+disturbance she causes — and that link is what a security proof is built from.
+DSIN has no such relation between "how much information did Eve obtain?" and "how
+likely is she to be caught?", which is a second and independent reason (beyond
+the absent proof machinery) that it cannot be set against BB84's guarantee.
 
 **A modelling bug found and fixed while writing this up.** The original
 `symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
@@ -384,7 +416,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**429 tests pass** on the current tree. They are not smoke tests: the suite
+**434 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -394,14 +426,14 @@ silently changed meaning.
 | `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
 | `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
-| `test_dsin.py` | 27 | DSIN simulation and the BB84 baseline |
+| `test_dsin.py` | 29 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 16 | Pipeline stages A–E and the Stage-D probe |
 | `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
 | `test_falsification.py` | 9 | DSH falsification grid |
-| `test_explicit_formula.py` | 8 | Explicit-formula calculations |
+| `test_explicit_formula.py` | 11 | Explicit-formula calculations |
 | `test_cayley_dickson.py` | 6 | Cayley–Dickson property checks |
 | `test_dimension_shift_chaos.py` | 5 | Chaos pipeline |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |

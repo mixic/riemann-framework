@@ -229,6 +229,25 @@ noise, and the receiver's measurement. A valid security analysis must bound
 the information gained by the adversary as a function of the observed error
 rate.
 
+**Measured status.** `dsin.py` now supplies the numbers, and they run against the
+hoped-for picture. Two findings from `scripts/run_dsin_verification.py`
+(`n = 500`, seed 42):
+
+- The detector is **binary, not graded**. It tests whether the received state is
+  *an* eigenstate of `sigma` (`|<sigma>| = 1`), so any departure from the
+  eigenspace trips it at full strength. The symmetry-breaking sweep reports a
+  detection rate of `1.0000` at every attack strength, from `eps = 0.1` to
+  `eps = 1.0`, while only the BER responds to `eps` (`0.010 -> 0.260 -> 0.404`).
+  A cautious eavesdropper is therefore caught with the same probability as a
+  reckless one, and the relation between error rate and leaked information
+  **degenerates to a constant**.
+- An attack exists that is **non-commuting and completely undetectable**. The
+  fermionic phase flip `diag(I, -I)` does not commute with `sigma`, yet it maps
+  the `+1` eigenspace onto the `-1` eigenspace. The received state is still a
+  `sigma` eigenstate, of the *opposite* eigenvalue, so `|<sigma>| = 1`,
+  detection stays at `0.0000`, and every bit is inverted (measured
+  `BER = 1.0000`). See the `phi = pi` row of the phase-noise sweep.
+
 ## 4. Security Analysis Requirements
 
 ### 4.1 A no-shift statement
@@ -250,6 +269,19 @@ To turn this into a theorem, one must specify:
 
 A proof must not claim that every non-commuting attack gives the same error or
 that every attack is detected with certainty.
+
+**Status of the sixth requirement.** It is now known to be unsatisfiable in the
+current design rather than merely unproven: detection is a constant function of
+the disturbance (see §3.4), so no error-rate-to-information relation can be
+derived from it. The caution in the sentence above is also sharpened in the
+opposite direction — it is not only that one must not claim *every* attack is
+detected with certainty, but that some attacks are detected with probability
+**zero**.
+
+Meeting the requirement would need the receiver to test eigen*value* consistency,
+which requires either a shared secret or a BB84-style basis-sampling check in
+which Alice and Bob sacrifice a subset of bits to estimate the error rate. That
+is a change to the protocol, not to the analysis.
 
 ### 4.2 Comparison with BB84
 
@@ -332,7 +364,10 @@ measure:
 3. how decoherence and loss change the `sigma`-error rate;
 4. whether controlled non-commuting perturbations are detected;
 5. whether an adversary can gain information without producing a detectable
-   disturbance.
+   disturbance. (**Answered, and the answer is yes.** The fermionic phase flip
+   `diag(I, -I)` does not commute with `sigma`, inverts every transmitted bit,
+   and leaves the detector silent: measured `BER = 1.0000`, detection `0.0000`.
+   See §3.4.)
 
 ## 7. Open Problems
 
@@ -345,6 +380,8 @@ measure:
 | Multi-party protocols | Extension to entanglement distribution and network routing |
 | Experimental realization | A platform with controllable sectors and reliable projectors |
 | Topological protection | A genuine invariant and gap, not only a commuting Hamiltonian |
+| Detection metric | A *graded* disturbance measure, so that detection probability scales with the disturbance instead of saturating at 1 (or reading 0) for any nonzero attack; see §3.4 |
+| Eigenvalue consistency | A receiver test that distinguishes "an eigenstate" from "the eigenstate that was sent", without a shared secret — otherwise `diag(I, -I)` remains a total undetectable break |
 | RH connection | A precise theorem relating the two mathematical structures |
 
 ## 8. Conclusion
@@ -354,6 +391,17 @@ quantum communication. It replaces ordinary basis encoding with an eigenvalue
 of a discrete sector-swap symmetry. In the ideal closed-system model, a
 Hamiltonian commuting with the involution preserves that label, and
 non-commuting perturbations can create a measurable disturbance.
+
+They need not, however, and the simulation now shows both halves of that
+distinction. The commuting channel is exact — `||[H, sigma]||_F = 0.00e+00` at
+machine precision for every dimension tested — so the one provable statement in
+this track holds. But the detector is a witness of symmetry breaking rather than
+a graded measure, and a non-commuting perturbation that merely swaps the
+eigenvalues (`diag(I, -I)`) inverts every bit while leaving every detector
+reading unchanged (§3.4). The honest summary is therefore that DSIN currently
+possesses an exact commuting channel and no detection guarantee at all, which is
+a weaker position than "a commuting Hamiltonian plus a disturbance observable"
+would suggest.
 
 The proposal shares a useful structural vocabulary with the Dimension-Shift
 approach to the Riemann Hypothesis: involutions, fixed loci, sector structure,

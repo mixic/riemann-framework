@@ -335,6 +335,29 @@ A physical implementation would require controllable sector preparation,
 sector-projector measurement, calibrated noise, and an independently verified
 attack model.
 
+**Status against those five points.** Two of them now have concrete negative
+results, both found while documenting the simulation:
+
+- *Symmetry covariance is not protection* (bullet 2). The detector asks whether
+  the received state is *an* eigenstate of `σ`, not whether it is the *right*
+  one — which the receiver cannot know. The unitary `diag(I, -I)`, i.e. a `π`
+  phase on the fermionic sector, maps the `+1` eigenspace onto the `-1`
+  eigenspace, so `|<sigma>|` stays at 1 while every bit inverts: measured BER
+  `1.0000` with detection `0.0000`. Any redesign must test eigenvalue
+  *consistency*, which needs a shared key or BB84-style basis sampling. Pinned by
+  `test_phase_flip_at_pi_inverts_every_bit_and_is_invisible`.
+- *There is no error-rate-to-information relation* (bullet 3). Detection is
+  binary: a cautious eavesdropper who intercepts a small fraction of the traffic
+  is caught with the same probability as a reckless one, and only the BER tracks
+  the attack strength. BB84's bound on Eve's information is a function of the
+  observed disturbance; DSIN has no analogue, so the quantity a security proof
+  would be built from does not currently exist.
+
+Bullet 1 stays open — the three attacks implemented in `dsin.py` are not a
+complete adversary model — and bullets 4 and 5 remain open in full. The one
+positive result in this track remains the exact commutator: `[H, sigma] = 0` at
+machine precision for every dimension tested (`0.00e+00` up to `d = 12`).
+
 ## Suggested Release Milestones
 
 | Release | Goal | Exit criterion |
