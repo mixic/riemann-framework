@@ -74,3 +74,21 @@ def test_approximation_runs_without_error():
     approx = np.array([li_approx(x, 10) for x in x_values])
     assert len(approx) == len(x_values)
     assert np.all(np.isfinite(approx))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [np.float32(10.0), np.array(10), np.array(2.5, dtype=np.float32)],
+    ids=["float32", "0d-int-array", "0d-float32-array"],
+)
+def test_approximation_accepts_numpy_values_mpf_cannot_convert(value):
+    """Inputs that `mp.mpf` cannot convert directly must still be accepted.
+
+    `mp.mpf(x)` handles plain ints and floats, and anything registered with
+    `numbers.Rational` -- which is why `np.int64`, `np.int32` and `np.float64`
+    work already. It does *not* handle `np.float32` or 0-d arrays, which raise
+    `TypeError: cannot create mpf from ...` from `mpf_convert_arg`.
+    `_validate_approximation_inputs` unwraps those with `.item()`.
+    """
+    assert np.isfinite(li_approx(value, 1))
+    assert np.isfinite(li_approx_regularized(value, 1, sigma=0.5))

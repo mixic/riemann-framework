@@ -43,6 +43,17 @@ Every numerical claim here is about a toy model. None of it constitutes a
 security proof; see `docs/dimension_shift_quantum_communication.md`.
 """
 
+# `evolve_state` below annotates its parameter and its return type as
+# `DSINState`, but that class is defined further down the file. Without
+# postponed evaluation Python evaluates annotations at function-definition time,
+# so importing this module raised `NameError: name 'DSINState' is not defined` --
+# which made `tests/test_dsin.py` fail at *collection*, not at assertion.
+# Python 3.14 defers annotations by default (PEP 649), so this only bites on
+# <= 3.13, including the CI's 3.12; that is exactly the kind of gap the CI job
+# now covers. An AST scan confirms this is the only forward reference in the
+# package, and `dsin.py` was the only module with one lacking this import.
+from __future__ import annotations
+
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional

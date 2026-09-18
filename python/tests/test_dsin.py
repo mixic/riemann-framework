@@ -196,6 +196,39 @@ def test_symmetry_breaking_attack_disturbs_both_encodings():
         )
 
 
+def test_phase_noise_is_detected_away_from_the_eigenvalue_swap():
+    """A phase of pi/2 leaves the state off the eigenspace, so it is caught."""
+    r = run_simulation(
+        n_bits=500, noise_type="phase", noise_param=np.pi / 2, seed=42
+    )
+    assert r.detection_rate > 0.9
+    assert r.ber > 0.1
+
+
+def test_phase_flip_at_pi_inverts_every_bit_and_is_invisible():
+    """The unitary diag(I, -I) is a total, undetectable break of the protocol.
+
+    Multiplying the fermionic sector by `e^{i phi}` sends the expectation value
+    to `+-cos(phi)`. At `phi = pi` that maps the `+1` eigenspace onto the `-1`
+    eigenspace, so the received state is still a `sigma` eigenstate -- of the
+    *opposite* eigenvalue -- while `|<sigma>| = 1`, which is precisely what the
+    detector tests. Every encoded bit is inverted and nothing is reported.
+
+    This is a property of the protocol as modelled, not a coding error: the
+    detector asks "is this still an eigenstate?", when the security-relevant
+    question is "is it the *right* eigenstate?", and the receiver cannot tell
+    without knowing the bit. The test pins the weakness so it cannot be lost
+    silently; any redesign has to change this assertion deliberately.
+    """
+    r = run_simulation(
+        n_bits=500, noise_type="phase", noise_param=np.pi, seed=42
+    )
+    assert r.ber == 1.0, f"BER = {r.ber}, expected every bit inverted"
+    assert r.detection_rate == 0.0, (
+        f"detection = {r.detection_rate}, expected the break to be invisible"
+    )
+
+
 def test_attack_detected():
     """Symmetry-breaking attacks raise errors across repeated runs."""
     results = [

@@ -37,16 +37,32 @@ def prime_count(x: int) -> int:
     return int(np.sum(sieve))
 
 
+def _to_native(value: object) -> object:
+    """Return numpy scalars and 0-d arrays as native Python scalars.
+
+    `mp.mpf` goes through `mpf_convert_arg`, which accepts plain ints and floats
+    plus anything registered with `numbers.Rational` -- so `np.int64`, `np.int32`
+    and `np.float64` already convert. It rejects `np.float32` and 0-d arrays,
+    which fail with `TypeError: cannot create mpf from array(2.5,
+    dtype=float32)`. Those are the shapes unwrapped here; everything else,
+    including plain int/float/str, passes through unchanged.
+    `test_approximation_accepts_numpy_values_mpf_cannot_convert` pins them.
+    """
+    if isinstance(value, (np.generic, np.ndarray)):
+        return value.item()
+    return value
+
+
 def _validate_approximation_inputs(
-    x: object, num_zeros: int, sigma: float
+    x: object, num_zeros: int, sigma: object
 ) -> tuple[mp.mpf, int, mp.mpf]:
     if not isinstance(num_zeros, Integral):
         raise TypeError("num_zeros must be an integer")
     if num_zeros < 0:
         raise ValueError("num_zeros must be non-negative")
 
-    x_value = mp.mpf(x)
-    sigma_value = mp.mpf(sigma)
+    x_value = mp.mpf(_to_native(x))
+    sigma_value = mp.mpf(_to_native(sigma))
     if not mp.isfinite(x_value) or x_value <= 1:
         raise ValueError("x must be finite and greater than 1")
     if not mp.isfinite(sigma_value) or sigma_value <= 0:
