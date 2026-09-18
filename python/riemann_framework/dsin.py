@@ -35,7 +35,7 @@ The simulation evaluates:
   1. Bit error rate (BER) under ideal conditions
   2. BER under depolarizing, phase, and amplitude noise
   3. BER under eavesdropping (intercept-resend, symmetry-breaking,
-     and partial intercept-resend)
+     partial intercept-resend, and measurement in the encoding basis itself)
   4. Detection probability of eavesdropping, from the deviation of the state
      from a sigma eigenstate
 
@@ -363,6 +363,56 @@ def intercept_resend_attack(
     return DSINState(bit=state.bit, vector=new_vec, sector_index=state.sector_index)
 
 
+def sigma_basis_intercept_attack(
+    state: DSINState,
+    sigma: np.ndarray,
+    rng: np.random.Generator,
+) -> DSINState:
+    """
+    Eve measures in the *encoding* basis: she measures `sigma` itself.
+
+    This is the attack that no single-basis protocol can survive, and it is the
+    reason no entropic-uncertainty bound is available here (see
+    `docs/dimension_shift_quantum_communication.md` section 4.4). In BB84 the
+    analogous attack fails half the time: Alice chooses her basis privately, so
+    Eve measuring `Z` disturbs every `X` round. DSIN encodes in one published
+    basis, so the observable Eve measures is the observable Alice encoded in and
+    the observable Bob decodes with. Her measurement is *always* the right one.
+
+    Consequences, all exact rather than statistical:
+
+    - Eve's outcome equals Alice's bit with probability 1, because the received
+      state is a `sigma` eigenstate of eigenvalue `(-1)**bit` and a projective
+      measurement of `sigma` on that eigenstate is deterministic. Her mutual
+      information with the bit is a full bit.
+    - The state she resends is the post-measurement state, which for an input
+      already in the measured eigenspace is the input itself. So `|<sigma>| = 1`
+      still holds, the detector stays silent, and Bob decodes correctly:
+      `BER = 0` and `detection_rate = 0`.
+
+    Full information, zero disturbance, zero detection -- and the same
+    `1 - |<sigma>|` reading as a channel with no eavesdropper at all. That
+    collision is what makes the observable unusable as a security statistic: two
+    strategies with identical deviation and different leakage cannot be
+    separated by any function of the deviation.
+    """
+    sigma = np.asarray(sigma, dtype=complex)
+    if sigma.shape != (len(state.vector), len(state.vector)):
+        raise ValueError("sigma dimension must match the state vector")
+    if not np.allclose(sigma, sigma.conj().T):
+        raise ValueError("sigma must be Hermitian")
+
+    outcome = measure_sigma(state, sigma, rng=rng)
+    n = len(state.vector)
+    identity = np.eye(n, dtype=complex)
+    projector = (identity + sigma) / 2.0 if outcome == 0 else (identity - sigma) / 2.0
+    new_vec = projector @ state.vector
+    norm = np.linalg.norm(new_vec)
+    if norm > 0:
+        new_vec = new_vec / norm
+    return DSINState(bit=state.bit, vector=new_vec, sector_index=state.sector_index)
+
+
 def symmetry_breaking_attack(
     state: DSINState,
     epsilon: float,
@@ -436,6 +486,15 @@ class SimulationResult:
     raw_errors: int = 0
     raw_detections: int = 0
     mean_fidelity: float = 0.0
+    # Mean of the graded statistic `1 - |<sigma>|`, i.e. the detector's input
+    # before thresholding. Kept alongside the binary `detection_rate` so that a
+    # caller can see that the threshold, not the observable, produces the step.
+    # Stored as `|1 - |<sigma>||` rather than `1 - |<sigma>|`: the two agree for
+    # any physical state since `|<sigma>| <= 1`, but `|<sigma>|` can round a few
+    # ulps above 1, and the unsigned form then reports a small *negative*
+    # deviation, which is not a distance. The `abs` is the same expression the
+    # detector thresholds, so the two cannot drift apart.
+    mean_sigma_deviation: float = 0.0
 
 
 def run_simulation(
@@ -458,8 +517,10 @@ def run_simulation(
         coupling: inter-sector coupling strength
         noise_type: "none", "depolarizing", "phase", or "amplitude"
         noise_param: noise strength
-        attack_type: "none", "intercept_resend", "symmetry_breaking", or
-            "partial_intercept"
+        attack_type: "none", "intercept_resend", "symmetry_breaking",
+            "partial_intercept", or "sigma_basis_intercept". The last is the
+            attack that measures the encoding observable itself; it recovers
+            every bit with zero disturbance and zero detection.
         attack_param: attack strength
         seed: random seed
         channel_time: time for which the state evolves under the channel
@@ -476,6 +537,7 @@ def run_simulation(
     noise_types = {"none", "depolarizing", "phase", "amplitude"}
     attack_types = {
         "none", "intercept_resend", "symmetry_breaking", "partial_intercept",
+        "sigma_basis_intercept",
     }
     if noise_type not in noise_types:
         raise ValueError(f"noise_type must be one of {sorted(noise_types)}")
@@ -505,6 +567,7 @@ def run_simulation(
     errors = 0
     detections = 0
     fidelities = []
+    deviations = []
 
     for _ in range(n_bits):
         # Alice encodes a random bit
@@ -530,6 +593,8 @@ def run_simulation(
             state = symmetry_breaking_attack(state, attack_param, rng)
         elif attack_type == "partial_intercept":
             state = partial_intercept_attack(state, sigma, attack_param, rng)
+        elif attack_type == "sigma_basis_intercept":
+            state = sigma_basis_intercept_attack(state, sigma, rng)
 
         # Bob decodes
         decoded = measure_sigma(state, sigma, rng=rng)
@@ -538,7 +603,10 @@ def run_simulation(
             errors += 1
 
         # Detection: check whether the state is still a sigma eigenstate
-        if abs(abs(sigma_expectation(state, sigma)) - 1.0) > 1e-6:
+        expectation = abs(sigma_expectation(state, sigma))
+        deviation = abs(expectation - 1.0)
+        deviations.append(deviation)
+        if deviation > 1e-6:
             detections += 1
 
         fidelities.append(fidelity(state, original))
@@ -560,4 +628,5 @@ def run_simulation(
         raw_errors=errors,
         raw_detections=detections,
         mean_fidelity=float(np.mean(fidelities)),
+        mean_sigma_deviation=float(np.mean(deviations)),
     )

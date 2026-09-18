@@ -38,7 +38,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **434 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **437 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -198,19 +198,42 @@ Closing it needs a detector that checks eigen*value* consistency, which requires
 either a shared key or a BB84-style basis-sampling check — a protocol redesign,
 not a bug fix.
 
-**No error-rate-to-information relation.** The detector is binary, so a cautious
-eavesdropper is caught with the same probability as a reckless one. The graded
-statistic behind it *does* respond to attack strength — the mean deviation
-`1 − |⟨σ⟩|` rises from **0.0099** at `ε = 0.05` to **0.6845** at `ε = 1.0` — so
-the flat detection rate is a thresholding artefact and a graded detector is one
-line away. Removing the threshold would not help. The same statistic reads
-**0.000000** at `φ = π`, where every bit is inverted: it is *non-monotone in
-damage*, reporting a perfectly undisturbed channel under a total break. No
-function of it can bound Eve's information. In BB84 the statistic and the bound
-are linked — Eve's information about the key is bounded by the disturbance she
-causes — and that link is what a security proof is built from. DSIN has no such
-relation, which is a second and independent reason (beyond the absent proof
-machinery) that it cannot be set against BB84's guarantee.
+**No error-rate-to-information relation, and none is possible on this
+observable.** The detector is binary, so a cautious eavesdropper is caught with
+the same probability as a reckless one. The graded statistic behind it *does*
+respond to attack strength — `SimulationResult.mean_sigma_deviation`, which rises
+from **0.0100** at `ε = 0.05` to **0.6958** at `ε = 1.0` (`n = 1000`, seed 42) —
+so the flat detection rate is a thresholding artefact and a graded detector is
+one line away. Removing the threshold would not help. The same statistic reads
+`2.22e-16` at `φ = π`, where every bit is inverted: it is *non-monotone in
+damage*, reporting a perfectly undisturbed channel under a total break. (It is
+stored as `|1 − |⟨σ⟩||` rather than `1 − |⟨σ⟩|` because `|⟨σ⟩|` rounds a few ulps
+above 1, which makes the unsigned form report a small *negative* deviation for an
+ideal channel.)
+
+The sharpest witness is not the phase flip but an adversary who measures `σ`
+itself — the receiver's own observable, in the published encoding basis. She
+recovers every bit (`1.0000` of the time), and because the post-measurement state
+of a state already inside the measured eigenspace is that state, Bob decodes
+everything correctly (`BER = 0.0000`) and the detector reports `0.0000`, on a
+deviation bit-identical to the no-eavesdropper run. Two strategies with equal
+deviation and different leakage mean that **no function of that deviation can
+bound the adversary's information**. That is a proof rather than a failure to
+find the right inequality; it is stated as a proposition with proof in
+[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
+§4.1, and `test_sigma_deviation_does_not_bound_leakage` pins it. In BB84 the
+statistic and the bound are linked — Eve's information about the key is bounded
+by the disturbance she causes — and that link is what a security proof is built
+from. DSIN has no such relation, which is a second and independent reason (beyond
+the absent proof machinery) that it cannot be set against BB84's guarantee.
+
+The entropic-uncertainty route is closed as well, and for a structural reason
+rather than a technical one. An uncertainty relation needs *two* mutually
+unbiased observables; a single-observable design has overlap `c = 1` and
+therefore no `log2(1/c)` term to bound anything with. The natural second
+observable in the DSIN sector — the sector basis, with `c = 1/2` — does give a
+non-degenerate relation, but it makes each 2-dimensional sector block *be* BB84,
+so it proves BB84's theorem rather than a new one. See §4.3.
 
 **A modelling bug found and fixed while writing this up.** The original
 `symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
@@ -430,7 +453,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**434 tests pass** on the current tree. They are not smoke tests: the suite
+**437 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -440,7 +463,7 @@ silently changed meaning.
 | `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
 | `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
-| `test_dsin.py` | 29 | DSIN simulation and the BB84 baseline |
+| `test_dsin.py` | 32 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 16 | Pipeline stages A–E and the Stage-D probe |
@@ -529,10 +552,17 @@ dashed line is a random guess.
 
 ### DSIN: BER and detection under a symmetry-breaking attack
 
-![DSIN bit error rate and detection rate versus attack strength](output/dsin_attack_analysis.png)
+![DSIN bit error rate, detection rate, and graded statistic versus attack strength](output/dsin_attack_analysis.png)
 
 BER grows with the attack strength `ε`, while the detection rate stays pinned at
-1.000: the detector reports whether the symmetry was broken, not how badly.
+1.000: the detector reports whether the symmetry was broken, not how badly. The
+third curve is the graded statistic `|1 − |⟨σ⟩||` — the detector's input before
+thresholding — and it shows that the flat detection rate is the threshold's
+doing, not the observable's. It is also the curve that sits at `2.22e-16` both
+for a channel with no eavesdropper and for one being measured by an adversary,
+which is why §4.1 of
+[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
+can state that no function of it bounds the leakage.
 
 ### DSIN versus BB84
 

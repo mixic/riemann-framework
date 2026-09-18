@@ -40,9 +40,13 @@ are symmetric and antisymmetric channels.
 The proposal is motivated by the same structural pattern used in the
 Dimension-Shift approach to the Riemann Hypothesis: an involution, a fixed
 locus, and a sector symmetry. It is not currently a cryptographic protocol
-with a composable security proof. The purpose of this article is to define
-the abstraction, identify possible experiments, and state the results that
-would be required before making security claims.
+with a composable security proof, and the analysis below shows that its central
+observable cannot support one: an adversary who measures that observable
+directly learns every bit while producing exactly the readings of a noiseless
+channel (§4.1), and the entropic-uncertainty route that would supply a bound is
+unavailable to a design with a single published basis (§4.3). The purpose of
+this article is to define the abstraction, identify possible experiments, and
+state the results that would be required before making security claims.
 
 ## 1. Motivation
 
@@ -257,25 +261,48 @@ hoped-for picture. Two findings from `scripts/run_dsin_verification.py`
   strength in both cases, so this correction is not progress on §4.1; it is the
   same gap measured correctly.
 - **The flatness is a thresholding artefact, and removing it does not help.** The
-  graded statistic behind the detector — the mean deviation `1 - |<sigma>|` — is
-  smooth and monotone in the attack strength:
+  graded statistic behind the detector — the mean deviation
+  `|1 - |<sigma>||`, which is the detector's input before thresholding and is now
+  the `mean_sigma_deviation` field of `SimulationResult` — is smooth and monotone
+  in the attack strength:
 
-  | attack | mean `1 - \|<sigma>\|` | thresholded detection |
+  | attack | mean `\|1 - \|<sigma>\|\|` | thresholded detection |
   |:---|:---|:---|
-  | symmetry-breaking `eps = 0.05` | 0.0099 | 1.0000 |
-  | `eps = 0.1` | 0.0393 | 1.0000 |
-  | `eps = 0.3` | 0.2679 | 1.0000 |
-  | `eps = 0.5` | 0.5285 | 1.0000 |
-  | `eps = 1.0` | 0.6845 | 1.0000 |
+  | symmetry-breaking `eps = 0.05` | 0.0100 | 1.0000 |
+  | `eps = 0.1` | 0.0389 | 1.0000 |
+  | `eps = 0.3` | 0.2739 | 1.0000 |
+  | `eps = 0.5` | 0.5083 | 1.0000 |
+  | `eps = 1.0` | 0.6958 | 1.0000 |
 
-  So the step function comes from the `> 1e-6` threshold, not from an
-  uninformative observable, and a *graded* detector is one line away. It would
-  not help. The same statistic reads `0.000000` under the phase flip at
-  `phi = pi`, where every bit is inverted (`BER = 1.0000`): it is **non-monotone
-  in damage**, reporting a perfectly undisturbed channel under a total break. No
-  function of this observable can bound the adversary's information, so the
-  obstruction is not its quantization but its invalidity as a security
-  statistic. The BER does witness the break, which is why §4.1 points there.
+  (`n = 1000`, seed 42; pinned by
+  `test_mean_sigma_deviation_is_graded_where_detection_is_a_step`.) So the step
+  function comes from the `> 1e-6` threshold, not from an uninformative
+  observable, and a *graded* detector is one line away.
+
+  It would not help. Grading the detector changes where the alarm trips; it does
+  not change what the statistic *says*, and the statistic is **non-monotone in
+  damage**. Three channels, measured on the same `n = 1000`, seed 42 run:
+
+  | channel | mean `\|1 - \|<sigma>\|\|` | detection | BER |
+  |:---|:---|:---|:---|
+  | no eavesdropper | `2.22e-16` | 0.0000 | 0.0000 |
+  | `sigma`-basis measurement (§4.1) | `2.22e-16` | 0.0000 | 0.0000 |
+  | phase flip at `phi = pi` | `2.22e-16` | 0.0000 | **1.0000** |
+
+  The second and third rows are adversarial and the first is not, yet all three
+  are the same point of the statistic. The phase flip inverts every bit while
+  reporting a perfectly undisturbed channel; the `sigma`-basis measurement
+  extracts every bit while reporting the same. No function of this observable
+  can bound the adversary's information, so the obstruction is not its
+  quantization but its invalidity as a security statistic. The BER does witness
+  the break, which is why §4.1 points there.
+
+  One floating-point detail is worth recording, because it is a real defect and
+  not cosmetic: `1 - |<sigma>|` is *negative* for the ideal channel
+  (`-2.22e-16`), since `|<sigma>|` rounds a few ulps above 1. The field therefore
+  stores `|1 - |<sigma>||`, which agrees with the intuitive form for every
+  physical state (`|<sigma>| <= 1`) and matches the expression the detector
+  thresholds, so the two cannot drift apart.
 
 ## 4. Security Analysis Requirements
 
@@ -300,37 +327,61 @@ A proof must not claim that every non-commuting attack gives the same error or
 that every attack is detected with certainty.
 
 **Status of the sixth requirement.** It is now known to be unsatisfiable in the
-current design rather than merely unproven, and the reason is sharper than "the
+current design rather than merely unproven, and for a sharper reason than "the
 detector is binary". The graded statistic behind the detector is smooth and
 monotone in attack strength (§3.4), so its apparent flatness is an artefact of
 thresholding. What defeats the requirement is that the statistic is
-**non-monotone in damage**: it reads exactly zero under `diag(I, -I)`, which
-inverts every bit. An observable that reports a perfectly undisturbed channel
-under a total break cannot bound the adversary's information at any resolution,
-so no error-rate-to-information relation can be derived from it. The caution in
-the sentence above is also sharpened in the opposite direction — it is not only
+**non-monotone in damage**: it reads the same value as an undisturbed channel
+both under `diag(I, -I)`, which inverts every bit, and under a `sigma`-basis
+measurement, which recovers every bit. An observable that reports a perfectly
+undisturbed channel under a total break cannot bound the adversary's information
+at any resolution.
+
+The obstruction can be stated exactly.
+
+> **Proposition (no `sigma`-based security bound).** Let `rho_b` be the encoding
+> of bit `b`, let `A` be any eavesdropping strategy, let `A(rho_b)` be the state
+> that reaches Bob, and put `dev(A) = mean_b |1 - |<sigma>|` on that state. Let
+> `I(A)` be the mutual information between `b` and the adversary's record. Then
+> there is no function `f` with `I(A) <= f(dev(A))` for all `A`.
+>
+> *Proof.* Take `A_id` to be the identity: `dev = 0` and `I = 0`. Take `A_meas`
+> to be the projective measurement of `sigma` followed by resending the
+> post-measurement state. Since `rho_b` is a `sigma` eigenstate of eigenvalue
+> `(-1)^b`, the Born rule makes the outcome `b` with probability 1, so `I = 1`
+> bit; and the post-measurement state of a state already in the measured
+> eigenspace is that state, so `dev = 0` as well. Equal deviation, different
+> leakage. ∎
+
+Both halves are implemented (`dsin.py`,
+`sigma_basis_intercept_attack`) and measured: `BER = 0.0000`, detection
+`0.0000`, adversarial outcome equal to the transmitted bit `1.0000` of the time,
+and a deviation bit-identical to the no-eavesdropper run. The caution in the
+informal claim above is sharpened in the opposite direction too — it is not only
 that one must not claim *every* attack is detected with certainty, but that some
-attacks are detected with probability **zero**.
+attacks are detected with probability **zero** while being maximally
+informative.
 
 Meeting the requirement would need the receiver to test eigen*value* consistency,
 which requires either a shared secret or a BB84-style basis-sampling check in
 which Alice and Bob sacrifice a subset of bits to estimate the error rate. That
-is a change to the protocol, not to the analysis.
+is a change to the protocol, not to the analysis, and §4.3 explains why a change
+of that kind is not a matter of adding a check: it is the difference between
+having one observable and having two.
 
 It is worth being precise about where the gap lies, because the graded statistic
 a security argument would use already exists. The BER *is* continuous in attack
-strength — `0.010 -> 0.260 -> 0.404` over `eps = 0.1 -> 1.0` — and the BER is
-what BB84 thresholds. Two things are nevertheless missing. First, a
+strength — `0.010 -> 0.260 -> 0.404` over `eps = 0.1 -> 1.0` at `n = 500` — and
+the BER is what BB84 thresholds. Two things are nevertheless missing. First, a
 parameter-estimation step: the simulator can report the BER because it knows the
 transmitted bits, but the protocol gives Alice and Bob no way to estimate it, so
 the number exists in the analysis and not in the protocol. Second, any bound
 relating that BER to the adversary's information.
 
 The binary `sigma` check cannot substitute for either. It is an early-warning
-witness that costs no sacrificed bits, and `diag(I, -I)` shows it can be fooled
-completely — a zero-cost warning that is sometimes exactly wrong. The gap is
-therefore structural, in the protocol, rather than merely a missing continuous
-observable.
+witness that costs no sacrificed bits, and it can be fooled completely — a
+zero-cost warning that is sometimes exactly wrong. The gap is therefore
+structural, in the protocol, rather than merely a missing continuous observable.
 
 ### 4.2 Comparison with BB84
 
@@ -338,16 +389,79 @@ observable.
 |:---|:---|:---|
 | Encoding | Polarization, phase, or another qubit basis | Eigenvalue of a sector involution |
 | Security basis | Multiple incompatible bases | One proposed symmetry measurement, possibly with additional checks |
+| Conjugate observable for an uncertainty relation | `X`, mutually unbiased with `Z` (`c = 1/2`) | None available; the `sigma` eigenbasis has overlap `1` with itself (`c = 1`) |
+| Cost to the adversary of measuring in the right basis | A wrong basis guess half the time | Zero: the encoding basis is published (§4.3) |
 | Disturbance mechanism | No-cloning and basis mismatch | Sector mixing or loss of involution covariance |
 | Main ideal condition | Qubit channel and measurement assumptions | `sigma`-compatible channel and accessible sector projectors |
-| Security status | Established security proofs under explicit models | Conceptual proposal; no complete security proof |
+| Security status | Established security proofs under explicit models | Conceptual proposal; no complete security proof, and §4.1 shows the proposal's own statistic cannot carry one |
 | Experimental status | Mature implementations | No demonstrated DSIN implementation |
 
 The comparison should not imply that a single DSIN observable automatically
 provides the same security guarantees as BB84. A protocol needs a complete
 security reduction, not only an invariant observable.
 
-### 4.3 Supersymmetry and the Witten index
+### 4.3 Entropic uncertainty relations and why one observable is not enough
+
+This section answers a specific question: can the symmetry-breaking observable be
+turned into an actual theorem — an entropic uncertainty relation, or some other
+bound relating the observable to the adversary's information — of the kind that
+makes BB84's security proof work? The answer has two halves, and they point in
+opposite directions.
+
+**For the design as specified, no — and the impossibility is the theorem.** §4.1
+proves that no function of the `sigma` deviation bounds the adversary's
+information. That is not a failure to find the right inequality; it is a
+statement that the quantity to be bounded is unbounded while the statistic reads
+exactly zero, witnessed by an explicit attack that is maximally informative and
+perfectly invisible.
+
+**Why the standard route cannot even be set up.** The Berta–Christandl–Colbeck
+uncertainty relation, the tool behind modern QKD security arguments, has the form
+
+```text
+H(Z | E) + H(X | B) >= log2(1/c) + H(A | B),      c = max_{z,x} |<z|x>|^2,
+```
+
+for two measurements `Z` and `X` on the same system. Its entire quantitative
+content sits in the `log2(1/c)` term, and that term measures *how incompatible
+the two measurements are*. When the two measurements coincide, `c = 1` and
+`log2(1/c) = 0`; and measuring `Z` is then noiseless in its own eigenbasis, so
+`H(Z | B) = H(A | B)` and the inequality reduces to the vacuous `H(Z | E) >= 0`.
+That is the single-observable case, and it bounds nothing: nothing forces the
+adversary to be uncertain, because she can perform exactly the measurement the
+legitimate receiver performs. Adding a check, a threshold, or a graded statistic
+does not change `c`.
+
+The point is easiest to see next to BB84. BB84's immunity to the
+measurement-in-the-encoding-basis attack is not a property of `Z`; it is a
+property of the *pair* `{Z, X}` together with Alice's private choice between
+them. An adversary who measures `Z` is correct on half the rounds and destroys
+the other half. In DSIN the encoding basis is fixed and public, so her
+measurement is correct on every round, and §4.1's attack exploits exactly that.
+
+**What the repair would cost.** A pair of mutually unbiased bases does exist in
+the DSIN sector: the `sigma` eigenbasis `{|b,k> +- |f,k>}/sqrt(2)` and the sector
+basis `{|b,k>, |f,k>}` have overlap
+
+```text
+|<b,k| (|b,k> + |f,k>)/sqrt(2)>|^2 = 1/2,
+```
+
+so `c = 1/2` and `log2(1/c) = 1` bit: a non-degenerate uncertainty relation, and
+a protocol with a genuine BB84-shaped security argument. But each 2-dimensional
+sector block, spanned by `{|b,k>, |f,k>}`, then carries exactly one qubit and
+exactly one unbiased pair — that pair *is* BB84's `{Z, X}` up to relabelling. The
+involution supplies names for the two bases; it does not supply a third
+incompatibility, a larger key space per round, or a cheaper disturbance
+mechanism. So the entropic route is available, but what it proves is BB84's
+theorem about BB84's structure, with the sector labels as notation.
+
+This is a negative result about the observable, not about the wider programme.
+It is recorded here because "the detector did not fire" and "the adversary
+learned nothing" are different statements, and the DSIN proposal currently
+conflates them.
+
+### 4.4 Supersymmetry and the Witten index
 
 If the Hamiltonian has a supercharge `Q`, a supersymmetric construction may
 have the form
@@ -413,10 +527,13 @@ measure:
 3. how decoherence and loss change the `sigma`-error rate;
 4. whether controlled non-commuting perturbations are detected;
 5. whether an adversary can gain information without producing a detectable
-   disturbance. (**Answered, and the answer is yes.** The fermionic phase flip
-   `diag(I, -I)` does not commute with `sigma`, inverts every transmitted bit,
-   and leaves the detector silent: measured `BER = 1.0000`, detection `0.0000`.
-   See §3.4.)
+   disturbance. (**Answered, and the answer is yes, twice.** The fermionic phase
+   flip `diag(I, -I)` does not commute with `sigma`, inverts every transmitted
+   bit, and leaves the detector silent: measured `BER = 1.0000`, detection
+   `0.0000` (§3.4). More sharply, an adversary who measures `sigma` — the
+   receiver's own observable — recovers every bit, with `BER = 0.0000` and
+   detection `0.0000`, because the encoding basis is public (§4.1). The second
+   attack is the one that rules out a security bound.)
 
 ## 7. Open Problems
 
@@ -429,8 +546,10 @@ measure:
 | Multi-party protocols | Extension to entanglement distribution and network routing |
 | Experimental realization | A platform with controllable sectors and reliable projectors |
 | Topological protection | A genuine invariant and gap, not only a commuting Hamiltonian |
-| Detection metric | A *graded* disturbance measure, so that detection probability scales with the disturbance instead of saturating at 1 (or reading 0) for any nonzero attack; see §3.4 |
+| Detection metric | **Supplied, and shown insufficient.** `mean_sigma_deviation` is the graded statistic the row used to ask for, and grading the detector changes nothing that matters: the statistic is non-monotone in damage and cannot bound leakage (§3.4, §4.1). The open problem is a *valid* statistic, not a graded one |
 | Eigenvalue consistency | A receiver test that distinguishes "an eigenstate" from "the eigenstate that was sent", without a shared secret — otherwise `diag(I, -I)` remains a total undetectable break |
+| Uncertainty relation | A second observable mutually unbiased with `sigma`, so that an entropic uncertainty relation has a non-degenerate `log2(1/c)` term. §4.3 shows the natural candidate exists (the sector basis, `c = 1/2`) but makes the protocol BB84 in a 2-dimensional block, so it supplies no DSIN-specific security |
+| Parameter estimation | A protocol-level way for Alice and Bob to estimate the error rate without the simulator's knowledge of the transmitted bits (§4.1) |
 | RH connection | A precise theorem relating the two mathematical structures |
 
 ## 8. Conclusion
@@ -445,12 +564,17 @@ They need not, however, and the simulation now shows both halves of that
 distinction. The commuting channel is exact — `||[H, sigma]||_F = 0.00e+00` at
 machine precision for every dimension tested — so the one provable statement in
 this track holds. But the detector is a witness of symmetry breaking rather than
-a graded measure, and a non-commuting perturbation that merely swaps the
-eigenvalues (`diag(I, -I)`) inverts every bit while leaving every detector
-reading unchanged (§3.4). The honest summary is therefore that DSIN currently
-possesses an exact commuting channel and no detection guarantee at all, which is
-a weaker position than "a commuting Hamiltonian plus a disturbance observable"
-would suggest.
+a security statistic, and it fails in both directions at once: a non-commuting
+perturbation that merely swaps the eigenvalues (`diag(I, -I)`) inverts every bit
+while leaving every detector reading unchanged, and an adversary who simply
+measures `sigma` — the receiver's own observable, in the published encoding basis
+— recovers every bit with no disturbance and no alarm at all (§3.4, §4.1). No
+function of the detector's statistic can bound that adversary's information, and
+the entropic-uncertainty route that would supply such a bound is unavailable to a
+single-observable design (§4.3). The honest summary is therefore that DSIN
+currently possesses an exact commuting channel and no detection guarantee at all,
+which is a weaker position than "a commuting Hamiltonian plus a disturbance
+observable" would suggest.
 
 The proposal shares a useful structural vocabulary with the Dimension-Shift
 approach to the Riemann Hypothesis: involutions, fixed loci, sector structure,

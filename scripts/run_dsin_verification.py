@@ -51,6 +51,8 @@ from riemann_framework.dsin import (
     build_sigma,
     build_channel_hamiltonian,
     commutator_norm,
+    encode_bit,
+    measure_sigma,
 )
 from riemann_framework.bb84 import (
     DEFAULT_DETECTION_THRESHOLD as DEFAULT_BB84_THRESHOLD,
@@ -103,9 +105,16 @@ def plot_ber_vs_noise():
 # ============================================================
 
 def plot_attack_analysis():
-    """Plot the BER and detection rate under attack."""
+    """Plot the BER, the detection rate, and the graded statistic under attack.
+
+    The third curve is the detector's input before thresholding. It shows that
+    the flat detection curve is an artefact of the threshold rather than an
+    uninformative observable -- and, because it is the same curve the phase flip
+    at ``phi = pi`` drives to zero while inverting every bit, that grading the
+    detector would not repair section 4.4.
+    """
     attack_strengths = np.linspace(0.0, 1.0, 11)
-    bers, detections = [], []
+    bers, detections, deviations = [], [], []
 
     for eps in attack_strengths:
         r = run_simulation(
@@ -113,15 +122,18 @@ def plot_attack_analysis():
             attack_param=eps, seed=42)
         bers.append(r.ber)
         detections.append(r.detection_rate)
+        deviations.append(r.mean_sigma_deviation)
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(attack_strengths, bers, "o-", color="red", label="BER")
     ax.plot(attack_strengths, detections, "s-", color="blue",
             label="Detection rate")
+    ax.plot(attack_strengths, deviations, "^-", color="darkorange",
+            label=r"Mean $|1 - |\langle\sigma\rangle||$")
     ax.axhline(0.5, color="gray", linestyle="--", label="Random guess")
     ax.set_xlabel("Attack strength")
     ax.set_ylabel("Rate")
-    ax.set_title("DSIN: BER and detection under symmetry-breaking attack")
+    ax.set_title("DSIN: BER, detection, and the graded statistic")
     ax.legend()
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -245,6 +257,7 @@ def main():
     print(f"    BER:            {r.ber:.4f}")
     print(f"    Detection rate: {r.detection_rate:.4f}")
     print(f"    Mean fidelity:  {r.mean_fidelity:.4f}")
+    print(f"    Mean |1 - |<sigma>||: {r.mean_sigma_deviation:.2e}")
 
     print("\n[2] Depolarizing noise")
     for p in [0.1, 0.3, 0.5]:
@@ -258,7 +271,15 @@ def main():
         r = run_simulation(n_bits=500, attack_type="symmetry_breaking",
                            attack_param=eps, seed=42)
         print(f"    eps = {eps:.2f}: BER = {r.ber:.4f}, "
-              f"detection = {r.detection_rate:.4f}")
+              f"detection = {r.detection_rate:.4f}, "
+              f"mean |1 - |<sigma>|| = {r.mean_sigma_deviation:.4f}")
+
+    print("\n[3b] Fermionic phase flip at phi = pi (non-commuting, invisible)")
+    r = run_simulation(n_bits=500, noise_type="phase", noise_param=np.pi, seed=42)
+    print(f"    BER = {r.ber:.4f}, detection = {r.detection_rate:.4f}, "
+          f"mean |1 - |<sigma>|| = {r.mean_sigma_deviation:.2e}")
+    print("    Every bit inverted, and the graded statistic reads the same as the")
+    print("    ideal channel: it is non-monotone in damage, not merely coarse.")
 
     print("\n[4] Intercept-resend attack (mean over 5 seeds)")
     runs = [run_simulation(n_bits=1000, attack_type="intercept_resend", seed=s)
@@ -266,7 +287,28 @@ def main():
     print(f"    BER:            {np.mean([r.ber for r in runs]):.4f}")
     print(f"    Detection rate: {np.mean([r.detection_rate for r in runs]):.4f}")
 
-    print("\n[5] DSIN vs BB84 (depolarizing noise)")
+    print("\n[5] Encoding-basis measurement attack (Eve measures sigma itself)")
+    sigma = build_sigma(4)
+    rng = np.random.default_rng(2024)
+    outcomes = [measure_sigma(encode_bit(bit, 4), sigma, rng=rng)
+                for bit in (0, 1) for _ in range(500)]
+    expected = [0] * 500 + [1] * 500
+    agreement = sum(int(a == b) for a, b in zip(outcomes, expected)) / len(expected)
+    print(f"    Eve's outcome = Alice's bit: {agreement:.4f} of the time")
+    runs = [run_simulation(n_bits=1000, attack_type="sigma_basis_intercept", seed=s)
+            for s in range(5)]
+    print(f"    BER:            {np.mean([r.ber for r in runs]):.4f}")
+    print(f"    Detection rate: {np.mean([r.detection_rate for r in runs]):.4f}")
+    print(f"    Mean |1 - |<sigma>||: "
+          f"{np.mean([r.mean_sigma_deviation for r in runs]):.2e}")
+    base = run_simulation(n_bits=1000, seed=42)
+    print(f"    No attack, for comparison: deviation "
+          f"{base.mean_sigma_deviation:.2e}, BER {base.ber:.4f}, "
+          f"detection {base.detection_rate:.4f}")
+    print("    A full bit of leakage, and the security statistic reads the same as")
+    print("    an undisturbed channel. No function of it can bound the leakage.")
+
+    print("\n[6] DSIN vs BB84 (depolarizing noise)")
     for p in [0.0, 0.1, 0.2, 0.3]:
         d = run_simulation(n_bits=500, noise_type="depolarizing",
                            noise_param=p, seed=42)
@@ -275,14 +317,14 @@ def main():
         print(f"    p = {p:.2f}: DSIN BER = {d.ber:.4f}, "
               f"BB84 QBER = {b.ber:.4f}, BB84 detected = {b.detected}")
 
-    print("\n[6] Commutator norm")
+    print("\n[7] Commutator norm")
     for d in [2, 4, 6, 8]:
         H = build_channel_hamiltonian(d, coupling=1.0, seed=42)
         sigma = build_sigma(d)
         print(f"    d = {d}: ||[H, sigma]||_F = "
               f"{commutator_norm(H, sigma):.2e}")
 
-    print("\n[7] Generating plots...")
+    print("\n[8] Generating plots...")
     plot_ber_vs_noise()
     plot_attack_analysis()
     plot_dsin_vs_bb84()

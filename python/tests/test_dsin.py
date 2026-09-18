@@ -286,6 +286,118 @@ def test_partial_intercept_scales_with_p():
     assert r_high.detection_rate > r_low.detection_rate
 
 
+def test_sigma_basis_intercept_is_transparent_and_recovers_every_bit():
+    """The attack no single-basis protocol survives: full information, no trace.
+
+    Eve measures `sigma` -- the observable Alice encoded in and the observable
+    Bob decodes with -- and resends the post-measurement state. In BB84 the
+    analogous attack fails half the time, because Alice's basis is private and
+    Eve measuring `Z` disturbs every `X` round. DSIN publishes one basis, so her
+    measurement is always the right one.
+
+    Because the received state is a `sigma` eigenstate of eigenvalue
+    `(-1)**bit`, the Born rule makes her outcome deterministic and equal to that
+    bit; and because the post-measurement state of a state already inside the
+    measured eigenspace is that state, what she resends is what she received.
+    Both consequences are exact, not statistical:
+
+    - `ber = 0`, so the channel is indistinguishable from the ideal one;
+    - `detection_rate = 0` and `mean_sigma_deviation = 0`, so nothing is
+      reported.
+
+    The second of those is what makes the observable unusable as a security
+    statistic; see `test_sigma_deviation_does_not_bound_leakage`.
+    """
+    ideal = run_simulation(n_bits=500, seed=42)
+    attacked = run_simulation(
+        n_bits=500, attack_type="sigma_basis_intercept", seed=42
+    )
+
+    assert attacked.ber == 0.0, f"BER = {attacked.ber}, expected every bit intact"
+    assert attacked.detection_rate == 0.0, (
+        f"detection = {attacked.detection_rate}, expected the attack to be invisible"
+    )
+    # Identical to the no-eavesdropper run on the very same statistic. Compared
+    # to a tolerance rather than exactly: `|<sigma>|` is 1 only up to rounding,
+    # so the deviation is a few ulps from zero either way. That is precisely why
+    # the field stores `|1 - |<sigma>||` and not `1 - |<sigma>|` -- the unsigned
+    # form reports a small negative deviation for one of these two runs.
+    assert attacked.mean_sigma_deviation == pytest.approx(
+        ideal.mean_sigma_deviation, abs=1e-12
+    )
+    assert abs(attacked.mean_sigma_deviation) < 1e-12
+    assert np.isclose(attacked.mean_fidelity, ideal.mean_fidelity)
+
+    # Eve's own measurement, on the pristine encoding, is deterministic. This is
+    # the "one full bit" half of the claim, measured rather than assumed.
+    sigma = build_sigma(dim_per_sector=4)
+    rng = np.random.default_rng(7)
+    recovered = [
+        measure_sigma(encode_bit(bit, 4), sigma, rng=rng)
+        for bit in (0, 1)
+        for _ in range(200)
+    ]
+    assert recovered == [0] * 200 + [1] * 200, (
+        "Eve's outcome must equal the encoded bit with probability 1"
+    )
+
+
+def test_sigma_deviation_does_not_bound_leakage():
+    """No function of `1 - |<sigma>|` can bound the adversary's information.
+
+    Two eavesdropping strategies, one statistic. With no adversary the deviation
+    is `0` and the leakage is `0` bits; under the `sigma`-basis measurement the
+    deviation is *also* `0` and the leakage is a full bit. Equal statistic,
+    different information, so no `f` with `leakage <= f(deviation)` exists.
+
+    This is the obstruction recorded in section 4.4 of the protocol document,
+    and it is why the gap is structural rather than a matter of grading the
+    detector: the same argument goes through for any coarsening or refinement of
+    this statistic, since both strategies sit at the same point of it.
+    """
+    no_adversary = run_simulation(n_bits=500, seed=1)
+    full_adversary = run_simulation(
+        n_bits=500, attack_type="sigma_basis_intercept", seed=1
+    )
+
+    assert no_adversary.mean_sigma_deviation == pytest.approx(
+        full_adversary.mean_sigma_deviation, abs=1e-12
+    ), "the statistic must agree in the two cases for the obstruction to hold"
+    assert abs(no_adversary.mean_sigma_deviation) < 1e-12
+    assert no_adversary.ber == 0.0 and full_adversary.ber == 0.0
+    assert no_adversary.detection_rate == full_adversary.detection_rate == 0.0
+
+
+def test_mean_sigma_deviation_is_graded_where_detection_is_a_step():
+    """The graded field is smooth in attack strength; the detector is not.
+
+    This is the contrast recorded in section 3.4 of the protocol document: the
+    symmetry-breaking sweep reports `detection_rate = 1.0` at every attack
+    strength, while the deviation behind it grows steadily. Grading the detector
+    is therefore one line away -- and, per
+    `test_sigma_deviation_does_not_bound_leakage`, would not help.
+    """
+    results = [
+        run_simulation(
+            n_bits=1000,
+            attack_type="symmetry_breaking",
+            attack_param=eps,
+            seed=42,
+        )
+        for eps in (0.05, 0.1, 0.3, 0.5, 1.0)
+    ]
+    deviations = [r.mean_sigma_deviation for r in results]
+    detections = [r.detection_rate for r in results]
+
+    assert deviations == sorted(deviations), f"not monotone: {deviations}"
+    assert all(d > 0.0 for d in deviations), deviations
+    assert deviations[0] < 0.02, deviations[0]
+    assert deviations[-1] > 0.6, deviations[-1]
+    assert all(d > 0.99 for d in detections), (
+        f"detection should be flat at the ceiling here, got {detections}"
+    )
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [

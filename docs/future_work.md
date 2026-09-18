@@ -351,28 +351,45 @@ A physical implementation would require controllable sector preparation,
 sector-projector measurement, calibrated noise, and an independently verified
 attack model.
 
-**Status against those five points.** Two of them now have concrete negative
-results, both found while documenting the simulation:
+**Status against those five points.** The track now has one exact positive result
+and a definite negative answer on the security question. The negatives, all found
+while documenting the simulation:
 
 - *Symmetry covariance is not protection* (bullet 2). The detector asks whether
-  the received state is *an* eigenstate of `σ`, not whether it is the *right*
-  one — which the receiver cannot know. The unitary `diag(I, -I)`, i.e. a `π`
+  the received state is *an* eigenstate of `sigma`, not whether it is the *right*
+  one — which the receiver cannot know. The unitary `diag(I, -I)`, i.e. a `pi`
   phase on the fermionic sector, maps the `+1` eigenspace onto the `-1`
   eigenspace, so `|<sigma>|` stays at 1 while every bit inverts: measured BER
   `1.0000` with detection `0.0000`. Any redesign must test eigenvalue
   *consistency*, which needs a shared key or BB84-style basis sampling. Pinned by
   `test_phase_flip_at_pi_inverts_every_bit_and_is_invisible`.
-- *There is no error-rate-to-information relation* (bullet 3). Detection is
-  binary: a cautious eavesdropper who intercepts a small fraction of the traffic
-  is caught with the same probability as a reckless one, and only the BER tracks
-  the attack strength. BB84's bound on Eve's information is a function of the
-  observed disturbance; DSIN has no analogue, so the quantity a security proof
-  would be built from does not currently exist.
+- *There is no error-rate-to-information relation, and none can be built on this
+  observable* (bullet 3). The graded statistic a security argument would use now
+  exists (`SimulationResult.mean_sigma_deviation`), so the earlier explanation —
+  "detection is binary" — was the wrong diagnosis. The right one is that the
+  statistic is **non-monotone in damage**, and the sharpest witness is not the
+  phase flip but a *measurement in the encoding basis*: an adversary who measures
+  `sigma` itself recovers every bit with `BER = 0.0000` and detection `0.0000`,
+  leaving a deviation bit-identical to the no-eavesdropper run. Two strategies
+  with equal deviation and different leakage mean no function of that deviation
+  can bound leakage. Stated as a proposition with proof in
+  `dimension_shift_quantum_communication.md` §4.1; pinned by
+  `test_sigma_basis_intercept_is_transparent_and_recovers_every_bit` and
+  `test_sigma_deviation_does_not_bound_leakage`.
+- *The entropic route is closed too.* An uncertainty relation needs two mutually
+  unbiased observables; a single-observable design has `c = 1` and therefore no
+  `log2(1/c)` term to bound anything with. The natural second observable in the
+  DSIN sector — the sector basis, with `c = 1/2` — does yield a non-degenerate
+  relation, but it makes each 2-dimensional sector block *be* BB84, so it proves
+  BB84's theorem rather than a new one. See §4.3.
+- Bullet 4 is now partially addressed by the §4.2 comparison table, whose added
+  rows record the two structural deficits: no conjugate observable, and no cost
+  to the adversary for measuring in the right basis.
 
-Bullet 1 stays open — the three attacks implemented in `dsin.py` are not a
-complete adversary model — and bullets 4 and 5 remain open in full. The one
-positive result in this track remains the exact commutator: `[H, sigma] = 0` at
-machine precision for every dimension tested (`0.00e+00` up to `d = 12`).
+Bullet 1 stays open — the four attacks implemented in `dsin.py` are not a
+complete adversary model — and bullet 5 remains open in full. The one positive
+result in this track remains the exact commutator: `[H, sigma] = 0` at machine
+precision for every dimension tested (`0.00e+00` up to `d = 12`).
 
 ## Suggested Release Milestones
 
