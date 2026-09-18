@@ -41,6 +41,7 @@ output/*.png
 !output/dsin_attack_analysis.png
 !output/dsin_vs_bb84.png
 !output/dsin_commutator_norm.png
+!output/graded_prime_monoid_convergence.png
 
 # OS
 .DS_Store

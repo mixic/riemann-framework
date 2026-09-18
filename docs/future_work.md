@@ -307,6 +307,22 @@ must address:
 - how the Riemann-von Mangoldt density emerges; and
 - how an exact zero-to-spectrum correspondence would be stated.
 
+**Status of the first three bullets.** They are now answered precisely rather
+than analogically. `python/riemann_framework/graded_prime_monoid.py` identifies
+`(N_{>0}, x)` with the free commutative monoid on the primes, shows that
+exponent-vector addition is the *only* operation compatible with unique
+factorization (and that associativity and commutativity are consequences, not
+hypotheses), and shows that this is exactly why the primon gas trace factorizes.
+See `docs/graded_prime_monoid.md`; the runner is
+`scripts/run_graded_prime_monoid_demo.py`.
+
+This is a precise statement of what already holds, not a new construction, and it
+narrows the programme rather than advancing it: the model's missing prime
+structure cannot be supplied by "a number system whose multiplication adds
+dimensions", because that multiplication *is* unique factorization restated.
+Nothing in it touches the Riemann-von Mangoldt density or the zero-to-spectrum
+correspondence, which are the fourth and fifth bullets and remain open.
+
 A model that reproduces only GUE statistics remains a universality-class model,
 not an arithmetic model of zeta.
 

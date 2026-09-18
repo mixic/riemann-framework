@@ -140,7 +140,9 @@ zeta(s) = product over primes p of (1 - p^(-s))^(-1).
 The new system must explain how primes act in it. Possible tests include:
 
 - each prime corresponds to a canonical element or orbit;
-- multiplication of prime elements reflects unique factorization;
+- multiplication of prime elements reflects unique factorization — **answered**,
+  and the answer is that this is forced rather than chosen: see
+  [`graded_prime_monoid.md`](graded_prime_monoid.md);
 - the logarithms of primes appear as lengths, frequencies, or eigenvalues;
 - the Euler product is recovered from a trace, determinant, or partition function.
 
@@ -368,7 +370,13 @@ such as:
 
 - Is the representation of a prime canonical, rather than chosen separately
   for each prime?
-- Does multiplication of prime objects recover unique factorization?
+- Does multiplication of prime objects recover unique factorization? (**Yes, and
+  it is the only operation that can:** see
+  [`graded_prime_monoid.md`](graded_prime_monoid.md). Multiplication of prime
+  objects is the free commutative monoid on the primes under exponent-vector
+  addition, so the structure this question asks for does exist — but it is
+  ordinary arithmetic restated, not a new number system. That article also shows
+  why the same structure is what makes the primon gas Euler product exact.)
 - Does a geometric distance reproduce `p_(n+1) - p_n` without losing the
   global information in the Euler product?
 - Can the weighted prime data `log(p)` be recovered from the same geometry?
