@@ -391,6 +391,28 @@ complete adversary model — and bullet 5 remains open in full. The one positive
 result in this track remains the exact commutator: `[H, sigma] = 0` at machine
 precision for every dimension tested (`0.00e+00` up to `d = 12`).
 
+**What a successor would need.** Failing the design is not the same as closing the
+track, and §4.4 of `dimension_shift_quantum_communication.md` records the
+difference — as *requirements rather than results*, with no security claim:
+
+- Moving the payload into the interior of `Fix(sigma)` repairs the specific attack
+  above but relocates the obstruction: the adversary measures the observable that
+  determines the payload instead, and no stabilizer can see it, because that
+  measurement is a *logical operator*. Verified, and pinned by
+  `test_payload_in_the_interior_of_fix_sigma_relocates_the_obstruction`.
+- Any successor has to meet four requirements (R1–R4 in §4.4.2). R1–R3 are BB84's
+  content under other words; only R4 is something this construction already
+  supplies.
+- Two directions are at least well-posed. (b) Draw the involution itself per round
+  from a family with mutually unbiased fixed loci — verified non-vacuous at
+  `d = 2`, with the family *size* left as the open question, since that size is
+  the randomness budget. (c) Make the sector frame itself the secret, which is the
+  standard frame-alignment problem and the only version in which the symmetry
+  rather than the randomness is the secret.
+- §4.4.5 poses the experiment that would settle (b): compare a high-dimensional
+  QKD key rate with and without the `sigma` syndrome as a herald. If the herald
+  buys nothing, direction (b) is HD-QKD and the sector structure is decoration.
+
 ## Suggested Release Milestones
 
 | Release | Goal | Exit criterion |

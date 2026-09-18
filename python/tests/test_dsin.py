@@ -398,6 +398,117 @@ def test_mean_sigma_deviation_is_graded_where_detection_is_a_step():
     )
 
 
+def test_payload_in_the_interior_of_fix_sigma_relocates_the_obstruction():
+    """The natural repair moves the hole; it does not close it.
+
+    Section 4.4.1 of the protocol document. Encoding the payload in the interior
+    of `Fix(sigma)`, rather than in the eigenvalue, repairs the attack of
+    `test_sigma_basis_intercept_is_transparent_and_recovers_every_bit`: the
+    `sigma` measurement becomes information-free, and a `+1` test catches the
+    phase flip that the old `|<sigma>| = 1` test could not see. But the adversary
+    does not have to measure `sigma`. She measures the k-index, reads the
+    payload, and the syndrome is unchanged, because her measurement acts *inside*
+    the code space -- a logical operator, invisible to any stabilizer by
+    construction.
+
+    Pinned because section 4.4.1 quotes these readings, and because every future
+    design in this track has to get past the third row.
+    """
+    d = 4
+    sigma = build_sigma(d)
+    n = 2 * d
+    rng = np.random.default_rng(0)
+
+    def encode_interior(v):
+        """The general element of Fix(sigma): |+>_sector (x) v."""
+        v = np.asarray(v, dtype=complex)
+        v = v / np.linalg.norm(v)
+        psi = np.zeros(n, dtype=complex)
+        psi[:d] = v / np.sqrt(2)
+        psi[d:] = v / np.sqrt(2)
+        return psi
+
+    def expectation(psi):
+        return float(np.real(psi.conj() @ sigma @ psi))
+
+    # Row 1: every interior state is a +1 eigenstate, so a stabilizer measurement
+    # carries no information about the payload.
+    for _ in range(4):
+        v = rng.standard_normal(d) + 1j * rng.standard_normal(d)
+        assert expectation(encode_interior(v)) == pytest.approx(1.0, abs=1e-12)
+
+    # Row 2: the phase flip leaves Fix(sigma), so the sharper +1 test sees it.
+    psi = encode_interior(rng.standard_normal(d) + 1j * rng.standard_normal(d))
+    flipped = psi.copy()
+    flipped[d:] *= -1.0
+    assert expectation(flipped) == pytest.approx(-1.0, abs=1e-12)
+
+    # Row 3: the obstruction. A k-eigenstate payload is readable with certainty,
+    # and the post-measurement state is still in Fix(sigma).
+    payload = np.zeros(d, dtype=complex)
+    payload[0] = 1.0
+    psi = encode_interior(payload)
+    k_probabilities = np.abs(psi[:d]) ** 2 + np.abs(psi[d:]) ** 2
+    assert k_probabilities[0] == pytest.approx(1.0, abs=1e-12), (
+        "a k-eigenstate payload must be readable with certainty"
+    )
+    outcome = int(np.argmax(k_probabilities))
+    post = np.zeros(n, dtype=complex)
+    post[outcome] = 1 / np.sqrt(2)
+    post[d + outcome] = 1 / np.sqrt(2)
+    assert expectation(post) == pytest.approx(1.0, abs=1e-12), (
+        "the syndrome must stay silent after the adversary's measurement"
+    )
+
+
+def test_unbiased_involutions_exist_for_d_at_least_two():
+    """Direction (b) of section 4.4 is a definite object, not a hope.
+
+    For any `d`-dimensional subspace `F` of a `2d`-dimensional space,
+    `sigma_F = 2 P_F - I` is a Hermitian involution with `Fix(sigma_F) = F`, so
+    the candidate involutions are exactly the `d`-dimensional subspaces. Two are
+    usable together when their fixed loci are unbiased,
+    `|<psi|phi>|^2 = 1/(2d)` for all unit `psi` in `F` and `phi` in `F'`.
+
+    At `d = 1` that is the ordinary MUB condition in dimension 2, i.e. BB84,
+    consistent with section 4.3. At `d = 2` a pair exists, which is what keeps
+    direction (b) from being vacuous. What is *not* established -- and is the
+    first thing anyone pursuing this should check -- is how large such a family
+    can be, since the family size is the randomness budget R1 draws on. This test
+    pins the existence claim and nothing more.
+    """
+    def reflection(basis):
+        projection = basis @ basis.conj().T
+        return 2 * projection - np.eye(basis.shape[0], dtype=complex)
+
+    def overlaps(left, right):
+        return np.abs(left.conj().T @ right) ** 2
+
+    # d = 1: |0> and |+> in C^2, overlap 1/(2d) = 1/2. This is BB84.
+    f1 = np.array([[1.0], [0.0]], dtype=complex)
+    g1 = np.array([[1.0], [1.0]], dtype=complex) / np.sqrt(2)
+    assert overlaps(f1, g1).ravel() == pytest.approx([0.5], abs=1e-12)
+
+    # d = 2: two unbiased 2-dimensional subspaces of C^4.
+    e = np.eye(4, dtype=complex)
+    f2 = np.column_stack([e[0], e[1]])
+    g2 = np.column_stack([
+        (e[0] + e[1] + e[2] + e[3]) / 2,
+        (e[0] - e[1] + e[2] - e[3]) / 2,
+    ])
+    assert np.allclose(g2.conj().T @ g2, np.eye(2)), "second locus not orthonormal"
+    assert overlaps(f2, g2).ravel() == pytest.approx([0.25] * 4, abs=1e-12)
+
+    # Both reflections are Hermitian involutions equal to +1 on their own locus.
+    for basis in (f2, g2):
+        sigma = reflection(basis)
+        assert np.allclose(sigma, sigma.conj().T)
+        assert np.allclose(sigma @ sigma, np.eye(4))
+        for vector in basis.T:
+            value = float(np.real(vector.conj() @ sigma @ vector))
+            assert value == pytest.approx(1.0, abs=1e-12)
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [

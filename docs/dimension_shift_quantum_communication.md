@@ -461,7 +461,163 @@ It is recorded here because "the detector did not fire" and "the adversary
 learned nothing" are different statements, and the DSIN proposal currently
 conflates them.
 
-### 4.4 Supersymmetry and the Witten index
+### 4.4 Design requirements for a viable protocol
+
+> **Status: this section states requirements, not results.** Its only measured
+> content is a *negative* fact — that the most natural repair relocates the
+> obstruction of §4.1 instead of removing it — together with one small existence
+> check that keeps direction (b) from being vacuous. Nothing here is a security
+> claim, nothing here is evidence that a working protocol exists, and no part of
+> it should be cited as support for the DSIN proposal. It is recorded so that the
+> next attempt does not have to rediscover the obstruction, and so that any
+> future claim can be checked against an explicit list.
+
+#### 4.4.1 Why the obstruction relocates
+
+Section 4.1 shows that no function of the `sigma` deviation can bound leakage,
+because the adversary can measure `sigma` itself. The natural repair is to stop
+encoding the payload in the `sigma` *eigenvalue* and encode it in the interior of
+`Fix(sigma)` instead. There is room: `dim Fix(sigma) = d`, and the encoding
+`|b,k> +- |f,k>` used only a one-dimensional slice of it. Write the encoded state
+as `|+>_sector (x) v`, with `v` any state of `C^d`. The offset half works, and
+the measurements confirm it:
+
+| probe (`d = 4`) | `<sigma>` |
+|:---|:---|
+| arbitrary interior states of `Fix(sigma)` | `+1.000000000000000` |
+| after the phase flip `diag(I, -I)` | `-1.000000000000000` |
+| after the adversary measures the k-index | `+1.000000000000000` |
+
+The second row is real progress. Because every legitimate state now lies in
+`Fix(sigma)` rather than in `Fix(sigma) u Anti(sigma)`, the receiver can test
+`<sigma> = +1` instead of `|<sigma>| = 1`, and the phase flip — invisible under the
+old test, and a total break — is caught. The first row says the adversary's
+`sigma` measurement has become harmless: a stabilizer measurement returns the
+syndrome, every codeword has the same syndrome, so it reveals nothing about `v`.
+
+The third row is the obstruction, and it is not a detail of this encoding.
+
+> **Observation (relocation).** Let `W` be the payload subspace and `O` the
+> observable the legitimate receiver uses to read the payload. If `O` is
+> available to the adversary and its eigenbasis contains a basis of `W`, then
+> measuring `O` reveals the payload and maps `W` into `W`. So if `W` is a fixed
+> subspace, the post-measurement state stays inside it, and every stabilizer of
+> `W` — hence every function of its syndrome — is unchanged.
+>
+> *Proof.* Write the state as a superposition of the basis of `W` contained in
+> `O`'s eigenbasis; the projective measurement collapses it onto one of those
+> vectors, which lies in `W`. ∎
+
+In coding language: a stabilizer detects errors that move the state *out* of the
+code space, and the adversary's payload measurement is a **logical operator** — it
+acts within the code space and commutes with every stabilizer by definition.
+Detecting it would require a stabilizer to distinguish two states of the same code
+space, which is what "same code space" forbids. A code that is fixed and public is
+therefore transparent to the one operation that decides the question.
+
+This also explains a pattern worth naming, because it recurred several times while
+this track was being worked on: repairs to this design did not fail so much as
+*relocate*. That was not a run of bad luck. It was the observation above asserting
+itself.
+
+#### 4.4.2 The requirements
+
+Any design in this track has to meet all four.
+
+| | Requirement | Why |
+|:---|:---|:---|
+| R1 | The encoding is drawn per round from a set, and the adversary cannot know the choice before the state arrives | Otherwise R2 has nothing to bite on, and §4.1 applies verbatim |
+| R2 | A wrong guess must be detectable: the candidate encodings must overlap by a constant amount, so measuring the wrong one disturbs | This is the MUB condition, and it is the whole content of BB84 |
+| R3 | The choice is announced after the fact, and costs no key material | So that R1 is free; this is sifting |
+| R4 | The receiver has an information-free check | The one thing this construction actually supplies |
+
+R1–R3 are BB84's content under different words, and no relabelling removes them.
+If a design meets them by choosing among mutually unbiased bases of a
+`d`-dimensional system, it *is* high-dimensional QKD, and its security rests on
+the high-dimensional uncertainty relation (`c = 1/d`, hence `log2 d` bits) rather
+than on anything specific to sectors. What the involution can then add is R4: a
+syndrome that costs no sacrificed rounds. That makes the involution a **code**,
+not a **cipher**.
+
+#### 4.4.3 Direction (b): let the involution be the per-round choice
+
+This is the only variant found so far in which the symmetry does cryptographic
+work rather than supplying names for a basis.
+
+Work with *reflections* rather than sector swaps. For any `d`-dimensional subspace
+`F` of a `2d`-dimensional space, `sigma_F = 2 P_F - I` is a Hermitian involution
+with `Fix(sigma_F) = F`, so the family of candidate involutions is exactly the
+family of `d`-dimensional subspaces. Two such subspaces are **unbiased** when
+`|<psi|phi>|^2 = 1/(2d)` for all unit `psi` in `F` and `phi` in `F'`. Alice draws
+`F` privately, prepares inside it, and transmits; Bob draws `F'` and measures;
+they sift on `F = F'` and announce the choice only for the rounds they keep, so R3
+holds and the randomness is free.
+
+This is not vacuous. At `d = 1` it reproduces the ordinary MUB condition in
+dimension 2 (`1/(2d) = 1/2`, with `|0>` and `|+>`), which is BB84 — consistent
+with §4.3. And at `d = 2` a pair of unbiased 2-dimensional subspaces of `C^4`
+exists:
+
+```text
+F  = span{e1, e2}
+F' = span{(e1 + e2 + e3 + e4)/2, (e1 - e2 + e3 - e4)/2}
+
+all four cross overlaps:  0.25  =  1/(2d)
+```
+
+Both reflections are Hermitian, square to the identity, and evaluate to `+1` on
+their own fixed locus. So direction (b) is a definite object rather than a hope.
+
+**What is not established** — and this is the first thing anyone pursuing it
+should determine — is how large such a family can be. The size of the family is
+the size of the randomness budget `R1` draws on, so it sets how much the sifting
+step costs, and nothing in this document says whether a family of more than two
+unbiased subspaces exists for any `d >= 2`. Until that is settled, direction (b)
+is a well-posed question and not a design.
+
+#### 4.4.4 Direction (c): let the frame itself be the secret
+
+The alternative is that the sector decomposition — the involution, not merely the
+basis — is unknown to the adversary, and the payload is carried in sector-relative
+structure that is meaningful only to someone holding the frame. This is the only
+version in which the *symmetry* rather than the per-round randomness is the
+secret, and it connects to the established literature on quantum communication
+with limited reference frames (Bartlett, Rudolph and Spekkens).
+
+It is also the hardest, and the difficulty is structural rather than technical.
+The states are prepared *in* the frame, so they carry information about it, and an
+adversary with many rounds can estimate it — the standard frame-alignment attack.
+Making this work requires showing either that any frame estimate good enough to
+read the payload also produces a disturbance large enough to detect, or that the
+payload is invariant under the frame information the transmitted states leak.
+Neither is obvious, and no argument for either is offered here. This direction
+should be treated as a question, not a plan.
+
+#### 4.4.5 The experiment that would settle direction (b)
+
+Direction (b) reduces to a comparison of key rates under matched noise:
+
+1. high-dimensional QKD in dimension `d`, using the `d+1` mutually unbiased bases
+   that exist when `d` is a prime power;
+2. the same protocol with the `sigma` syndrome available to the receiver as a
+   herald.
+
+If the herald does not improve the key rate, direction (b) *is* high-dimensional
+QKD and the sector structure is decoration. That is a falsifiable question about a
+design rather than about the current one, it can be answered with the existing
+harness, and it is the cheapest way to find out whether this track has anything
+left in it.
+
+#### 4.4.6 What would remain true even if direction (b) worked
+
+Even a successful direction (b) would leave the Riemann Hypothesis analogy where
+§5.1 already places it. The construction's one provable statement is that a
+`sigma`-commuting channel preserves `Fix(sigma)` — the trivial direction of the
+implication. The content of RH is that *everything* lies on the fixed locus, which
+is the open direction. The shared structure lives on the easy side on both sides
+at once, and nothing in this section changes that.
+
+### 4.5 Supersymmetry and the Witten index
 
 If the Hamiltonian has a supercharge `Q`, a supersymmetric construction may
 have the form
@@ -550,6 +706,9 @@ measure:
 | Eigenvalue consistency | A receiver test that distinguishes "an eigenstate" from "the eigenstate that was sent", without a shared secret — otherwise `diag(I, -I)` remains a total undetectable break |
 | Uncertainty relation | A second observable mutually unbiased with `sigma`, so that an entropic uncertainty relation has a non-degenerate `log2(1/c)` term. §4.3 shows the natural candidate exists (the sector basis, `c = 1/2`) but makes the protocol BB84 in a 2-dimensional block, so it supplies no DSIN-specific security |
 | Parameter estimation | A protocol-level way for Alice and Bob to estimate the error rate without the simulator's knowledge of the transmitted bits (§4.1) |
+| Encoding randomness (R1–R3) | A per-round encoding choice the adversary cannot guess, detectable when guessed wrong, and announced after the fact at no cost in key material. §4.4.2 argues this is BB84's content under other words, and that no relabelling removes it |
+| Unbiased involution families | How many pairwise-unbiased `d`-dimensional fixed loci exist in `2d` dimensions. Existence at `d = 2` is verified; the family size is the randomness budget R1 draws on, and it is unknown (§4.4.3) |
+| Secret frame | Whether a sector frame can stay secret when the transmitted states are prepared in it — the standard frame-alignment problem, and the only direction in which the symmetry rather than the per-round randomness is the secret (§4.4.4) |
 | RH connection | A precise theorem relating the two mathematical structures |
 
 ## 8. Conclusion
@@ -574,21 +733,29 @@ the entropic-uncertainty route that would supply such a bound is unavailable to 
 single-observable design (§4.3). The honest summary is therefore that DSIN
 currently possesses an exact commuting channel and no detection guarantee at all,
 which is a weaker position than "a commuting Hamiltonian plus a disturbance
-observable" would suggest.
+observable" would suggest. Section 4.4 converts that verdict into a requirements
+list for any successor, and records two directions that are at least well-posed —
+but it states requirements rather than results, and claims no security.
 
 The proposal shares a useful structural vocabulary with the Dimension-Shift
 approach to the Riemann Hypothesis: involutions, fixed loci, sector structure,
 and possible index or spectral constraints. The analogy is suggestive, but it
 is not an implication between RH and cryptographic security.
 
-The next step is an experiment with an explicit noise and attack model. A
-successful DSIN protocol would require a complete security proof, a physical
+A successful DSIN protocol would require a complete security proof, a physical
 implementation, and a comparison with established quantum-key-distribution
-security definitions.
+security definitions. As the design stands, the ordering has to be reversed: one
+of the requirements in §4.4.2 must be met by a concrete construction before a
+security proof is even well-posed, and §4.4.5 gives the experiment that would
+settle whether the more promising of the two directions is anything beyond
+high-dimensional QKD under other names.
 
 ## References
 
 - Bennett, C. H. and Brassard, G. (1984). *Quantum cryptography: Public key distribution and coin tossing*.
+- Berta, M., Christandl, M., Colbeck, R., Renes, J. M., and Renner, R. (2010). *The uncertainty principle in the presence of quantum memory*. Nature Physics.
+- Cerf, N. J., Bourennane, M., Karlsson, A., and Gisin, N. (2002). *Security of quantum key distribution using d-level systems*. Physical Review Letters.
+- Bartlett, S. D., Rudolph, T., and Spekkens, R. W. (2007). *Reference frames, superselection rules, and quantum information*. Reviews of Modern Physics.
 - Witten, E. (1981). *Dynamical breaking of supersymmetry*. Nuclear Physics B.
 - Montgomery, H. L. (1973). *The pair correlation of zeros of the zeta function*.
 - Connes, A. (1999). *Trace formula in noncommutative geometry and the zeros of the Riemann zeta function*.

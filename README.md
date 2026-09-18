@@ -38,7 +38,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **437 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **439 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -234,6 +234,15 @@ therefore no `log2(1/c)` term to bound anything with. The natural second
 observable in the DSIN sector — the sector basis, with `c = 1/2` — does give a
 non-degenerate relation, but it makes each 2-dimensional sector block *be* BB84,
 so it proves BB84's theorem rather than a new one. See §4.3.
+
+**What would have to change.** None of this means the *track* is closed, only that
+this design is. §4.4 of the same document converts the failure into a requirements
+list (R1–R4) that any successor has to meet; records why the obvious repair —
+moving the payload into the interior of `Fix(σ)` — relocates the hole rather than
+closing it, in coding terms because the adversary's payload measurement is a
+*logical operator* and no stabilizer can see one; and sketches two directions that
+are at least well-posed. It states requirements rather than results and makes no
+security claim.
 
 **A modelling bug found and fixed while writing this up.** The original
 `symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
@@ -453,7 +462,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**437 tests pass** on the current tree. They are not smoke tests: the suite
+**439 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -463,7 +472,7 @@ silently changed meaning.
 | `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
 | `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
-| `test_dsin.py` | 32 | DSIN simulation and the BB84 baseline |
+| `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 16 | Pipeline stages A–E and the Stage-D probe |
