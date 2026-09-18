@@ -38,7 +38,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **439 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **441 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -56,7 +56,7 @@ Stages A–D2 reuse the existing modules:
 | **A** — Well-formedness | Is the proposed object/map even well-defined? | Parsing / manual review |
 | **B** — Triviality reduction | Is it secretly an affine combination of `s` and `conjugate(s)` — i.e. a known rotation/reflection in disguise? | `affine_reduction.py` (numeric second-difference test) |
 | **C** — Statistical plausibility | If it produces a spectrum, how does its level-spacing statistic compare to matched Poisson / GOE / GUE baselines? | Gap-ratio statistics with bootstrap confidence intervals |
-| **D** — Arithmetic coupling | Does the map interact with the primes at all (via Euler-factor exponents `p^{-s}`), or only with the geometry of the plane? | Numeric probe against `p^{-s}` |
+| **D** — Arithmetic coupling | Does the map interact with the primes at all (via Euler-factor exponents `p^{-s}`), or only with the geometry of the plane? **Gates**: no p-dependence is precisely the arithmetic clause a falsification criterion names | Numeric probe against `p^{-s}`, reported as `commutes` / `uniform_failure` / `p_dependent` |
 | **D2** — Operator realization | If a symmetry is proposed on the *primon gas* (Track 4), does it actually commute with the Hamiltonian? | Commutator norm test |
 | **E** — Falsifiability | Does the idea state, in advance, what observation would count against it? | Enforced by the `ideas/*.json` / `*.yaml` schema at construction time |
 
@@ -477,7 +477,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**439 tests pass** on the current tree. They are not smoke tests: the suite
+**441 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -490,7 +490,7 @@ silently changed meaning.
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
-| `test_idea_pipeline.py` | 16 | Pipeline stages A–E and the Stage-D probe |
+| `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
 | `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
 | `test_falsification.py` | 9 | DSH falsification grid |

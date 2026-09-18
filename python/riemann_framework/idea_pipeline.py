@@ -27,7 +27,13 @@ gates instead of re-implementing them:
     Stage A  well-formedness   -> `affine_reduction.parse_expression`
     Stage B  affine / trivial  -> `affine_reduction.check_affine_reduction`
     Stage C  statistics        -> `statistics.classify_statistics`
-    Stage D  arithmetic probe  -> `probe_multiplicative_coupling` (below)
+    Stage D  arithmetic probe  -> `probe_multiplicative_coupling` (below).
+                                  This stage *gates*: the probe computes the
+                                  quantity named by the arithmetic clause of a
+                                  recorded falsification criterion, so a
+                                  mismatch with the Euler factor carrying no
+                                  p-dependence falsifies the idea instead of
+                                  merely being annotated.
     Stage D2 operator screen   -> `operator_symmetry.screen_operator`
     Stage E  falsifiability    -> enforced at construction: an `Idea` without a
                                   `falsification_criterion` is not admitted.
@@ -69,6 +75,11 @@ SAMPLE_POINTS = (0.5 + 14j, 0.5 + 21j, 0.3 + 5j)
 # ~1e-17; a genuinely p-sensitive map gives O(0.1). The threshold only has to
 # separate those two regimes, so 1e-6 is generous.
 P_DEPENDENCE_THRESHOLD = 1e-6
+
+# A largest per-prime error at or below this means the map agrees with the Euler
+# factor to round-off. The mpmath comparison lands near 1e-17 when it agrees
+# exactly, so the gap to the next regime is enormous.
+_EULER_COMMUTES_TOLERANCE = 1e-9
 
 
 class InvalidIdeaError(ValueError):
@@ -122,6 +133,12 @@ class ArithmeticProbeResult:
     max_relative_error_by_prime: dict[int, float]
     spread: float
     explanation: str
+    #: True when every per-prime error is at round-off, i.e. the map agrees with
+    #: the Euler factor. Distinct from a saturated failure, which also has a
+    #: near-zero spread but is the opposite situation; see `regime`.
+    commutes_with_euler_factor: bool
+    #: One of `"commutes"`, `"uniform_failure"`, `"p_dependent"`.
+    regime: str
 
 
 def _build_map(expression: str):
@@ -163,6 +180,26 @@ def probe_multiplicative_coupling(
     map built only from `s`, `conj(s)`, and constants may still show a nonzero
     p-dependent mismatch here (the reflection `1 - conj(s)` does), which is why
     Stage B -- the affine gate -- runs *before* this probe in the pipeline.
+
+    Three regimes are reported in `regime`, and they are not interchangeable:
+
+    - ``"commutes"`` -- every per-prime error is at round-off, so the map agrees
+      with the Euler factor everywhere. It carries no arithmetic content.
+    - ``"uniform_failure"`` -- the map fails to commute by a similar, near-total
+      amount for every prime, so the spread is ~0 *because the error saturates*.
+      This is also no p-dependence, but for the opposite reason, and describing
+      it as "treats every prime identically" without qualification would suggest
+      the map engaged the Euler factor correctly when it does the reverse.
+    - ``"p_dependent"`` -- the mismatch genuinely varies with `p`. This is the
+      only regime with any prospect of arithmetic content, and it is necessary,
+      never sufficient.
+
+    The middle regime is why `spread` is not trusted as a *description* of what
+    happened: a diagnostic whose headline signal is a spread across a parameter
+    has to be checked for accidental invariance in that parameter, which is the
+    lesson of `docs/lessons_learned.md` section 14. That section records the
+    same trap in this probe's predecessor, where a `log(p)` factor cancelled out
+    of the relative error. This is the second instance.
     """
     w = _build_map(expression)
 
@@ -184,9 +221,12 @@ def probe_multiplicative_coupling(
 
     errors = list(max_rel_err_by_prime.values())
     spread = max(errors) - min(errors)
+    worst = max(errors)
     p_dependent_mismatch = spread > P_DEPENDENCE_THRESHOLD
+    commutes = worst <= _EULER_COMMUTES_TOLERANCE
 
     if p_dependent_mismatch:
+        regime = "p_dependent"
         explanation = (
             "The map's interaction with p^{-s}-type exponents varies across "
             f"primes (spread {spread:.3e} across {list(primes)}). This is a "
@@ -194,13 +234,31 @@ def probe_multiplicative_coupling(
             "heuristic numeric probe -- it does not establish a real connection "
             "to the Euler product."
         )
-    else:
+    elif commutes:
+        regime = "commutes"
         explanation = (
-            "The map treats every tested prime identically "
-            f"(spread {spread:.3e}); its behaviour on p^{{-s}} is fully "
-            "explained by its behaviour on s alone, with no p-dependence. This "
-            "is the expected outcome for maps built only from s, conjugate(s), "
-            "and constants, and it does not engage the Euler product."
+            "The map commutes with every tested Euler factor to round-off "
+            f"(largest per-prime error {worst:.3e}): w(p^{{-s}}) = p^{{-w(s)}} "
+            "for every prime sampled. A map of this kind adds no arithmetic "
+            "content -- it agrees with the Euler factor everywhere, so it cannot "
+            "distinguish primes because it never needs to. The identity and "
+            "complex conjugation behave this way."
+        )
+    else:
+        # The spread statistic is *accidentally invariant* here: when the
+        # mismatch saturates near its maximum for every prime, the spread
+        # collapses to round-off while the map fails to commute as badly as it
+        # can. The verdict is unaffected (no p-dependence is no p-dependence),
+        # but the description must not imply agreement.
+        regime = "uniform_failure"
+        explanation = (
+            "The map fails to commute with the Euler factor by close to the "
+            f"maximum amount for every prime sampled (largest per-prime error "
+            f"{worst:.3e}), so the spread across primes collapses to "
+            f"{spread:.3e}. A saturated mismatch is p-independent without being "
+            "any kind of agreement: do not read this as the map treating primes "
+            "correctly. Either way there is no p-dependence, so the arithmetic "
+            "clause of a falsification criterion is not met."
         )
 
     return ArithmeticProbeResult(
@@ -208,6 +266,8 @@ def probe_multiplicative_coupling(
         max_relative_error_by_prime=max_rel_err_by_prime,
         spread=spread,
         explanation=explanation,
+        commutes_with_euler_factor=commutes,
+        regime=regime,
     )
 
 
@@ -217,9 +277,11 @@ class Verdict:
 
     `passed` means "not falsified by any gate it was subjected to" -- it is
     deliberately *not* a claim that the idea is correct, proven, or true. An
-    idea that reaches `D+` or `D2` has reached open territory; an idea that
-    fails D2 (its operator does not commute with the primon Hamiltonian) is
-    recorded as `passed=False`.
+    idea that reaches `D+` or `D2` has reached open territory. Two stages can
+    return `passed=False` on their own merits: stage D, when the arithmetic
+    probe finds no p-dependence in the map's mismatch with the Euler factor --
+    the arithmetic clause a falsification criterion normally names -- and stage
+    D2, when a proposed operator does not commute with the primon Hamiltonian.
     """
 
     idea_id: str
@@ -312,7 +374,14 @@ def run_pipeline(
                 details={"affine": affine},
             )
 
-    # Stage D: multiplicative-coupling probe.
+    # Stage D: multiplicative-coupling probe. This stage gates. The probe
+    # computes exactly the quantity the arithmetic clause of a recorded
+    # falsification criterion names -- does the map's mismatch with the Euler
+    # factor vary with p -- so an idea whose mismatch carries no p-dependence is
+    # falsified here rather than annotated and passed on. It used to be
+    # informational, which let a map that fails to commute with every Euler
+    # factor reach `passed=True` while its own summary said it did not engage
+    # the Euler product at all.
     probe = probe_multiplicative_coupling(idea.expression)
     stage_reached = "D+" if probe.p_dependent_mismatch else "D"
 
@@ -325,6 +394,28 @@ def run_pipeline(
     else:
         summary_parts.append("Stage C skipped (no spectrum supplied).")
     summary_parts.append(f"Stage D: {probe.explanation}")
+
+    details = {
+        "affine": affine,
+        "statistics": stats,
+        "arithmetic_probe": probe,
+    }
+
+    if not probe.p_dependent_mismatch:
+        summary_parts.append(
+            "Stage D therefore falsifies the idea: with no p-dependence the "
+            "arithmetic clause of the criterion is met. Only that clause is "
+            "mechanised here; the rest of the criterion is reviewed by hand. "
+            f"Recorded criterion: \"{idea.falsification_criterion.strip()}\""
+        )
+        return Verdict(
+            idea_id=idea.id,
+            stage_reached=stage_reached,
+            passed=False,
+            summary=" ".join(summary_parts),
+            details=details,
+        )
+
     summary_parts.append(
         "Stage E: falsification criterion on record: "
         f"\"{idea.falsification_criterion.strip()}\""
@@ -335,11 +426,7 @@ def run_pipeline(
         stage_reached=stage_reached,
         passed=True,
         summary=" ".join(summary_parts),
-        details={
-            "affine": affine,
-            "statistics": stats,
-            "arithmetic_probe": probe,
-        },
+        details=details,
     )
 
 

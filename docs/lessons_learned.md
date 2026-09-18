@@ -328,3 +328,29 @@ reflection genuinely distinguishes primes), and both are asserted in
 `tests/test_idea_pipeline.py`. The corrected comparison is `w(p^{-s})` versus
 `p^{-w(s)}`, evaluated with mpmath so that large map values do not overflow
 Python's complex exponentiation.
+
+**A second instance, and a sharper version of the same lesson.** The corrected
+probe still read its headline signal from a spread across primes, and a spread
+can be accidentally invariant in a second way: when the mismatch *saturates* near
+its maximum for every prime, the spread collapses to round-off. The registry
+record `nonlinear_probe_example` (`s*s_conj - s`) produces per-prime errors of
+exactly `1.0` and a spread of `2.1e-08`, so the probe described "treats every
+tested prime identically" for a map that fails to commute with the Euler factor
+as badly as it possibly can — the description was the opposite of the truth.
+
+Two things were wrong, and only one of them was the description. The spread was
+misleading, and Stage D was *not matching its own contract*: it was
+informational, so a map with no p-dependence reached `passed=True` while its own
+summary said it did not engage the Euler product — even though the arithmetic
+clause of the recorded falsification criterion names exactly that observation as
+falsifying. Both are fixed. The probe now reports a regime (`commutes`,
+`uniform_failure`, `p_dependent`) so the two near-zero-spread situations cannot
+be confused, and Stage D fails an idea whose mismatch carries no p-dependence.
+
+The generalisation is worth more than the bug. Section 14's lesson is usually
+read as "check the formula once". It is really that a spread-across-a-parameter
+diagnostic needs rechecking *every time its inputs change*, because each new
+invariance hides in the same place, and the first fix — which was correct, and
+tested — is exactly what made the second one look trustworthy. A gate that
+reports a statistic it never acts on is the other half of the same failure: the
+number was right and the verdict ignored it.

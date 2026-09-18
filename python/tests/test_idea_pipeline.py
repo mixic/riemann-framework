@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from riemann_framework.affine_reduction import check_affine_reduction
 from riemann_framework.idea_pipeline import (
     Idea,
     InvalidIdeaError,
@@ -62,12 +63,15 @@ def test_probe_identity_is_p_independent():
     assert result.spread < 1e-9
     # identity commutes with every Euler factor exactly: zero error per prime
     assert all(err < 1e-12 for err in result.max_relative_error_by_prime.values())
+    assert result.regime == "commutes"
+    assert result.commutes_with_euler_factor
 
 
 def test_probe_reflection_is_p_dependent():
     result = probe_multiplicative_coupling("1 - s_conj")
     assert result.p_dependent_mismatch
     assert result.spread > 0.1
+    assert result.regime == "p_dependent"
 
 
 def test_probe_reports_every_prime():
@@ -103,12 +107,74 @@ def test_dimension_shift_stops_at_stage_b():
     assert not verdict.passed
 
 
-def test_nonlinear_p_independent_map_reaches_d():
-    # |s|^2 is non-affine (clears B) but its probe mismatch is the same for
-    # every prime, so it stops at D without p-dependence.
+def test_nonlinear_p_independent_map_is_falsified_at_stage_d():
+    # |s|^2 is non-affine, so it clears B -- but its mismatch with the Euler
+    # factor is the same for every prime, which is exactly the arithmetic clause
+    # a falsification criterion names. Stage D gates on that, so the idea is
+    # falsified here rather than annotated and passed on.
+    #
+    # This test previously asserted the opposite: `passed` was True, under the
+    # name `test_nonlinear_p_independent_map_reaches_d`. That let a map which
+    # fails to commute with every Euler factor reach "not falsified" while its
+    # own summary said it did not engage the Euler product at all. The reversal
+    # is deliberate.
     verdict = run_pipeline(_idea("s*s_conj"))
     assert verdict.stage_reached == "D"
-    assert verdict.passed
+    assert not verdict.passed
+    assert "falsifies" in verdict.summary
+
+
+def test_saturated_mismatch_is_not_reported_as_agreement():
+    """A saturated error drives the spread to round-off, and that must not be
+    described as agreeing with the primes.
+
+    This is the accidental-invariance trap of `docs/lessons_learned.md` section
+    14 recurring inside the same probe: the headline signal is a spread *across*
+    primes, and a mismatch that saturates near its maximum for every prime
+    collapses that spread to nothing. `s*s_conj - s` is the registry record that
+    exposed it -- per-prime errors of exactly 1.0 with a spread of 2.1e-08.
+
+    The verdict is unaffected, since no p-dependence is no p-dependence either
+    way, but the two situations must be distinguishable in what the probe
+    reports, or "treats every prime identically" reads as agreement.
+    """
+    saturated = probe_multiplicative_coupling("s*s_conj - s")
+    assert saturated.regime == "uniform_failure"
+    assert not saturated.commutes_with_euler_factor
+    assert not saturated.p_dependent_mismatch
+    assert saturated.spread < 1e-6, "the spread is small *because* it saturated"
+    assert min(saturated.max_relative_error_by_prime.values()) > 0.99
+    assert "saturat" in saturated.explanation
+    # ... and the verdict is still a failure, at D.
+    assert not run_pipeline(_idea("s*s_conj - s")).passed
+
+    # The commutes regime is the opposite situation, same near-zero spread.
+    commuting = probe_multiplicative_coupling("s")
+    assert commuting.regime == "commutes"
+    assert commuting.commutes_with_euler_factor
+    assert commuting.spread < saturated.spread
+
+
+def test_affine_maps_are_rejected_at_b_even_when_the_probe_flags_them():
+    """The Stage D flag is necessary, not sufficient, and the ordering carries
+    the weight.
+
+    An affine map built from `s`, `conj(s)` and constants has no arithmetic
+    content by construction, yet several of them show a genuinely p-dependent
+    mismatch -- the module says so, and this pins it rather than leaving it as
+    prose. They never reach a verdict on that basis because Stage B rejects them
+    first. If the ordering were ever reversed, these would pass Stage D.
+    """
+    for expression in ("-s", "1 - s_conj", "1 - s", "s + s_conj"):
+        assert check_affine_reduction(expression).is_affine
+        assert probe_multiplicative_coupling(expression).p_dependent_mismatch, (
+            f"{expression!r} is expected to trip the probe as a false positive. "
+            "If it stops doing so, this test describes a different situation "
+            "and needs rewriting, not deleting."
+        )
+        verdict = run_pipeline(_idea(expression))
+        assert verdict.stage_reached == "B"
+        assert not verdict.passed
 
 
 def test_nonlinear_p_dependent_map_reaches_dplus():

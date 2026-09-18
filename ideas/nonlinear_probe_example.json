@@ -3,5 +3,5 @@
   "hypothesis": "A toy nonlinear map w(s) = s * conjugate(s) - s (i.e. |s|^2 - s) is used purely to demonstrate that the pipeline treats non-affine maps differently from affine ones. This is NOT a serious RH proposal.",
   "expression": "s*s_conj - s",
   "falsification_criterion": "This example is considered dead on arrival for RH purposes regardless of what stage D reports, because it has no stated connection to the functional equation, the Euler product, or any spectral operator.",
-  "notes": "Included so the runner shows both a stage-B failure and a stage-B pass in the same run."
+  "notes": "Included so the runner shows a stage-B pass alongside a stage-B failure. Note that it passes B and is then falsified at stage D: |s|^2 - s fails to commute with every Euler factor by close to the maximum amount, so the probe's spread across primes collapses to round-off and reports uniform_failure rather than agreement. That record is what exposed the spread statistic's second accidental invariance; see docs/lessons_learned.md section 14."
 }
