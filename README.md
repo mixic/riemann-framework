@@ -31,7 +31,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Explicit-formula calculations and plots | Working |
 | Dimension-shift experiments | Working and exploratory |
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
-| DSIN communication simulation | Toy simulation with a BB84 baseline (`bb84.py`); tested, no security proof |
+| DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Shift-zeta (graded algebra) | **Negative result.** Well-defined and tested; does **not** reproduce the classical zeros. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
@@ -137,6 +137,15 @@ security proof** — it should not be equated with cryptographic protocols like
 BB84, and `docs/dimension_shift_quantum_communication.md` is explicit about the
 limitation.
 
+**Verdict: the design is closed.** It is not merely unproven. A single published
+observable carrying the bit means the adversary's measurement is always the right
+one, and §4.1 of that document proves that no function of the observable's
+statistic can bound her information. The sections below record the measurements
+that establish it, and [`docs/future_work.md`](docs/future_work.md) Priority 6
+carries the full verdict. What survives is the exact commutation result — a
+`σ`-commuting channel preserves `Fix(σ)` — which was always true and was never a
+security statement.
+
 **The construction.** The state space is a two-sector (graded) Hilbert space
 `H = H_b ⊕ H_f` of dimension `2d`, and the involution is the sector swap
 `σ|b,k⟩ = |f,k⟩`, `σ|f,k⟩ = |b,k⟩`. A bit is encoded in the eigenvalue of `σ`:
@@ -153,11 +162,14 @@ Detection measures whether the received state is still a `σ` eigenstate.
 
 **Models available.** Noise: `none`, `depolarizing`, `phase` (a relative phase on
 the fermionic sector), `amplitude` (damping of that sector). Attacks:
-`intercept_resend`, `symmetry_breaking`, and `partial_intercept` (intercept a
-fraction `p` of the traffic). `run_simulation` returns the BER, the detection
-rate, and the mean fidelity against the transmitted state. `channel_time`
-defaults to `0.0` — no Hamiltonian evolution — so the ideal channel has unit
-fidelity; set it nonzero to include evolution under `H`.
+`intercept_resend`, `symmetry_breaking`, `partial_intercept` (intercept a
+fraction `p` of the traffic), and `sigma_basis_intercept` — the last being the
+one that decides the question, since it measures the encoding observable itself.
+`run_simulation` returns the BER, the detection rate, the mean fidelity against
+the transmitted state, and `mean_sigma_deviation`, the graded statistic the
+detector thresholds. `channel_time` defaults to `0.0` — no Hamiltonian evolution
+— so the ideal channel has unit fidelity; set it nonzero to include evolution
+under `H`.
 
 **Measured results** (`python scripts/run_dsin_verification.py`, `n = 500`, seed 42):
 
@@ -193,7 +205,7 @@ So the unitary `diag(I, −I)` inverts **every** transmitted bit while the detec
 reports nothing whatsoever. This is a property of the protocol as modelled, not a
 coding error, and `test_phase_flip_at_pi_inverts_every_bit_and_is_invisible` pins
 it so it cannot be lost silently. It is the concrete instance of the trap that
-`docs/future_work.md` priority 6 names: **symmetry covariance is not protection**.
+`docs/future_work.md` Priority 6 names: **symmetry covariance is not protection**.
 Closing it needs a detector that checks eigen*value* consistency, which requires
 either a shared key or a BB84-style basis-sampling check — a protocol redesign,
 not a bug fix.
@@ -290,10 +302,13 @@ which reported ≈ 0.5 in every row: it was measuring sifting, not eavesdropping
 flag, and `sifting_discard_rate` separately, so the two cannot be confused
 again.
 
-**What this is not.** No security proof, no composable-security claim, and no
-comparison with BB84's security guarantee. There is no detector noise model, no
-finite-key analysis, and no adversary beyond the three attacks above.
-`docs/future_work.md` priority 6 lists what a serious treatment would need.
+**What this is not.** Not a security proof, and not a candidate for one —
+[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
+§4.1 is the proof that none is available. There is no comparison with BB84's
+security guarantee, no detector noise model, no finite-key analysis, and no
+adversary beyond the four attacks modelled in `dsin.py`. §4.4 of that document
+lists what a successor would need, and
+[`docs/future_work.md`](docs/future_work.md) Priority 6 carries the verdict.
 
 ## Shift-zeta: a graded-algebra lift (negative result)
 
