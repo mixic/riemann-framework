@@ -247,6 +247,35 @@ hoped-for picture. Two findings from `scripts/run_dsin_verification.py`
   `sigma` eigenstate, of the *opposite* eigenvalue, so `|<sigma>| = 1`,
   detection stays at `0.0000`, and every bit is inverted (measured
   `BER = 1.0000`). See the `phi = pi` row of the phase-noise sweep.
+- **Neither flat detection figure is a calibrated probability, and the detector
+  is unchanged.** An earlier revision of `symmetry_breaking_attack` reported a
+  flat `≈ 0.53`; that figure measured the fraction of rounds whose state the
+  attack could disturb at all — not a detection capability — because the
+  perturbation it applied lay inside the `-1` eigenspace and left bit-1 states
+  untouched. Correcting the attack gives a flat `1.0000`, which records only that
+  the alarm is binary. Detection probability is a step function of attack
+  strength in both cases, so this correction is not progress on §4.1; it is the
+  same gap measured correctly.
+- **The flatness is a thresholding artefact, and removing it does not help.** The
+  graded statistic behind the detector — the mean deviation `1 - |<sigma>|` — is
+  smooth and monotone in the attack strength:
+
+  | attack | mean `1 - \|<sigma>\|` | thresholded detection |
+  |:---|:---|:---|
+  | symmetry-breaking `eps = 0.05` | 0.0099 | 1.0000 |
+  | `eps = 0.1` | 0.0393 | 1.0000 |
+  | `eps = 0.3` | 0.2679 | 1.0000 |
+  | `eps = 0.5` | 0.5285 | 1.0000 |
+  | `eps = 1.0` | 0.6845 | 1.0000 |
+
+  So the step function comes from the `> 1e-6` threshold, not from an
+  uninformative observable, and a *graded* detector is one line away. It would
+  not help. The same statistic reads `0.000000` under the phase flip at
+  `phi = pi`, where every bit is inverted (`BER = 1.0000`): it is **non-monotone
+  in damage**, reporting a perfectly undisturbed channel under a total break. No
+  function of this observable can bound the adversary's information, so the
+  obstruction is not its quantization but its invalidity as a security
+  statistic. The BER does witness the break, which is why §4.1 points there.
 
 ## 4. Security Analysis Requirements
 
@@ -271,17 +300,37 @@ A proof must not claim that every non-commuting attack gives the same error or
 that every attack is detected with certainty.
 
 **Status of the sixth requirement.** It is now known to be unsatisfiable in the
-current design rather than merely unproven: detection is a constant function of
-the disturbance (see §3.4), so no error-rate-to-information relation can be
-derived from it. The caution in the sentence above is also sharpened in the
-opposite direction — it is not only that one must not claim *every* attack is
-detected with certainty, but that some attacks are detected with probability
-**zero**.
+current design rather than merely unproven, and the reason is sharper than "the
+detector is binary". The graded statistic behind the detector is smooth and
+monotone in attack strength (§3.4), so its apparent flatness is an artefact of
+thresholding. What defeats the requirement is that the statistic is
+**non-monotone in damage**: it reads exactly zero under `diag(I, -I)`, which
+inverts every bit. An observable that reports a perfectly undisturbed channel
+under a total break cannot bound the adversary's information at any resolution,
+so no error-rate-to-information relation can be derived from it. The caution in
+the sentence above is also sharpened in the opposite direction — it is not only
+that one must not claim *every* attack is detected with certainty, but that some
+attacks are detected with probability **zero**.
 
 Meeting the requirement would need the receiver to test eigen*value* consistency,
 which requires either a shared secret or a BB84-style basis-sampling check in
 which Alice and Bob sacrifice a subset of bits to estimate the error rate. That
 is a change to the protocol, not to the analysis.
+
+It is worth being precise about where the gap lies, because the graded statistic
+a security argument would use already exists. The BER *is* continuous in attack
+strength — `0.010 -> 0.260 -> 0.404` over `eps = 0.1 -> 1.0` — and the BER is
+what BB84 thresholds. Two things are nevertheless missing. First, a
+parameter-estimation step: the simulator can report the BER because it knows the
+transmitted bits, but the protocol gives Alice and Bob no way to estimate it, so
+the number exists in the analysis and not in the protocol. Second, any bound
+relating that BER to the adversary's information.
+
+The binary `sigma` check cannot substitute for either. It is an early-warning
+witness that costs no sacrificed bits, and `diag(I, -I)` shows it can be fooled
+completely — a zero-cost warning that is sometimes exactly wrong. The gap is
+therefore structural, in the protocol, rather than merely a missing continuous
+observable.
 
 ### 4.2 Comparison with BB84
 

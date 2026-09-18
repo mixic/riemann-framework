@@ -198,15 +198,19 @@ Closing it needs a detector that checks eigen*value* consistency, which requires
 either a shared key or a BB84-style basis-sampling check — a protocol redesign,
 not a bug fix.
 
-**No error-rate-to-information relation.** Because the detector trips on any
-departure from the eigenspace, it is binary: a cautious eavesdropper who
-intercepts a tiny fraction of the traffic is caught with the same probability as
-a reckless one, and only the BER responds to the attack strength. In BB84 the two
-are quantitatively linked — Eve's information about the key is bounded by the
-disturbance she causes — and that link is what a security proof is built from.
-DSIN has no such relation between "how much information did Eve obtain?" and "how
-likely is she to be caught?", which is a second and independent reason (beyond
-the absent proof machinery) that it cannot be set against BB84's guarantee.
+**No error-rate-to-information relation.** The detector is binary, so a cautious
+eavesdropper is caught with the same probability as a reckless one. The graded
+statistic behind it *does* respond to attack strength — the mean deviation
+`1 − |⟨σ⟩|` rises from **0.0099** at `ε = 0.05` to **0.6845** at `ε = 1.0` — so
+the flat detection rate is a thresholding artefact and a graded detector is one
+line away. Removing the threshold would not help. The same statistic reads
+**0.000000** at `φ = π`, where every bit is inverted: it is *non-monotone in
+damage*, reporting a perfectly undisturbed channel under a total break. No
+function of it can bound Eve's information. In BB84 the statistic and the bound
+are linked — Eve's information about the key is bounded by the disturbance she
+causes — and that link is what a security proof is built from. DSIN has no such
+relation, which is a second and independent reason (beyond the absent proof
+machinery) that it cannot be set against BB84's guarantee.
 
 **A modelling bug found and fixed while writing this up.** The original
 `symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
@@ -220,6 +224,16 @@ fix perturbs the sectors independently, so the perturbation carries both
 for each). It is recorded here rather than silently corrected because the wrong
 number looked entirely plausible, and
 `test_symmetry_breaking_attack_disturbs_both_encodings` now pins it.
+
+**Neither number is a calibrated detection probability, and the fix did not make
+detection better.** The detector is unchanged — it was equally binary before and
+after. The old ≈ 0.53 measured how much of the traffic the attack could reach at
+all; the new 1.0000 records only that the alarm is not graded. Reading the change
+as "detection improved from 0.53 to 1.000" would be a mistake: detection
+probability is a step function of attack strength in both cases, and the flat
+1.0000 is not progress on the gap named in
+[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
+§4.1 — it is the same gap, now measured correctly.
 
 **Comparison with BB84.** `bb84.py` provides the baseline, because a protocol
 claim is meaningless without one. The two protocols do not detect eavesdropping
