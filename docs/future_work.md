@@ -160,20 +160,36 @@ The Lean formalization should grow from small independent facts:
 None of these lemmas proves RH. Their purpose is to make the algebraic core
 precise before attempting analytic or spectral claims.
 
-**Status.** Items 1 and 2 are done in `lean/RiemannFramework/DimensionShift.lean`
-(`sigma_squared`, `sigma_injective`, `sigma_not_fixed`), which needs no Mathlib
-import. The general involution layer is in progress in
-`lean/RiemannFramework/InvolutionEigenspace.lean`:
+**Status.** Items 1, 2 and 4 are done.
+
+Items 1 and 2 are in `lean/RiemannFramework/DimensionShift.lean`
+(`sectorSwap_squared`, `sectorSwap_injective`, `sectorSwap_not_fixed`), which
+needs no Mathlib import. The swap is named `sectorSwap` rather than `sigma`
+because `RiemannFramework.sigma` is the critical-line reflection in
+`ZetaBridge.lean`; both are in the same namespace, and two `sigma`s there made
+any file importing both fail to compile.
+
+Item 4 is in `lean/RiemannFramework/InvolutionEigenspace.lean`
+(`maps_eigenspace_one`, `maps_eigenspace_neg_one`, via `maps_ker_sub_one` and
+`maps_ker_add_one`). It is worth recording that this was mis-scoped in an earlier
+revision of this document, which grouped item 4 with the rank-nullity work below.
+It does not need rank-nullity, or finite dimension, or any characteristic
+assumption: a commuting operator preserves an eigenspace because the map is well
+defined on it, in about five lines. It was the cheapest item on the list, not one
+of the hard ones.
+
+The general involution layer in `InvolutionEigenspace.lean`:
 
 - done: for an endomorphism `T` with `T * T = 1` over any field, the `+1` and
   `-1` eigenspaces are the kernels of `T - 1` and `T + 1`
-  (`eigenspace_one_eq_ker_sub_one`, `eigenspace_neg_one_eq_ker_add_one`), and
-  `T - 1` and `T + 1` annihilate each other (`sub_one_comp_add_one`,
-  `add_one_comp_sub_one`);
-- open: the matching range descriptions, the equal-dimension and
-  complementary results, and item 4 above. These reduce to a rank-nullity
-  computation over `Nat` (`finrank` coercions plus `Nat` truncated
-  subtraction) that has not yet been closed.
+  (`eigenspace_one_eq_ker_sub_one`, `eigenspace_neg_one_eq_ker_add_one`); `T - 1`
+  and `T + 1` annihilate each other (`sub_one_comp_add_one`,
+  `add_one_comp_sub_one`); and a commuting operator preserves both eigenspaces
+  (item 4, `maps_eigenspace_one`, `maps_eigenspace_neg_one`);
+- open: the matching range descriptions, and the equal-dimension and
+  complementary results (item 3). *These* are the ones that reduce to a
+  rank-nullity computation over `Nat` (`finrank` coercions plus `Nat` truncated
+  subtraction), and that has not yet been closed.
 
 ### 4.1 Proven vs. open, by file
 
@@ -189,8 +205,8 @@ directions of the ledger (`python/tests/test_formal_proof.py`):
 
 | File | Proven | Open (`sorry`) |
 |:---|:---|:---|
-| `DimensionShift.lean` | `sigma_squared`, `sigma_injective`, `sigma_not_fixed` | — |
-| `InvolutionEigenspace.lean` | the four kernel/eigenspace and mutual-annihilation lemmas listed above | — (refinements in item 4 above) |
+| `DimensionShift.lean` | `sectorSwap_squared`, `sectorSwap_injective`, `sectorSwap_not_fixed` | — |
+| `InvolutionEigenspace.lean` | the four kernel/eigenspace and mutual-annihilation lemmas listed above, plus `maps_eigenspace_one` / `maps_eigenspace_neg_one` (item 4) | — (range descriptions and item 3 in the list above) |
 | `SanityChecks.lean` | all worked examples for `σ` | — |
 | `ZetaBridge.lean` | all 31 declarations: `sigma`, `sigma_re`, `sigma_im`, `sigma_involutive`, `fixed_point_of_re_eq_half`, `re_of_fixed_point_eq_half`, `sigma_fixed_iff_re_eq_half`, `riemannZeta_zero_conj`, `riemannZeta_zero_one_sub`, `cos_pi_mul_div_two_ne_zero`, `riemannZeta_one_sub_prefactor_ne_zero`, `riemannZeta_zero_iff_one_sub`, `riemannZeta_zero_sigma` (`σ`-invariance), `riemannZeta_zero_iff_conj`, `riemannZeta_zero_iff_sigma`, `riemannZeta_zero_quadruple`, `rh_iff_zeros_fixed_by_sigma`, `fixed_on_zeros_iff_no_distinct_reflection`, `riemannHypothesis_iff_no_two_cycle`, and the Section 5 verdict | — |
 | `ZetaConjecture.lean` | `RiemannHypothesisStatement`, `rh_of_zeros_fixed_by_sigma`, `prove_rh_via_sigma` | `zeros_are_fixed_by_sigma` |

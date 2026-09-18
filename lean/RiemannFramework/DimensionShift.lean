@@ -22,20 +22,31 @@ inductive Sector where
   | fermion
   deriving DecidableEq, Repr
 
-/-- The sector-swapping involution. -/
-def sigma : Sector → Sector
+/-- The sector-swapping involution on the finite model's labels.
+
+Named `sectorSwap` rather than `sigma` on purpose: `RiemannFramework.sigma` is
+already the critical-line reflection `s ↦ 1 - conj s` in `ZetaBridge.lean`, and
+both declarations live in the `RiemannFramework` namespace. Two `sigma`s there
+would make any file importing both fail to compile with "environment already
+contains 'RiemannFramework.sigma'". The finite model is the proxy; the plane
+reflection is the object the framework's own results are about, so the latter
+keeps the name. -/
+def sectorSwap : Sector → Sector
   | .boson => .fermion
   | .fermion => .boson
 
 /-- Applying the sector swap twice returns to the original sector. -/
-theorem sigma_squared (sector : Sector) : sigma (sigma sector) = sector := by
+theorem sectorSwap_squared (sector : Sector) : sectorSwap (sectorSwap sector) = sector := by
   cases sector <;> rfl
 
-theorem sigma_injective : Function.Injective sigma := by
+/-- The sector swap is injective. -/
+theorem sectorSwap_injective : Function.Injective sectorSwap := by
   intro left right equality
-  simpa [sigma_squared left, sigma_squared right] using congrArg sigma equality
+  simpa [sectorSwap_squared left, sectorSwap_squared right] using congrArg sectorSwap equality
 
-theorem sigma_not_fixed (sector : Sector) : sigma sector ≠ sector := by
+/-- The sector swap has no fixed label: it is a free involution, unlike the plane
+reflection, whose fixed locus is the critical line. -/
+theorem sectorSwap_not_fixed (sector : Sector) : sectorSwap sector ≠ sector := by
   cases sector <;> decide
 
 end RiemannFramework

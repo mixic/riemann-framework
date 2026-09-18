@@ -104,4 +104,45 @@ theorem add_one_comp_sub_one (T : Module.End K V) (hT : T * T = 1) :
   simp only [apply_apply_eq_self T hT x, LinearMap.zero_apply]
   abel
 
+/-- A map commuting with `T` preserves the kernel of `T - 1`. -/
+theorem maps_ker_sub_one (T S : Module.End K V) (h : T * S = S * T) :
+    ∀ x ∈ (T - 1).ker, S x ∈ (T - 1).ker := by
+  intro x hx
+  rw [mem_ker_sub_one_iff] at hx ⊢
+  calc T (S x) = (T * S) x := rfl
+    _ = (S * T) x := by rw [h]
+    _ = S (T x) := rfl
+    _ = S x := by rw [hx]
+
+/-- A map commuting with `T` preserves the kernel of `T + 1`. -/
+theorem maps_ker_add_one (T S : Module.End K V) (h : T * S = S * T) :
+    ∀ x ∈ (T + 1).ker, S x ∈ (T + 1).ker := by
+  intro x hx
+  rw [mem_ker_add_one_iff] at hx ⊢
+  calc T (S x) = (T * S) x := rfl
+    _ = (S * T) x := by rw [h]
+    _ = S (T x) := rfl
+    _ = S (-x) := by rw [hx]
+    _ = -S x := map_neg S x
+
+/-- **A commuting operator preserves the involution's eigenspaces** — item 4 of the
+formalization plan in `docs/future_work.md`. This is the `+1` eigenspace;
+`maps_eigenspace_neg_one` is the companion.
+
+No finite-dimensionality, rank-nullity, or characteristic assumption is involved.
+This is the map being well defined on an eigenspace, not a dimension count, which
+is why item 4 was separable from the equal-dimension results that the plan had
+grouped it with. -/
+theorem maps_eigenspace_one (T S : Module.End K V) (hT : T * T = 1) (h : T * S = S * T) :
+    ∀ x ∈ T.eigenspace 1, S x ∈ T.eigenspace 1 := by
+  rw [eigenspace_one_eq_ker_sub_one T hT]
+  exact maps_ker_sub_one T S h
+
+/-- Companion to `maps_eigenspace_one`: a commuting operator preserves the `-1`
+eigenspace. -/
+theorem maps_eigenspace_neg_one (T S : Module.End K V) (hT : T * T = 1) (h : T * S = S * T) :
+    ∀ x ∈ T.eigenspace (-1), S x ∈ T.eigenspace (-1) := by
+  rw [eigenspace_neg_one_eq_ker_add_one T hT]
+  exact maps_ker_add_one T S h
+
 end RiemannFramework
