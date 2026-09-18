@@ -16,8 +16,7 @@
 """
 Run the full quantum chaos analysis and save the results.
 
-Usage:
-    cd python
+Usage (from anywhere):
     python scripts/run_quantum_chaos_analysis.py
 """
 
@@ -25,7 +24,8 @@ from pathlib import Path
 import sys
 import json
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# The importable package lives in `python/`, not at the repository root.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "python"))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,7 +45,9 @@ from riemann_framework.statistics import (
 )
 from riemann_framework.zeta import set_precision
 
-OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+# `<root>/scripts/…` -> the repository root is `parent.parent`, not
+# `parent.parent.parent` (which would be `<root>/..`).
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 set_precision(25)

@@ -24,11 +24,23 @@ This module simulates the DSIN quantum communication proposal:
   - The channel Hamiltonian H commutes with sigma
   - Eavesdropping breaks the symmetry and is detected
 
+The protected subspace is the fixed locus of sigma,
+`Fix(sigma) = {|b,k> + |f,k>}/sqrt(2)` (bit 0), and the anti-fixed locus
+`Anti(sigma) = {|b,k> - |f,k>}/sqrt(2)` carries bit 1. The channel Hamiltonian
+commutes with sigma, so the sector parity is preserved by the ideal channel; a
+channel or eavesdropper that breaks the symmetry moves the state out of the
+eigenspace, which is what the detector measures.
+
 The simulation evaluates:
   1. Bit error rate (BER) under ideal conditions
-  2. BER under depolarizing noise
-  3. BER under eavesdropping (intercept-resend)
-  4. Detection probability of eavesdropping
+  2. BER under depolarizing, phase, and amplitude noise
+  3. BER under eavesdropping (intercept-resend, symmetry-breaking,
+     and partial intercept-resend)
+  4. Detection probability of eavesdropping, from the deviation of the state
+     from a sigma eigenstate
+
+Every numerical claim here is about a toy model. None of it constitutes a
+security proof; see `docs/dimension_shift_quantum_communication.md`.
 """
 
 import numpy as np
@@ -75,6 +87,12 @@ def build_sigma(dim_per_sector: int) -> np.ndarray:
         M[k, d + k] = 1.0
         M[d + k, k] = 1.0
     return M
+
+
+def sigma_eigenvalues(dim_per_sector: int) -> np.ndarray:
+    """Return the eigenvalues of sigma, which should all be ±1."""
+    M = build_sigma(dim_per_sector)
+    return np.linalg.eigvalsh(M)
 
 
 def sigma_eigenstates(dim_per_sector: int):
@@ -202,6 +220,12 @@ def measure_sigma(
     Measure the involution eigenvalue.
 
     Returns the decoded bit (0 for +1, 1 for -1).
+
+    This is a projective measurement of sigma, so the outcome is drawn from the
+    Born rule: the probability of +1 is ``(1 + <sigma>) / 2``. For a state that
+    is exactly a sigma eigenstate the outcome is deterministic; for a state that
+    has been disturbed off the eigenspace it is not. Use `sigma_expectation` for
+    the deterministic expectation value the detector compares against.
     """
     sigma = np.asarray(sigma, dtype=complex)
     if sigma.shape != (len(state.vector), len(state.vector)):
@@ -209,10 +233,20 @@ def measure_sigma(
     if not np.allclose(sigma, sigma.conj().T):
         raise ValueError("sigma must be Hermitian")
 
-    expectation = float(np.real(state.vector.conj() @ sigma @ state.vector))
+    expectation = sigma_expectation(state, sigma)
     probability_plus = np.clip((1.0 + expectation) / 2.0, 0.0, 1.0)
     rng = np.random.default_rng() if rng is None else rng
     return 0 if rng.random() < probability_plus else 1
+
+
+def sigma_expectation(state: DSINState, sigma: np.ndarray) -> float:
+    """Return the expectation value <sigma> of the state, deterministically."""
+    return float(np.real(state.vector.conj() @ sigma @ state.vector))
+
+
+def fidelity(state: DSINState, original: DSINState) -> float:
+    """Return the fidelity |<state|original>|^2 between two states."""
+    return float(abs(state.vector.conj() @ original.vector) ** 2)
 
 
 # ============================================================
@@ -264,6 +298,27 @@ def apply_phase_noise(
     return DSINState(bit=state.bit, vector=vec, sector_index=state.sector_index)
 
 
+def apply_amplitude_damping(
+    state: DSINState,
+    gamma: float,
+    rng: np.random.Generator,
+) -> DSINState:
+    """
+    Apply amplitude damping to the fermionic sector.
+
+    This simulates energy loss in the channel. It is a symmetry-breaking
+    perturbation, because it attenuates one sector and not the other.
+    """
+    gamma = _validate_probability(gamma, "gamma")
+    vec = state.vector.copy()
+    d = len(vec) // 2
+    vec[d:] = vec[d:] * np.sqrt(1.0 - gamma)
+    norm = np.linalg.norm(vec)
+    if norm > 0:
+        vec = vec / norm
+    return DSINState(bit=state.bit, vector=vec, sector_index=state.sector_index)
+
+
 # ============================================================
 # Eavesdropping models
 # ============================================================
@@ -303,17 +358,51 @@ def symmetry_breaking_attack(
     rng: np.random.Generator,
 ) -> DSINState:
     """
-    Simulate an attack that applies a small symmetry-breaking
-    perturbation to the state.
+    Simulate an attack that applies a symmetry-breaking perturbation.
+
+    The two sectors are perturbed *independently*. This matters, and an earlier
+    version of this function got it wrong: perturbing the sectors by `+m` and
+    `-m` with the *same* `m` produces a sigma-*odd* vector, i.e. one lying in
+    the `-1` eigenspace. Since the bit-1 encoding is exactly that eigenspace,
+    such an attack leaves bit-1 states perfectly undisturbed -- `<sigma>` stays
+    at `-1` to machine precision and the attack is invisible on half the
+    traffic. The measured "detection rate" then just tracks the fraction of
+    rounds that happened to encode bit 0, and does not respond to `epsilon` at
+    all. Independent per-sector noise has both sigma-even and sigma-odd
+    components, so it breaks the symmetry for both encoded bits.
     """
+    if not np.isfinite(epsilon):
+        raise ValueError("epsilon must be finite")
     vec = state.vector.copy()
     d = len(vec) // 2
-    # Mix the sectors
-    mix = epsilon * (rng.standard_normal(d) + 1j * rng.standard_normal(d))
-    vec[:d] = vec[:d] + mix / np.sqrt(d)
-    vec[d:] = vec[d:] - mix / np.sqrt(d)
-    vec = vec / np.linalg.norm(vec)
+    mix_boson = epsilon * (rng.standard_normal(d) + 1j * rng.standard_normal(d))
+    mix_fermion = epsilon * (rng.standard_normal(d) + 1j * rng.standard_normal(d))
+    vec[:d] = vec[:d] + mix_boson / np.sqrt(d)
+    vec[d:] = vec[d:] + mix_fermion / np.sqrt(d)
+    norm = np.linalg.norm(vec)
+    if norm > 0:
+        vec = vec / norm
     return DSINState(bit=state.bit, vector=vec, sector_index=state.sector_index)
+
+
+def partial_intercept_attack(
+    state: DSINState,
+    sigma: np.ndarray,
+    p_intercept: float,
+    rng: np.random.Generator,
+) -> DSINState:
+    """
+    Partial intercept-resend attack.
+
+    Eve intercepts with probability ``p_intercept``, and otherwise lets the
+    state pass through unchanged. This is the realistic regime: an eavesdropper
+    who intercepts only a fraction of the traffic trades a lower error rate for
+    a lower chance of being caught.
+    """
+    p_intercept = _validate_probability(p_intercept, "p_intercept")
+    if rng.random() < p_intercept:
+        return intercept_resend_attack(state, sigma, rng)
+    return state
 
 
 # ============================================================
@@ -324,14 +413,18 @@ def symmetry_breaking_attack(
 class SimulationResult:
     """Result of a DSIN simulation run."""
     n_bits: int
+    dim_per_sector: int
+    coupling: float
     noise_type: str
     noise_param: float
     attack_type: str
     attack_param: float
+    channel_time: float
     ber: float = 0.0
     detection_rate: float = 0.0
     raw_errors: int = 0
     raw_detections: int = 0
+    mean_fidelity: float = 0.0
 
 
 def run_simulation(
@@ -343,7 +436,7 @@ def run_simulation(
     attack_type: str = "none",
     attack_param: float = 0.0,
     seed: int = 42,
-    channel_time: float = 1.0,
+    channel_time: float = 0.0,
 ) -> SimulationResult:
     """
     Run a DSIN communication simulation.
@@ -352,60 +445,80 @@ def run_simulation(
         n_bits: number of bits to transmit
         dim_per_sector: dimension of each sector
         coupling: inter-sector coupling strength
-        noise_type: "none", "depolarizing", or "phase"
+        noise_type: "none", "depolarizing", "phase", or "amplitude"
         noise_param: noise strength
-        attack_type: "none", "intercept_resend", or "symmetry_breaking"
+        attack_type: "none", "intercept_resend", "symmetry_breaking", or
+            "partial_intercept"
         attack_param: attack strength
         seed: random seed
+        channel_time: time for which the state evolves under the channel
+            Hamiltonian before the noise and eavesdropper act. The default is
+            `0.0`, i.e. no evolution, so that the ideal channel has unit
+            fidelity; set it nonzero to include Hamiltonian evolution.
 
     Returns:
-        SimulationResult with BER and detection rate.
+        SimulationResult with BER, detection rate, and mean fidelity.
     """
     if not isinstance(n_bits, (int, np.integer)) or n_bits < 1:
         raise ValueError("n_bits must be a positive integer")
     d = _validate_dimension(dim_per_sector)
-    noise_types = {"none", "depolarizing", "phase"}
-    attack_types = {"none", "intercept_resend", "symmetry_breaking"}
+    noise_types = {"none", "depolarizing", "phase", "amplitude"}
+    attack_types = {
+        "none", "intercept_resend", "symmetry_breaking", "partial_intercept",
+    }
     if noise_type not in noise_types:
         raise ValueError(f"noise_type must be one of {sorted(noise_types)}")
     if attack_type not in attack_types:
         raise ValueError(f"attack_type must be one of {sorted(attack_types)}")
     if not np.isfinite(coupling) or not np.isfinite(channel_time):
         raise ValueError("coupling and channel_time must be finite")
-    if noise_type == "depolarizing":
+    if noise_type in {"depolarizing", "amplitude"}:
         _validate_probability(noise_param, "noise_param")
     elif noise_type == "phase" and not np.isfinite(noise_param):
         raise ValueError("noise_param must be finite for phase noise")
     if attack_type == "symmetry_breaking" and attack_param < 0:
         raise ValueError("attack_param must be non-negative")
+    if attack_type == "partial_intercept":
+        _validate_probability(attack_param, "attack_param")
 
     rng = np.random.default_rng(seed)
     sigma = build_sigma(d)
-    hamiltonian = build_channel_hamiltonian(
-        d, coupling=coupling, seed=int(rng.integers(0, 2**31))
-    )
+
+    # The channel Hamiltonian is only needed when the state actually evolves.
+    hamiltonian = None
+    if channel_time:
+        hamiltonian = build_channel_hamiltonian(
+            d, coupling=coupling, seed=int(rng.integers(0, 2**31))
+        )
 
     errors = 0
     detections = 0
+    fidelities = []
 
     for _ in range(n_bits):
         # Alice encodes a random bit
         bit = int(rng.integers(0, 2))
-        state = encode_bit(bit, d, k=0)
+        original = encode_bit(bit, d, k=0)
+        state = original
 
-        state = evolve_state(state, hamiltonian, channel_time)
+        if hamiltonian is not None:
+            state = evolve_state(state, hamiltonian, channel_time)
 
         # Apply noise
         if noise_type == "depolarizing":
             state = apply_depolarizing_noise(state, noise_param, rng)
         elif noise_type == "phase":
             state = apply_phase_noise(state, noise_param, rng)
+        elif noise_type == "amplitude":
+            state = apply_amplitude_damping(state, noise_param, rng)
 
         # Apply attack
         if attack_type == "intercept_resend":
             state = intercept_resend_attack(state, sigma, rng)
         elif attack_type == "symmetry_breaking":
             state = symmetry_breaking_attack(state, attack_param, rng)
+        elif attack_type == "partial_intercept":
+            state = partial_intercept_attack(state, sigma, attack_param, rng)
 
         # Bob decodes
         decoded = measure_sigma(state, sigma, rng=rng)
@@ -414,21 +527,26 @@ def run_simulation(
             errors += 1
 
         # Detection: check whether the state is still a sigma eigenstate
-        expectation = np.real(state.vector.conj() @ sigma @ state.vector)
-        if abs(abs(expectation) - 1.0) > 1e-6:
+        if abs(abs(sigma_expectation(state, sigma)) - 1.0) > 1e-6:
             detections += 1
+
+        fidelities.append(fidelity(state, original))
 
     ber = errors / n_bits
     detection_rate = detections / n_bits
 
     return SimulationResult(
         n_bits=n_bits,
+        dim_per_sector=d,
+        coupling=coupling,
         noise_type=noise_type,
         noise_param=noise_param,
         attack_type=attack_type,
         attack_param=attack_param,
+        channel_time=channel_time,
         ber=ber,
         detection_rate=detection_rate,
         raw_errors=errors,
         raw_detections=detections,
+        mean_fidelity=float(np.mean(fidelities)),
     )

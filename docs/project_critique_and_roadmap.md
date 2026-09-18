@@ -42,7 +42,7 @@ security.
 | Core numerics | `zeta.py`, `zeros.py`, `explicit_formula.py`, `plots.py` | Working and tested |
 | Quantum chaos | `statistics.py`, `quantum_chaos.py` | Working and exploratory |
 | Dimension shift | `dimension_shift.py`, `dimension_shift_chaos.py` | Working and exploratory |
-| DSIN simulation | `dsin.py`, `test_dsin.py`, `run_dsin_analysis.py` | Toy simulation, not a security proof |
+| DSIN simulation | `dsin.py`, `bb84.py`, `test_dsin.py`, `run_dsin_verification.py` | Toy simulation, not a security proof |
 | Documentation | Research notes and dimension-shift articles | Rich, partly speculative |
 | Lean formalization | Reserved project area | No Lean source currently tracked |
 
