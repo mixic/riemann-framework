@@ -32,6 +32,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Dimension-shift experiments | Working and exploratory |
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
+| BB84 implementation layer | **Started.** Photon source, detector model and photon-number splitting: the attack that leaves `Q_mu` and `E_mu` exactly the honest channel's while Eve learns up to 99% of the sifted key. Three of the four historical attack classes are not modelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Graded prime monoid | `(ℕ_{>0}, ×)` identified with the free commutative monoid on the primes; exponent-vector addition shown to be the **only** rule compatible with unique factorization, and to be exactly what makes the Euler product factorize. Ordinary arithmetic restated, not a new number system — see [`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) |
@@ -39,7 +40,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **493 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **518 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -311,6 +312,27 @@ adversary beyond the four attacks modelled in `dsin.py`. §4.4 of that document
 lists what a successor would need, and
 [`docs/future_work.md`](docs/future_work.md) Priority 6 carries the verdict.
 
+## The BB84 implementation layer: what the protocol model cannot see
+
+`bb84.py` models the BB84 *protocol* — one photon per round, perfect source, perfect detector. That protocol has been secure since Mayers (1996) and Shor–Preskill (2000), and no abstract attack will break it. The breaks that happened in practice happened one layer down, in hardware. `bb84_implementation.py` starts on that layer: the photon source, the detector model, and photon-number splitting.
+
+**The source is not a single photon.** A weak coherent pulse is Poisson, so at `μ = 0.5` it is 61% vacuum, 30% single-photon and **9% multi-photon**. Eve measures the photon number without disturbing it, keeps one photon from each multi-photon pulse and forwards the rest. She then learns the bit when the basis is announced during sifting, and the photons she forwards are the state Alice prepared — so she adds **no errors at all**.
+
+| `μ` | `Q_μ` | `E_μ` | fraction Eve holds |
+|:---|:---|:---|:---|
+| 0.1 | 0.009952 | 0.010098 | 0.0906 |
+| 0.5 | 0.048772 | 0.010020 | 0.3782 |
+| 1.0 | 0.095164 | 0.010010 | 0.6134 |
+| 5.0 | 0.393471 | 0.010002 | **0.9914** |
+
+`η = 0.1`, `e_det = 0.01`, `p_dark = 1e-6`. **The error rate is flat at `e_det` while Eve's information climbs past 0.99** — a detector watching the error rate sees a healthy channel at every point.
+
+![PNS: the information grows while the observable does not](output/bb84_pns_attack.png)
+
+The consequence is a statement about what a bound *is*. The single-photon fraction `Q_1/Q_μ` that a GLLP rate needs is not determined by the observed data: Eve's blocking of single-photon pulses moves `Q_1` without moving `Q_μ` or `E_μ`. So a decoy-free implementation reports a positive rate computed at an assumed `Q_1/Q_μ` — about `+0.012` at `μ = 1` — while the worst case consistent with the data is negative. A bound that fails for an admissible channel is not a bound, and that gap is what decoy states close.
+
+**What is not modelled, and is not claimed:** detector blinding, timing and Trojan-horse channels, finite-key statistics, and the decoy-state mitigation. Each is a separate increment; [`docs/bb84_implementation.md`](docs/bb84_implementation.md) says what each would need. One expectation worth stating plainly, because a simulation environment invites the opposite: running attacks against `bb84.py` will not find a protocol-level gap, since the protocol is proven. The value is in retracing the accounting, not in trying to falsify it.
+
 ## Shift-zeta: a graded-algebra lift (negative result)
 
 Full detail in `docs/shift_zeta_result.md`; this is the most rigorously negative result in the repository, and it is reported as such rather than downplayed.
@@ -530,7 +552,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**493 tests pass** on the current tree. They are not smoke tests: the suite
+**518 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -542,6 +564,7 @@ silently changed meaning.
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
 | `test_graded_prime_monoid.py` | 52 | The monoid identification, the isomorphism check, the rival rules, the bridge, and the Euler factorisation |
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
+| `test_bb84_implementation.py` | 25 | Photon source, detectors, PNS, and the decoy-free bound |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
@@ -699,6 +722,7 @@ riemann-framework/
 │   │   ├── quantum_chaos.py       # Zero-spacing statistics
 │   │   ├── dsin.py                # DSIN communication simulation
 │   │   ├── bb84.py                # BB84 baseline, for comparison with DSIN
+│   │   ├── bb84_implementation.py # Source, detectors, PNS (implementation layer)
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
 │   │   ├── falsification_test.py  # DSH falsification grid + verdicts
@@ -741,13 +765,15 @@ riemann-framework/
 │       ├── test_cayley_dickson.py    # Cayley-Dickson property checks
 │       ├── test_dimension_lift.py    # Dimension-lift Euler-product checks
 │       ├── test_four_squares.py      # Jacobi four-square checks
-│       └── test_dsin.py              # DSIN simulation tests
+│       ├── test_dsin.py              # DSIN simulation tests
+│       └── test_bb84_implementation.py # Source, detectors, PNS
 │
 ├── scripts/                      # Helper scripts
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
 │   ├── run_quantum_chaos_analysis.py # Zero-spacing statistics
 │   ├── check_sigma.py             # Verify the sector-swap involution
 │   ├── run_dsin_verification.py   # Run DSIN simulations, compare with BB84
+│   ├── run_bb84_implementation_demo.py # Source, detectors, PNS accounting
 │   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
@@ -776,6 +802,7 @@ riemann-framework/
 │   ├── future_work.md               # Engineering and research roadmap
 │   ├── shift_zeta_result.md         # Shift-zeta (graded algebra) negative result
 │   ├── graded_prime_monoid.md       # Monoid, isomorphism, rivals, Euler bridge
+│   ├── bb84_implementation.md        # Source, detectors, PNS, what is not modelled
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
