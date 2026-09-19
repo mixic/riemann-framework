@@ -283,6 +283,13 @@ def pns_information_fraction(
 # What Alice and Bob can conclude
 # ============================================================
 
+def binary_entropy(x: float) -> float:
+    """`H_2(x) = -x log2 x - (1-x) log2(1-x)`, and 0 at the endpoints."""
+    if x <= 0.0 or x >= 1.0:
+        return 0.0
+    return -x * math.log2(x) - (1.0 - x) * math.log2(1.0 - x)
+
+
 def decoy_free_bound(
     mu: float, eta: float = 0.1, e_det: float = 0.01, p_dark: float = 0.0,
     f_ec: float = 1.16,
@@ -308,9 +315,7 @@ def decoy_free_bound(
     single = single_photon_contribution(mu, eta, e_det, p_dark)
 
     def h2(x: float) -> float:
-        if x <= 0.0 or x >= 1.0:
-            return 0.0
-        return -x * math.log2(x) - (1.0 - x) * math.log2(1.0 - x)
+        return binary_entropy(x)
 
     q_mu, e_mu = stats["Q_mu"], stats["E_mu"]
     delta_1 = single["Q_1"] / q_mu
@@ -330,3 +335,187 @@ def decoy_free_bound(
         "assumption_is_load_bearing": honest > 0.0 >= worst,
         "pns_information_fraction": pns_attack(mu, eta, e_det, p_dark).information_fraction,
     }
+
+
+# ============================================================
+# Decoy states: making the single-photon fraction measurable
+# ============================================================
+#
+# The gap above is that `Q_1` is not determined by the data at one intensity.
+# Decoy states close it by measuring the gain at a second, weaker intensity where
+# the multi-photon contribution is much smaller.
+#
+# The two bounds below are the vacuum + weak decoy case of Ma, Qi, Zhao and Lo
+# (2005), "Practical decoy state for quantum key distribution". They were read off
+# the source rather than recalled -- writing a plausible-looking decoy bound from
+# memory and checking it only against its own limits is the failure mode this
+# repository avoids. Two independent checks were applied:
+#
+#   1. the general two-decoy formulas in the same paper reduce to exactly these
+#      two expressions at `nu_1 = 0`, and the same pair appears with `nu_1`
+#      written out in later work;
+#   2. `decoy_state_report` checks both bounds against this module's own channel
+#      model, where the true `Y_1` and `e_1` are known. A mis-transcribed exponent
+#      would show up there immediately, and `bounds_are_valid` reports it.
+
+def lower_bound_Y1(mu: float, nu: float, Q_mu: float, Q_nu: float, Y_0: float) -> float:
+    """`Y_1^L` from a vacuum decoy and a weak decoy of intensity `nu`.
+
+    ```text
+    Y_1 >= mu/(mu nu - nu^2) *
+             [ Q_nu e^nu - (nu^2/mu^2) Q_mu e^mu - ((mu^2 - nu^2)/mu^2) Y_0 ]
+    ```
+
+    The bracket is what the two extra measurements buy: `Q_nu e^nu` bounds the
+    low-photon terms from above, `Q_mu e^mu` supplies the normalisation, and
+    `Y_0` is measured directly by the vacuum decoy. Subtracting the last two from
+    the first leaves a bound on the one- and two-photon contributions, and the
+    `nu^2/mu^2` weighting is what isolates `Y_1`.
+    """
+    if not 0.0 < nu < mu:
+        raise ValueError(f"need 0 < nu < mu, got nu={nu}, mu={mu}")
+    prefactor = mu / (mu * nu - nu * nu)
+    bracket = (
+        Q_nu * math.exp(nu)
+        - (nu * nu / (mu * mu)) * Q_mu * math.exp(mu)
+        - ((mu * mu - nu * nu) / (mu * mu)) * Y_0
+    )
+    return prefactor * bracket
+
+
+def upper_bound_e1(
+    nu: float, Q_nu: float, E_nu: float, Y_0: float, Y_1_lower: float
+) -> float:
+    """`e_1^U`, the matching upper bound on the single-photon error rate.
+
+    ```text
+    e_1 <= (E_nu Q_nu e^nu - e_0 Y_0) / (nu Y_1^L)
+    ```
+
+    Capped at `1/2`, which is where a usable error rate ends: beyond that the
+    sifted bits are anti-correlated rather than correlated, and `H_2` is
+    decreasing, so the cap is both physically right and conservative.
+    """
+    if Y_1_lower <= 0.0:
+        raise ValueError(
+            f"Y_1^L = {Y_1_lower} is not positive, so e_1 has no finite upper "
+            "bound from this data: the signal and decoy intensities are too close "
+            "together for the bound to separate single-photon events"
+        )
+    raw = (E_nu * Q_nu * math.exp(nu) - DARK_COUNT_ERROR_RATE * Y_0) / (nu * Y_1_lower)
+    return min(raw, 0.5)
+
+
+@dataclass
+class DecoyReport:
+    """A vacuum + weak decoy analysis, with the true values alongside for checking."""
+
+    mu: float
+    nu: float
+    Q_mu: float
+    E_mu: float
+    Q_nu: float
+    E_nu: float
+    Y_0: float
+    Y_1_lower: float
+    Y_1_true: float
+    e_1_upper: float
+    e_1_true: float
+    Q_1_lower: float
+    Q_1_true: float
+    rate_decoy: float
+    rate_decoy_free_honest: float
+    rate_decoy_free_worst: float
+    bounds_are_valid: bool
+    explanation: str
+
+    @property
+    def Y_1_is_tight(self) -> float:
+        """How close the lower bound is to the truth, as a fraction of it."""
+        return self.Y_1_lower / self.Y_1_true if self.Y_1_true else 0.0
+
+    @property
+    def bound_is_vacuous(self) -> bool:
+        """True when `Y_1^L <= 0`, so no key is extractable from this data.
+
+        The interesting case, not a degenerate one: it is the signature of
+        suppressed single-photon events. A protocol should read this as an alarm.
+        """
+        return self.Y_1_lower <= 0.0
+
+
+def decoy_state_report(
+    mu: float = 0.5,
+    nu: float = 0.1,
+    eta: float = 0.1,
+    e_det: float = 0.01,
+    p_dark: float = 0.0,
+    f_ec: float = 1.16,
+) -> DecoyReport:
+    """Decoy analysis with the bounds checked against the model that generated the data.
+
+    The true `Y_1` and `e_1` are included because this is a simulation: a real
+    implementation does not have them, and obtaining them *is* the problem decoys
+    solve. Having them here is what makes the bounds testable -- `bounds_are_valid`
+    is `Y_1^L <= Y_1` and `e_1^U >= e_1`, and a mis-transcribed formula fails it.
+
+    The rate uses the bounds, not the true values, so it is a rate Alice and Bob
+    could actually compute. It is *lower* than `rate_decoy_free_honest`, which is
+    the point: the decoy-free number was larger because it was unsupported. What
+    decoys buy is not a bigger number but a valid one.
+    """
+    signal = gain_and_error_rate(mu, eta, e_det, p_dark)
+    decoy = gain_and_error_rate(nu, eta, e_det, p_dark)
+    single = single_photon_contribution(mu, eta, e_det, p_dark)
+    y_0 = signal["Y_0"]
+
+    y_1_lower = lower_bound_Y1(mu, nu, signal["Q_mu"], decoy["Q_mu"], y_0)
+
+    if y_1_lower > 0.0:
+        e_1_upper = upper_bound_e1(nu, decoy["Q_mu"], decoy["E_mu"], y_0, y_1_lower)
+        q_1_lower = mu * math.exp(-mu) * y_1_lower
+    else:
+        # A non-positive `Y_1^L` is not an error condition. It is what the data look
+        # like when single-photon events have been *suppressed* -- which is the
+        # thing decoy states exist to detect, so crashing here would be the worst
+        # possible failure: a detection tool that dies on the signal it is meant to
+        # catch. Reachable, and reproduced in the tests, by depressing `Q_nu`
+        # toward `Y_0` while leaving `Q_mu` alone, which is exactly Eve's blocking.
+        # The bound is vacuous, so no key is extractable, and the negative rate
+        # below reports that.
+        e_1_upper = 0.5
+        q_1_lower = 0.0
+
+    rate = 0.5 * (
+        -signal["Q_mu"] * f_ec * binary_entropy(signal["E_mu"])
+        + q_1_lower * (1.0 - binary_entropy(e_1_upper))
+    )
+    free = decoy_free_bound(mu, eta, e_det, p_dark, f_ec)
+    valid = (y_1_lower <= single["Y_1"] + 1e-12) and (e_1_upper >= single["e_1"] - 1e-12)
+
+    return DecoyReport(
+        mu=mu,
+        nu=nu,
+        Q_mu=signal["Q_mu"],
+        E_mu=signal["E_mu"],
+        Q_nu=decoy["Q_mu"],
+        E_nu=decoy["E_mu"],
+        Y_0=y_0,
+        Y_1_lower=y_1_lower,
+        Y_1_true=single["Y_1"],
+        e_1_upper=e_1_upper,
+        e_1_true=single["e_1"],
+        Q_1_lower=q_1_lower,
+        Q_1_true=single["Q_1"],
+        rate_decoy=rate,
+        rate_decoy_free_honest=free["rate_if_channel_honest"],
+        rate_decoy_free_worst=free["worst_case_rate"],
+        bounds_are_valid=valid,
+        explanation=(
+            f"mu={mu:g}, nu={nu:g}: Y_1^L={y_1_lower:.6f} (true {single['Y_1']:.6f}), "
+            f"e_1^U={e_1_upper:.6f} (true {single['e_1']:.6f}). "
+            f"Rate from the bounds {rate:+.6f}, against the decoy-free number "
+            f"{free['rate_if_channel_honest']:+.6f} (unsupported) and the worst "
+            f"case {free['worst_case_rate']:+.6f}."
+        ),
+    )

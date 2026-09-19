@@ -31,13 +31,16 @@ from riemann_framework.bb84 import run_bb84
 from riemann_framework.bb84_implementation import (
     dark_count_yield,
     decoy_free_bound,
+    decoy_state_report,
     gain_and_error_rate,
+    lower_bound_Y1,
     n_photon_yield,
     pns_attack,
     pns_information_fraction,
     poisson_photon_distribution,
     single_photon_contribution,
     source_fractions,
+    upper_bound_e1,
 )
 
 # A representative short-reach implemented link.
@@ -291,3 +294,163 @@ def test_poisson_truncation_mass_is_reported_and_negligible():
             fractions["vacuum"] + fractions["single"] + fractions["multi"],
             1.0,
         )
+
+
+# ============================================================
+# Decoy states: the bounds, checked against the model
+# ============================================================
+
+def test_the_vacuum_weak_bound_agrees_with_the_general_two_decoy_formula():
+    """The transcription check: two published forms of the same bound must agree.
+
+    Ma-Qi-Zhao-Lo give a general two-decoy expression in `(nu, nu_1)`. Setting
+    `nu_1 = 0` -- the vacuum -- must reproduce the vacuum+weak expression the
+    module implements. Evaluating both symbolically indepenently here is what
+    makes the implemented form attributable to the source rather than recalled.
+    """
+    def general(mu, nu, nu_1, Q_mu, Q_nu, Q_nu1, Y_0):
+        numerator = mu * (
+            math.exp(nu) * Q_nu
+            - math.exp(nu_1) * Q_nu1
+            - (nu**2 - nu_1**2) / mu**2 * (math.exp(mu) * Q_mu - Y_0)
+        )
+        return numerator / (mu * (nu - nu_1) - (nu**2 - nu_1**2))
+
+    for mu, nu in ((0.5, 0.1), (0.5, 0.2), (1.0, 0.15), (0.8, 0.05)):
+        Q_mu = gain_and_error_rate(mu, ETA, E_DET, P_DARK)["Q_mu"]
+        Q_nu = gain_and_error_rate(nu, ETA, E_DET, P_DARK)["Q_mu"]
+        y_0 = dark_count_yield(P_DARK)
+        at_vacuum = general(mu, nu, 0.0, Q_mu, Q_nu, y_0, y_0)
+        assert lower_bound_Y1(mu, nu, Q_mu, Q_nu, y_0) == pytest.approx(
+            at_vacuum, rel=1e-12
+        )
+
+
+def test_Y1_lower_bound_is_valid_across_a_parameter_sweep():
+    """The bound must hold everywhere, and this is what catches a wrong formula.
+
+    `Y_1^L <= Y_1` and `e_1^U >= e_1` are checked against the channel model that
+    generated the data -- a real implementation does not know the true values, but
+    a simulation does, which is exactly what makes the bound testable. A
+    mis-transcribed exponent shows up here immediately rather than in production.
+    """
+    checked = 0
+    for mu in (0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2):
+        for nu in (0.05, 0.1, 0.15, 0.2, 0.3):
+            if nu >= mu:
+                continue
+            for eta in (0.01, 0.05, 0.1, 0.3, 0.5):
+                for p_dark in (0.0, 1e-6, 1e-4):
+                    report = decoy_state_report(mu, nu, eta, E_DET, p_dark)
+                    assert report.bounds_are_valid, (mu, nu, eta, p_dark)
+                    assert report.Y_1_lower <= report.Y_1_true + 1e-12
+                    assert report.e_1_upper >= report.e_1_true - 1e-12
+                    assert 0.0 <= report.e_1_upper <= 0.5
+                    checked += 1
+    assert checked > 400
+
+
+def test_Y1_lower_bound_tightens_as_the_decoy_weakens():
+    """The bound approaches the truth as `nu -> 0`, which is the published limit.
+
+    This is why the source recommends weak decoys: the correction term is
+    quadratic in `nu`, so a decoy an order of magnitude below the signal is
+    already within a few per cent.
+    """
+    tightness = [
+        decoy_state_report(0.5, nu, ETA, E_DET, P_DARK).Y_1_is_tight
+        for nu in (0.05, 0.1, 0.2, 0.3)
+    ]
+    assert tightness == sorted(tightness, reverse=True), tightness
+    assert tightness[0] > 0.98
+    assert tightness[-1] < tightness[0]
+    assert all(0.0 < t <= 1.0 for t in tightness)
+
+
+def test_decoy_rate_is_below_the_unsupported_number_and_above_the_worst_case():
+    """What decoys buy is a *valid* number, not a bigger one.
+
+    The decoy rate is computed from measured decoy data, so it is sound; it sits
+    below the decoy-free figure, which was larger only because it assumed a
+    single-photon fraction nobody measured, and far above the worst case.
+    """
+    report = decoy_state_report(0.5, 0.1, ETA, E_DET, P_DARK)
+    assert report.rate_decoy_free_worst < 0.0
+    assert 0.0 < report.rate_decoy < report.rate_decoy_free_honest
+    assert report.rate_decoy > report.rate_decoy_free_worst
+    # ... and it is close to the unsupported figure: decoys cost little rate.
+    assert report.rate_decoy > 0.95 * report.rate_decoy_free_honest
+
+
+def test_the_analysis_never_raises_over_its_whole_input_domain():
+    """The detection tool must survive every legitimate parameter choice.
+
+    `decoy_state_report` is what an operator runs to *find* suppression, so it
+    must not raise on any intensity pair, however badly chosen. This sweeps the
+    domain, including decoys very close to the signal where the bound is weakest.
+    """
+    count = 0
+    for mu in (0.3, 0.5, 1.0):
+        for nu in (0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.45, 0.499):
+            if nu >= mu:
+                continue
+            for eta in (1e-4, 0.01, 0.1, 0.5):
+                report = decoy_state_report(mu, nu, eta, E_DET, P_DARK)
+                assert isinstance(report.rate_decoy, float)
+                count += 1
+    assert count >= 60
+
+
+def test_a_vacuous_bound_yields_a_non_positive_rate_by_construction():
+    """The vacuous branch's arithmetic: with `Q_1^L = 0` no key can be extracted.
+
+    Reproducing the branch through the honest channel model is not possible -- an
+    unsuppressed channel always gives a positive bound -- so the branch is pinned
+    where it is decidable: the bound itself goes negative under suppression, and
+    the rate expression with `Q_1^L = 0` is `-(1/2) Q_mu f_ec H_2(E_mu)`, which is
+    negative. Together those are what the branch returns.
+    """
+    y_0 = dark_count_yield(P_DARK)
+    q_mu = gain_and_error_rate(0.5, ETA, E_DET, P_DARK)["Q_mu"]
+    assert lower_bound_Y1(0.5, 0.1, q_mu, y_0, y_0) < 0.0
+
+    stats = gain_and_error_rate(0.5, ETA, E_DET, P_DARK)
+    from riemann_framework.bb84_implementation import binary_entropy
+
+    rate_with_no_singles = 0.5 * (-stats["Q_mu"] * 1.16 * binary_entropy(stats["E_mu"]))
+    assert rate_with_no_singles < 0.0
+
+    # And the honest report is *not* vacuous, so the flag discriminates.
+    assert decoy_state_report(0.5, 0.1, ETA, E_DET, P_DARK).bound_is_vacuous is False
+
+
+def test_vacuous_bound_is_still_a_valid_bound():
+    """A vacuous lower bound is not a false one: `Y_1^L <= Y_1` still holds."""
+    y_0 = dark_count_yield(P_DARK)
+    q_mu = gain_and_error_rate(0.5, ETA, E_DET, P_DARK)["Q_mu"]
+    assert lower_bound_Y1(0.5, 0.1, q_mu, y_0, y_0) < 0.0
+    assert lower_bound_Y1(0.5, 0.1, q_mu, y_0, y_0) <= n_photon_yield(1, ETA, P_DARK)
+
+
+def test_decoy_helpers_reject_degenerate_intensities():
+    with pytest.raises(ValueError, match="0 < nu < mu"):
+        lower_bound_Y1(0.5, 0.5, 0.05, 0.01, 1e-6)
+    with pytest.raises(ValueError, match="0 < nu < mu"):
+        lower_bound_Y1(0.5, 0.6, 0.05, 0.01, 1e-6)
+    with pytest.raises(ValueError, match="0 < nu < mu"):
+        lower_bound_Y1(0.5, 0.0, 0.05, 0.01, 1e-6)
+
+
+def test_e1_upper_bound_is_capped_at_one_half():
+    """A usable error rate ends at 1/2; past it the bits are anti-correlated.
+
+    The cap is also conservative, since `H_2` is decreasing beyond 1/2 and capping
+    therefore lowers the rate rather than raising it.
+    """
+    assert upper_bound_e1(0.1, 1e-3, 0.9, 1e-9, 1e-6) == 0.5
+
+
+def test_decoy_report_explains_itself():
+    report = decoy_state_report(0.5, 0.1, ETA, E_DET, P_DARK)
+    assert "Y_1^L" in report.explanation
+    assert f"{report.rate_decoy:+.6f}" in report.explanation

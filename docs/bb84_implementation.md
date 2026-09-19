@@ -12,9 +12,10 @@ happened in practice happened one layer down, in hardware:
 - timing side channels and Trojan-horse attacks on the source;
 - **finite-key statistics** — the asymptotic analysis assumes infinitely many rounds.
 
-This article documents `bb84_implementation.py`, which models the first of those
-together with the source and detector physics it needs. The other three are named
-below with what each would require, and are **not** implemented.
+This article documents `bb84_implementation.py`, which models photon-number
+splitting together with the source and detector physics it needs, and implements
+the decoy-state mitigation with bounds taken from the literature. The other three
+are named below with what each would require, and are **not** implemented.
 
 Nothing here is a security proof for or against any deployed system. It is the
 standard photon-number-splitting accounting, written down so the numbers can be
@@ -116,6 +117,65 @@ observed data is not a bound, and the worst case is what the data support. This 
 the gap that decoy states close, by measuring enough different intensities to pin
 `Q_1` down (Hwang 2003; Lo, Ma and Chen 2005).
 
+## 2.1 Decoy states, and the lower bound taken from a source
+
+The gap in section 2 is that `Q_1` is not determined by the data at one intensity.
+Decoy states close it by measuring the gain at a second, weaker intensity where the
+multi-photon contribution is much smaller. The bounds implemented are the
+**vacuum + weak decoy** case of Ma, Qi, Zhao and Lo (2005):
+
+```text
+Y_1 >= mu/(mu nu - nu^2) [ Q_nu e^nu - (nu^2/mu^2) Q_mu e^mu
+                           - ((mu^2 - nu^2)/mu^2) Y_0 ]
+e_1 <= (E_nu Q_nu e^nu - e_0 Y_0) / (nu Y_1^L)
+```
+
+**They were read off the source, not recalled**, and two independent checks were
+applied.
+
+*First, the transcription.* Ma et al. also give a general two-decoy expression in
+`(nu, nu_1)`. Setting `nu_1 = 0` — the vacuum — must reproduce the vacuum + weak
+form above, and
+`test_the_vacuum_weak_bound_agrees_with_the_general_two_decoy_formula` evaluates
+both independently and asserts they agree to `1e-12`. The two expressions are
+algebraically identical, which is why the implemented form is attributable rather
+than remembered.
+
+*Second, validity against the model.* A lower bound's only real test is that it
+holds. Because this is a simulation, the true `Y_1` and `e_1` are known, so
+`decoy_state_report` checks `Y_1^L <= Y_1` and `e_1^U >= e_1` and reports
+`bounds_are_valid`. Swept over 510 parameter sets — `mu`, `nu`, `eta` and `p_dark`
+— there are **zero violations**. A mis-transcribed exponent fails this
+immediately.
+
+The bound is also tight, and tightens as the decoy weakens, which is the published
+reason for choosing weak decoys (the correction is quadratic in `nu`):
+
+| `mu` | `nu` | `Y_1^L` | true `Y_1` | tightness | `e_1^U` | true `e_1` | decoy rate | decoy-free | worst case |
+|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+| 0.5 | 0.05 | 0.098649 | 0.100002 | 0.987 | 0.01064 | 0.01001 | **+0.011398** | +0.011648 | −0.002289 |
+| 0.5 | 0.10 | 0.097255 | 0.100002 | 0.972 | 0.01132 | 0.01001 | **+0.011139** | +0.011648 | −0.002289 |
+| 0.5 | 0.20 | 0.094335 | 0.100002 | 0.943 | 0.01283 | 0.01001 | **+0.010599** | +0.011648 | −0.002289 |
+| 1.0 | 0.10 | 0.093445 | 0.100002 | 0.934 | 0.01178 | 0.01001 | **+0.011137** | +0.012444 | −0.004463 |
+
+Read the last three columns together, because that is the finding. What decoys buy
+is **not a bigger number but a valid one**: the decoy rate sits about 2% below the
+decoy-free figure, which was larger only because it assumed a single-photon
+fraction nobody had measured, and it is far above the worst case the data permit.
+
+### 2.2 A bug this increment found
+
+`Y_1^L` goes **negative** when single-photon events are suppressed — reproduced by
+driving `Q_nu` toward `Y_0` while leaving `Q_mu` alone, which is exactly Eve's
+blocking. That is not a degenerate input; it is the signal decoy states exist to
+detect. An earlier revision of `decoy_state_report` let `upper_bound_e1` raise
+`ValueError` in that case, so the detection tool died on the very thing it was
+built to catch. It now reports a vacuous bound (`bound_is_vacuous`) and a
+non-positive rate. `upper_bound_e1` still refuses on a standalone call, where
+there genuinely is no finite bound to return;
+`test_the_analysis_never_raises_over_its_whole_input_domain` sweeps the domain to
+keep it that way.
+
 ## 3. What is not modelled
 
 Each of these is a separate increment. None is a side effect of the current code,
@@ -139,11 +199,9 @@ sample, so the bound must hold with a confidence level rather than in expectatio
 and there is a minimum number of rounds below which no key can be extracted. This
 is a modification of section 2's accounting, not of the channel model.
 
-**Decoy states.** The mitigation for section 1.3. Needs the two- or
-three-intensity gain equations and a lower bound on `Y_1`. It is deliberately
-absent rather than sketched, because writing a decoy bound from memory and
-checking it only against its own limits is exactly the failure mode this
-repository avoids elsewhere.
+**Decoy states.** Now implemented — see section 2.1. It was the mitigation for
+section 1.3 and needed the `Y_1` lower bound, which is taken from the source
+rather than recalled.
 
 ## 4. What this can and cannot be used for
 
@@ -164,7 +222,7 @@ not measured, and three of the four historical attack classes are absent entirel
 | file | role |
 |:---|:---|
 | `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound |
-| `python/tests/test_bb84_implementation.py` | 25 tests |
+| `python/tests/test_bb84_implementation.py` | 35 tests |
 | `scripts/run_bb84_implementation_demo.py` | prints all five parts and writes the figure |
 | `output/bb84_pns_attack.png` | information against observable, and the two rates |
 
