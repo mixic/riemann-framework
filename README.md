@@ -40,7 +40,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **538 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **569 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -288,9 +288,11 @@ the same way, and the comparison is only readable if that is stated:
 | depolarizing noise | DSIN BER | BB84 sifted-key QBER | BB84 verdict |
 |:---|:---|:---|:---|
 | 0.00 | 0.0000 | 0.0000 | not detected |
-| 0.10 | 0.0440 | 0.0409 | not detected |
-| 0.20 | 0.0840 | 0.1004 | not detected |
-| 0.30 | 0.1680 | 0.1357 | **detected** |
+| 0.10 | 0.0440 | 0.0470 | not detected |
+| 0.20 | 0.0840 | 0.0920 | not detected |
+| 0.30 | 0.1680 | 0.1493 | **detected** |
+
+The BB84 column is from the vectorized backend. `run_bb84` now simulates all rounds at once with NumPy (`backend="numpy"`, the default) instead of one round at a time; the looped path is kept as `backend="loop"`. Measured, the vectorization is worth **30–43×** (n = 10k to 1M rounds). The two backends do not share a random stream — the looped version interleaves `integers` and `random` per round while a vectorized one draws grouped by kind — so same-seed equality was never available and these figures differ slightly from an earlier revision. What is pinned instead is exact agreement on identical draws, plus statistical agreement on a common seed; see `python/tests/test_bb84.py`.
 
 DSIN watches a per-round symmetry observable, so its detection rate is a genuine
 per-round frequency. BB84 has no per-round detection event: Alice's and Bob's
@@ -554,7 +556,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**538 tests pass** on the current tree. They are not smoke tests: the suite
+**569 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -567,6 +569,7 @@ silently changed meaning.
 | `test_graded_prime_monoid.py` | 52 | The monoid identification, the isomorphism check, the rival rules, the bridge, and the Euler factorisation |
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_bb84_implementation.py` | 45 | Source, detectors, PNS, decoy bounds, finite keys |
+| `test_bb84.py` | 31 | The BB84 baseline, and exact equivalence between its two backends |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
@@ -768,7 +771,8 @@ riemann-framework/
 │       ├── test_dimension_lift.py    # Dimension-lift Euler-product checks
 │       ├── test_four_squares.py      # Jacobi four-square checks
 │       ├── test_dsin.py              # DSIN simulation tests
-│       └── test_bb84_implementation.py # Source, detectors, PNS
+│       ├── test_bb84_implementation.py # Source, detectors, PNS
+│       └── test_bb84.py              # Baseline + backend equivalence
 │
 ├── scripts/                      # Helper scripts
 │   ├── run_dimension_shift_chaos.py # Generate chaos plots
