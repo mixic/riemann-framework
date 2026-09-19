@@ -519,3 +519,136 @@ def decoy_state_report(
             f"case {free['worst_case_rate']:+.6f}."
         ),
     )
+
+
+# ============================================================
+# Finite-key statistics: the error rate is estimated, not known
+# ============================================================
+#
+# Everything above assumes infinitely many rounds. In practice the error rate is
+# estimated from a finite sample, so the value a rate calculation may use is an
+# *upper confidence bound*, not the observed figure. This is a correction to the
+# accounting rather than a channel model, which is why it is a separate section
+# and not a new attack.
+#
+# The statistical ingredient is Hoeffding's inequality: for `k` independent
+# Bernoulli trials with empirical mean `p_hat`,
+#
+#     P(true p > p_hat + delta) <= exp(-2 k delta^2),
+#
+# so `delta = sqrt(ln(1/epsilon) / (2 k))` gives a bound valid except with
+# probability `epsilon`. That is elementary and standard; what is *not* attempted
+# here is the full composable finite-key epsilon-bookkeeping, which needs the
+# privacy-amplification and error-correction terms to be accounted for in a
+# framework this module does not implement. The rate below is therefore the
+# asymptotic expression with a corrected error rate, and the epsilon parameter
+# governs only the parameter-estimation step.
+
+def hoeffding_error_bound(sample_size: int, epsilon: float) -> float:
+    """`delta = sqrt(ln(1/epsilon) / (2 k))`, the one-sided Hoeffding slack.
+
+    The estimated error rate may be trusted only up to `+delta`; it shrinks as
+    `1/sqrt(k)`, which is why finite-key effects are a small-round problem.
+    """
+    if sample_size < 1:
+        raise ValueError(f"sample_size must be >= 1, got {sample_size}")
+    if not 0.0 < epsilon < 1.0:
+        raise ValueError(f"epsilon must be in (0, 1), got {epsilon}")
+    return math.sqrt(math.log(1.0 / epsilon) / (2.0 * sample_size))
+
+
+def finite_key_report(
+    mu: float = 0.5,
+    nu: float = 0.1,
+    n_pulses: float = 1e9,
+    eta: float = 0.1,
+    e_det: float = 0.01,
+    p_dark: float = 0.0,
+    epsilon: float = 1e-10,
+    f_ec: float = 1.16,
+    test_fraction: float = 0.1,
+) -> dict:
+    """How finite statistics inflate the error rate a rate calculation may use.
+
+    Alice and Bob sacrifice a `test_fraction` of the sifted key to estimate the
+    error rate, then must assume it could be `delta` higher. The correction enters
+    the rate through `H_2`, so it bites hardest when the observed error rate is
+    already close to the threshold at which the rate vanishes -- which is why the
+    finite-key penalty is a *distance* penalty, not a uniform rate penalty.
+
+    The `all_rounds_asymptotic` entry is the decoy rate from the uncorrected error
+    rate, for comparison. The reported `finite_rate` uses the corrected one, and is
+    what Alice and Bob could actually claim.
+    """
+    if n_pulses < 1:
+        raise ValueError(f"n_pulses must be >= 1, got {n_pulses}")
+    if not 0.0 < test_fraction < 1.0:
+        raise ValueError(f"test_fraction must be in (0, 1), got {test_fraction}")
+
+    decoy = decoy_state_report(mu, nu, eta, e_det, p_dark, f_ec)
+    # Half the rounds survive sifting, by the BB84 basis choice.
+    n_sifted = n_pulses * decoy.Q_mu / 2.0
+    test_sample = int(n_sifted * test_fraction)
+    if test_sample < 1:
+        raise ValueError(
+            f"n_pulses={n_pulses:g} yields no sifted bits to test at this gain"
+        )
+
+    delta = hoeffding_error_bound(test_sample, epsilon)
+    e_upper = min(0.5, decoy.E_mu + delta)
+
+    def rate_at(error_rate: float) -> float:
+        return 0.5 * (
+            -decoy.Q_mu * f_ec * binary_entropy(error_rate)
+            + decoy.Q_1_lower * (1.0 - binary_entropy(decoy.e_1_upper))
+        )
+
+    return {
+        "n_pulses": n_pulses,
+        "n_sifted": n_sifted,
+        "test_sample": test_sample,
+        "epsilon": epsilon,
+        "delta": delta,
+        "E_mu_observed": decoy.E_mu,
+        "E_mu_upper": e_upper,
+        "finite_rate": rate_at(e_upper),
+        "all_rounds_asymptotic": rate_at(decoy.E_mu),
+        "rate_penalty": rate_at(decoy.E_mu) - rate_at(e_upper),
+        "decoy_report": decoy,
+    }
+
+
+def minimum_rounds(
+    mu: float = 0.5,
+    nu: float = 0.1,
+    eta: float = 0.1,
+    e_det: float = 0.01,
+    p_dark: float = 0.0,
+    epsilon: float = 1e-10,
+    f_ec: float = 1.16,
+    test_fraction: float = 0.1,
+) -> float:
+    """The fewest pulses for which a positive finite-key rate survives.
+
+    Found by bisection on `finite_key_report`, which is monotone here: fewer pulses
+    mean a smaller test sample, a larger Hoeffding slack, a higher error rate a rate
+    calculation must assume, and a smaller rate. Below this number there is no
+    finite-key security claim to make at these parameters, however good the channel.
+    """
+    low, high = 1.0, 1e6
+    while finite_key_report(
+        mu, nu, high, eta, e_det, p_dark, epsilon, f_ec, test_fraction
+    )["finite_rate"] <= 0.0:
+        high *= 10.0
+        if high > 1e18:
+            raise ValueError("no positive finite-key rate found up to 1e18 pulses")
+
+    for _ in range(200):
+        mid = math.sqrt(low * high)
+        if finite_key_report(
+            mu, nu, mid, eta, e_det, p_dark, epsilon, f_ec, test_fraction
+        )["finite_rate"] > 0.0:
+            high = mid
+        else:
+            low = mid
+    return high

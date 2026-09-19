@@ -176,6 +176,41 @@ there genuinely is no finite bound to return;
 `test_the_analysis_never_raises_over_its_whole_input_domain` sweeps the domain to
 keep it that way.
 
+## 2.3 Finite keys: the error rate is estimated, not known
+
+Everything in section 2 assumes infinitely many rounds. In practice the error rate
+comes from a finite test sample, so the value a rate calculation may *use* is an
+upper confidence bound. Hoeffding's inequality gives it: for `k` independent
+Bernoulli trials,
+
+```text
+P(true p > p_hat + delta) <= exp(-2 k delta^2),   delta = sqrt(ln(1/epsilon) / (2k)).
+```
+
+The slack falls as `1/sqrt(k)`, so finite-key effects are a small-sample problem
+rather than a uniform rate penalty, and they bite hardest when the observed error
+rate is already near the threshold where the rate vanishes — a *distance* penalty,
+not a rate penalty.
+
+| pulses `N` | test sample `k` | `delta` | `E_mu^U` | finite rate | asymptotic |
+|:---|:---|:---|:---|:---|:---|
+| 1e6 | 2438 | 0.068719 | 0.078739 | **+0.002178** | +0.011139 |
+| 1e8 | 243862 | 0.006871 | 0.016891 | **+0.009932** | +0.011139 |
+| 1e10 | 24386238 | 0.000687 | 0.010707 | **+0.011011** | +0.011139 |
+| 1e12 | 2438623897 | 0.000069 | 0.010089 | **+0.011126** | +0.011139 |
+
+Bisecting on the sign change gives a **minimum of `5.606e5` pulses** at these
+parameters, below which no finite-key security claim can be made however good the
+channel — and a worse channel raises that floor, which
+`test_a_worse_channel_needs_more_rounds` pins.
+
+**What is deliberately not attempted:** the full composable finite-key
+`epsilon`-bookkeeping. The rate above is the asymptotic expression with a corrected
+error rate, and `epsilon` governs only the parameter-estimation step; the
+privacy-amplification and error-correction overheads are not accounted for in a
+composable framework. Saying so is the point — a finite-key claim assembled from
+plausible-looking terms is exactly the kind of thing this repository does not do.
+
 ## 3. What is not modelled
 
 Each of these is a separate increment. None is a side effect of the current code,
@@ -193,15 +228,8 @@ the source and detectors, and for Trojan-horse a back-reflection channel from th
 source to Eve. The content is that the modulator's timing, or light reflected off
 the source, leaks the basis without touching the quantum channel.
 
-**Finite-key statistics.** A different kind of change: not an attack but a
-correction. The parameter-estimation step estimates the error rate from a finite
-sample, so the bound must hold with a confidence level rather than in expectation,
-and there is a minimum number of rounds below which no key can be extracted. This
-is a modification of section 2's accounting, not of the channel model.
-
-**Decoy states.** Now implemented — see section 2.1. It was the mitigation for
-section 1.3 and needed the `Y_1` lower bound, which is taken from the source
-rather than recalled.
+Both accounting gaps are now closed: decoy states in section 2.1 and finite-key
+statistics in section 2.3. What remains is detector physics.
 
 ## 4. What this can and cannot be used for
 
@@ -222,7 +250,7 @@ not measured, and three of the four historical attack classes are absent entirel
 | file | role |
 |:---|:---|
 | `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound |
-| `python/tests/test_bb84_implementation.py` | 35 tests |
+| `python/tests/test_bb84_implementation.py` | 45 tests |
 | `scripts/run_bb84_implementation_demo.py` | prints all five parts and writes the figure |
 | `output/bb84_pns_attack.png` | information against observable, and the two rates |
 

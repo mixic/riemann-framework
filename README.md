@@ -32,7 +32,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Dimension-shift experiments | Working and exploratory |
 | Dimension-shift falsification grid | Working; single seed, verdict interpretation still coarse |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
-| BB84 implementation layer | **Started.** Photon source, detector model, photon-number splitting, and the decoy-state mitigation: the attack leaves `Q_μ` and `E_μ` exactly the honest channel's while Eve learns up to 99% of the sifted key, and the decoy bound recovers a *valid* rate about 2% below the unsupported one. Three of the four historical attack classes are not modelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
+| BB84 implementation layer | **Started.** Photon source, detector model, photon-number splitting, the decoy-state mitigation, and finite-key statistics: the attack leaves `Q_μ` and `E_μ` exactly the honest channel's while Eve learns up to 99% of the sifted key; the decoy bound recovers a *valid* rate about 2% below the unsupported one; finite keys impose a floor of 5.6e5 pulses. Detector blinding and timing/Trojan-horse channels are not modelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Graded prime monoid | `(ℕ_{>0}, ×)` identified with the free commutative monoid on the primes; exponent-vector addition shown to be the **only** rule compatible with unique factorization, and to be exactly what makes the Euler product factorize. Ordinary arithmetic restated, not a new number system — see [`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) |
@@ -40,7 +40,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **528 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **538 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -331,7 +331,7 @@ lists what a successor would need, and
 
 The consequence is a statement about what a bound *is*. The single-photon fraction `Q_1/Q_μ` that a GLLP rate needs is not determined by the observed data: Eve's blocking of single-photon pulses moves `Q_1` without moving `Q_μ` or `E_μ`. So a decoy-free implementation reports a positive rate computed at an assumed `Q_1/Q_μ` — about `+0.012` at `μ = 1` — while the worst case consistent with the data is negative. A bound that fails for an admissible channel is not a bound, and that gap is what decoy states close.
 
-**What is not modelled, and is not claimed:** detector blinding, timing and Trojan-horse channels, and finite-key statistics. Each is a separate increment; [`docs/bb84_implementation.md`](docs/bb84_implementation.md) says what each would need. The **decoy-state mitigation is implemented**, with the `Y_1` lower bound read off Ma–Qi–Zhao–Lo (2005) rather than recalled: it is checked against the general two-decoy form at `ν₁ = 0`, and against the simulation's own true `Y_1` over 510 parameter sets with zero violations. The bound is valid and about 98% tight at `ν = 0.05`.
+**What is not modelled, and is not claimed:** detector blinding, and timing and Trojan-horse channels. Both need detector and source physics rather than a correction to the accounting, and [`docs/bb84_implementation.md`](docs/bb84_implementation.md) says what each would need. **Decoy states and finite-key statistics are implemented.** The `Y_1` lower bound is read off Ma–Qi–Zhao–Lo (2005) rather than recalled: it is checked against the general two-decoy form at `ν₁ = 0`, and against the simulation's own true `Y_1` over 510 parameter sets with zero violations — valid and about 98% tight at `ν = 0.05`. Finite keys use Hoeffding's `δ = √(ln(1/ε)/2k)`, which falls as `1/√k` and imposes a minimum of `5.6e5` pulses at these parameters.
 
 One expectation worth stating plainly, because a simulation environment invites the opposite: running attacks against `bb84.py` will not find a protocol-level gap, since the protocol is proven. The value is in retracing the accounting, not in trying to falsify it.
 
@@ -554,7 +554,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**528 tests pass** on the current tree. They are not smoke tests: the suite
+**538 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -566,7 +566,7 @@ silently changed meaning.
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
 | `test_graded_prime_monoid.py` | 52 | The monoid identification, the isomorphism check, the rival rules, the bridge, and the Euler factorisation |
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
-| `test_bb84_implementation.py` | 35 | Photon source, detectors, PNS, and the decoy bounds |
+| `test_bb84_implementation.py` | 45 | Source, detectors, PNS, decoy bounds, finite keys |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |

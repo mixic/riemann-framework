@@ -32,8 +32,11 @@ from riemann_framework.bb84_implementation import (
     dark_count_yield,
     decoy_free_bound,
     decoy_state_report,
+    finite_key_report,
     gain_and_error_rate,
+    hoeffding_error_bound,
     lower_bound_Y1,
+    minimum_rounds,
     n_photon_yield,
     pns_attack,
     pns_information_fraction,
@@ -454,3 +457,92 @@ def test_decoy_report_explains_itself():
     report = decoy_state_report(0.5, 0.1, ETA, E_DET, P_DARK)
     assert "Y_1^L" in report.explanation
     assert f"{report.rate_decoy:+.6f}" in report.explanation
+
+
+# ============================================================
+# Finite-key statistics
+# ============================================================
+
+def test_hoeffding_slack_scales_as_one_over_sqrt_k():
+    """Ten times the sample buys a factor `sqrt(10)` in the bound, not ten.
+
+    That square root is why finite-key effects are a small-`N` problem and why
+    they vanish fast: at `k = 10^8` the slack is `3.4e-4`, far below a typical
+    `e_det`.
+    """
+    base = hoeffding_error_bound(1000, 1e-10)
+    for factor in (10, 100, 10_000):
+        scaled = hoeffding_error_bound(1000 * factor, 1e-10)
+        assert scaled == pytest.approx(base / math.sqrt(factor), rel=1e-12)
+
+
+def test_hoeffding_slack_grows_with_the_confidence_required():
+    """A tighter `epsilon` costs slack: the bound must hold more often."""
+    assert hoeffding_error_bound(1000, 1e-12) > hoeffding_error_bound(1000, 1e-6)
+
+
+@pytest.mark.parametrize(
+    "kwargs, match",
+    [({"sample_size": 0, "epsilon": 1e-10}, "sample_size"),
+     ({"sample_size": 100, "epsilon": 0.0}, "epsilon"),
+     ({"sample_size": 100, "epsilon": 1.0}, "epsilon")],
+)
+def test_hoeffding_rejects_impossible_arguments(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        hoeffding_error_bound(**kwargs)
+
+
+def test_finite_key_rate_is_below_the_asymptotic_and_climbs_toward_it():
+    """Finite statistics only ever cost rate, and the cost vanishes as `1/sqrt(N)`.
+
+    The corrected error rate is the observed one plus the slack, so the rate is
+    strictly below the asymptotic figure at every finite `N` and approaches it
+    from below.
+    """
+    rates = [
+        finite_key_report(n_pulses=n, p_dark=P_DARK)["finite_rate"]
+        for n in (1e6, 1e7, 1e8, 1e9, 1e10)
+    ]
+    asymptotic = finite_key_report(n_pulses=1e10, p_dark=P_DARK)["all_rounds_asymptotic"]
+    assert rates == sorted(rates), rates
+    assert all(r < asymptotic for r in rates)
+    assert rates[-1] == pytest.approx(asymptotic, rel=0.02)
+
+
+def test_finite_key_correction_is_applied_to_the_error_rate():
+    report = finite_key_report(n_pulses=1e7, p_dark=P_DARK)
+    assert report["E_mu_upper"] > report["E_mu_observed"]
+    assert report["E_mu_upper"] == pytest.approx(
+        report["E_mu_observed"] + report["delta"], rel=1e-12
+    )
+    assert report["E_mu_upper"] <= 0.5
+    assert report["rate_penalty"] > 0.0
+
+
+def test_minimum_rounds_is_where_the_rate_crosses_zero():
+    """The bisection must land on the sign change, checked either side of it.
+
+    A minimum round count is the honest finite-key statement: below it there is no
+    security claim to make at these parameters, however good the channel.
+    """
+    n_min = minimum_rounds(p_dark=P_DARK)
+    assert n_min > 0.0
+    above = finite_key_report(n_pulses=n_min * 1.01, p_dark=P_DARK)["finite_rate"]
+    below = finite_key_report(n_pulses=n_min * 0.99, p_dark=P_DARK)["finite_rate"]
+    assert above > 0.0 > below, (above, below)
+
+
+def test_a_worse_channel_needs_more_rounds():
+    """More misalignment means a smaller margin, so a larger minimum `N`."""
+    clean = minimum_rounds(e_det=0.005, p_dark=P_DARK)
+    noisy = minimum_rounds(e_det=0.03, p_dark=P_DARK)
+    assert noisy > clean
+
+
+def test_finite_key_report_rejects_impossible_arguments():
+    with pytest.raises(ValueError, match="n_pulses"):
+        finite_key_report(n_pulses=0, p_dark=P_DARK)
+    with pytest.raises(ValueError, match="test_fraction"):
+        finite_key_report(n_pulses=1e9, p_dark=P_DARK, test_fraction=0.0)
+    with pytest.raises(ValueError, match="sifted"):
+        finite_key_report(n_pulses=1.0, p_dark=P_DARK)

@@ -37,7 +37,10 @@ import matplotlib.pyplot as plt
 from riemann_framework.bb84 import run_bb84
 from riemann_framework.bb84_implementation import (
     decoy_free_bound,
+    decoy_state_report,
+    finite_key_report,
     gain_and_error_rate,
+    minimum_rounds,
     pns_attack,
     single_photon_contribution,
     source_fractions,
@@ -50,18 +53,23 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 ETA = 0.1
 E_DET = 0.01
 P_DARK = 1e-6
+#: The weak decoy intensity, an order of magnitude below the signal `mu`.
+DECOY_INTENSITY = 0.1
 
 
 def plot_attack_and_bound(mus=None):
-    """The attack in one panel, and what Alice and Bob conclude in the other.
+    """Three panels: the attack, what decoys recover, and what finite keys cost.
 
     Left: the error rate Alice and Bob measure against the fraction of the sifted
     key Eve holds. The error rate is flat at `e_det` across the whole sweep while
     Eve's information climbs past 0.99 -- the two curves do not touch.
 
-    Right: the rate a decoy-free implementation reports, computed at the honest
-    single-photon fraction, against the worst case the observed data permit. The
-    gap between them is the whole finding.
+    Middle: the decoy-free rate at its honest assumption, the worst case the data
+    permit, and the rate from the decoy bounds. The third is the only one that is
+    both positive and supported.
+
+    Right: the finite-key rate against the number of pulses, with the minimum
+    marked. It climbs to the asymptotic value from below.
     """
     if mus is None:
         mus = np.linspace(0.05, 3.0, 40)
@@ -70,6 +78,7 @@ def plot_attack_and_bound(mus=None):
     information = []
     honest_rates = []
     worst_rates = []
+    decoy_rates = []
     for mu in mus:
         report = pns_attack(float(mu), ETA, E_DET, P_DARK)
         errors.append(report.E_mu)
@@ -77,8 +86,17 @@ def plot_attack_and_bound(mus=None):
         bound = decoy_free_bound(float(mu), ETA, E_DET, P_DARK)
         honest_rates.append(bound["rate_if_channel_honest"])
         worst_rates.append(bound["worst_case_rate"])
+        # The decoy must be *weaker* than the signal -- that is what makes the
+        # multi-photon contribution small at `nu` -- so the curve starts where
+        # `mu > nu` and is left undefined below, rather than extrapolated.
+        if mu > DECOY_INTENSITY:
+            decoy_rates.append(
+                decoy_state_report(float(mu), DECOY_INTENSITY, ETA, E_DET, P_DARK).rate_decoy
+            )
+        else:
+            decoy_rates.append(float("nan"))
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(19, 6))
 
     ax = axes[0]
     ax.plot(mus, information, "-", color="crimson",
@@ -88,20 +106,41 @@ def plot_attack_and_bound(mus=None):
     ax.axhline(E_DET, color="gray", linestyle=":", label=f"$e_{{det}}$ = {E_DET}")
     ax.set_xlabel(r"mean photon number $\mu$")
     ax.set_ylabel("fraction")
-    ax.set_title("PNS: the information grows, the observable does not")
+    ax.set_title("PNS: information grows, the observable does not")
     ax.legend(loc="center right")
     ax.grid(True, alpha=0.3)
 
     ax = axes[1]
     ax.plot(mus, honest_rates, "-", color="seagreen",
-            label="rate at the honest single-photon fraction")
+            label="decoy-free, at the honest $Q_1/Q_\\mu$ (assumed)")
+    ax.plot(mus, decoy_rates, "--", color="black",
+            label=f"decoy bounds (measured, $\\nu$={DECOY_INTENSITY})")
     ax.plot(mus, worst_rates, "-", color="darkred",
-            label="worst case the observed data permit")
+            label="worst case the data permit")
     ax.axhline(0.0, color="black", linewidth=0.8)
     ax.set_xlabel(r"mean photon number $\mu$")
     ax.set_ylabel("secret key rate per sifted bit")
-    ax.set_title("A decoy-free bound is positive only under an assumption")
-    ax.legend(loc="lower left")
+    ax.set_title("Decoys buy a valid number, not a bigger one")
+    ax.legend(loc="lower left", fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    ax = axes[2]
+    n_pulses = np.logspace(5.5, 12, 40)
+    finite = [finite_key_report(n_pulses=float(n), p_dark=P_DARK)["finite_rate"]
+              for n in n_pulses]
+    asymptotic = finite_key_report(n_pulses=1e12, p_dark=P_DARK)["all_rounds_asymptotic"]
+    n_min = minimum_rounds(p_dark=P_DARK)
+    ax.plot(n_pulses, finite, "-", color="purple", label="finite-key rate")
+    ax.axhline(asymptotic, color="gray", linestyle="--",
+               label=f"asymptotic ({asymptotic:.4f})")
+    ax.axvline(n_min, color="darkred", linestyle=":",
+               label=f"minimum {n_min:.2g} pulses")
+    ax.axhline(0.0, color="black", linewidth=0.8)
+    ax.set_xscale("log")
+    ax.set_xlabel("pulses sent $N$ (log scale)")
+    ax.set_ylabel("secret key rate per sifted bit")
+    ax.set_title("Finite keys cost rate, and there is a floor on $N$")
+    ax.legend(loc="lower right", fontsize=8)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -155,15 +194,49 @@ def main() -> None:
     print("    Q_mu or E_mu, so the data permit Q_1/Q_mu = 0. The positive number")
     print("    is an assumption; the worst case is what the data support.")
 
-    print("\n[5] Generating the plot...")
+    print("\n[5] Decoy states: making the single-photon fraction measurable")
+    print("    Bounds from Ma-Qi-Zhao-Lo (2005), vacuum + weak decoy. The true")
+    print("    Y_1 is shown only because this is a simulation: knowing it is what")
+    print("    makes the bound testable.")
+    print(f"    {'mu':>5} {'nu':>5} {'Y1^L':>10} {'Y1 true':>10} {'tight':>7} "
+          f"{'decoy rate':>12} {'decoy-free':>12} {'worst':>10} {'valid':>6}")
+    for mu, nu in ((0.5, 0.05), (0.5, 0.1), (0.5, 0.2), (1.0, 0.1), (1.0, 0.2)):
+        r = decoy_state_report(mu, nu, ETA, E_DET, P_DARK)
+        print(f"    {mu:>5g} {nu:>5g} {r.Y_1_lower:>10.6f} {r.Y_1_true:>10.6f} "
+              f"{r.Y_1_is_tight:>7.4f} {r.rate_decoy:>+12.6f} "
+              f"{r.rate_decoy_free_honest:>+12.6f} {r.rate_decoy_free_worst:>+10.6f} "
+              f"{str(r.bounds_are_valid):>6}")
+    print("    The decoy rate is the only column that is both positive and")
+    print("    supported by data. It sits about 2% below the assumed figure, and")
+    print("    it tightens as the decoy weakens: the correction is O(nu^2).")
+
+    print("\n[6] Finite keys: the error rate is estimated, not known")
+    print("    Hoeffding gives the slack a finite test sample permits,")
+    print("    delta = sqrt(ln(1/eps)/(2k)), so a rate calculation must assume")
+    print("    E_mu + delta. This is a correction to the accounting, not an attack.")
+    print(f"    {'N pulses':>12} {'test k':>12} {'delta':>9} {'E_mu^U':>9} "
+          f"{'finite':>11} {'asymptotic':>11}")
+    for n_pulses in (1e6, 1e7, 1e8, 1e9, 1e10, 1e12):
+        r = finite_key_report(n_pulses=n_pulses, p_dark=P_DARK)
+        print(f"    {n_pulses:>12.0e} {r['test_sample']:>12d} {r['delta']:>9.6f} "
+              f"{r['E_mu_upper']:>9.6f} {r['finite_rate']:>+11.6f} "
+              f"{r['all_rounds_asymptotic']:>+11.6f}")
+    n_min = minimum_rounds(p_dark=P_DARK)
+    print(f"    minimum pulses for a positive finite-key rate: {n_min:.4g}")
+    print("    Below that there is no security claim to make at these parameters,")
+    print("    however good the channel. The slack falls as 1/sqrt(k), so")
+    print("    finite-key effects are a small-sample problem, not a small-rate one.")
+
+    print("\n[7] Generating the plot...")
     plot_attack_and_bound()
 
     print("\n" + "=" * 72)
     print(" This is the implementation layer, not the protocol. BB84 itself has")
     print(" been secure since Mayers (1996) and Shor-Preskill (2000); what fails")
     print(" here is a hardware assumption the protocol does not cover.")
-    print(" Not modelled: detector blinding, timing and Trojan-horse channels,")
-    print(" finite-key statistics, and the decoy-state mitigation.")
+    print(" Not modelled: detector blinding, and timing and Trojan-horse")
+    print(" channels. Modelled: the source, the detectors, PNS, and the decoy")
+    print(" and finite-key corrections.")
     print("=" * 72)
 
 
