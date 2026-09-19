@@ -39,7 +39,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
 | Formal proof of RH | Open problem |
-| Test suite | **483 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **493 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -500,7 +500,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**483 tests pass** on the current tree. They are not smoke tests: the suite
+**493 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -510,7 +510,7 @@ silently changed meaning.
 | `test_graded_algebra.py` | 197 | Graded algebra and shift-zeta criteria G1–G7 |
 | `test_graded_algebra_even_odd.py` | 51 | Even/odd interface regressions |
 | `test_primon_gas.py` | 32 | Exact trace identity, and the failed prime-swap lift |
-| `test_graded_prime_monoid.py` | 42 | The monoid identification, the isomorphism check, the bridge, and the Euler factorisation |
+| `test_graded_prime_monoid.py` | 52 | The monoid identification, the isomorphism check, the rival rules, the bridge, and the Euler factorisation |
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |

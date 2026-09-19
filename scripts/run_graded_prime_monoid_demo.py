@@ -38,6 +38,7 @@ import matplotlib.pyplot as plt
 
 from riemann_framework.graded_prime_monoid import (
     bridge_to_primon_gas,
+    candidate_rule_report,
     dimension_of,
     dimension_tower,
     euler_product_from_grading,
@@ -137,6 +138,22 @@ def main() -> None:
     print("=" * 70)
     report = verify_monoid_isomorphism(n_max=200)
     print(report.explanation)
+    print()
+
+    print("=" * 70)
+    print("Part 3b: the rules that are NOT the rule, and where each first breaks")
+    print("=" * 70)
+    print("Exponent-vector addition is forced by unique factorisation. That is")
+    print("easier to believe with the rivals on the table. A rule is compatible")
+    print("when rule(from_int(a), from_int(b)) == from_int(a*b) for every pair:")
+    for rule_report in candidate_rule_report(200):
+        mark = "ok  " if rule_report.holds else "FAIL"
+        print(f"  [{mark}] {rule_report.summary}")
+    print()
+    print("Note the second row. Gluing the two lists of prime factors is the")
+    print("literal 'the dimension grows' reading, and it is not a rival at all:")
+    print("recounting the glued list is exponent addition. The slogan and the")
+    print("algebra are the same statement, not two competing ones.")
     print()
 
     print("=" * 70)

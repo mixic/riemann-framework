@@ -34,9 +34,11 @@ import numpy as np
 import pytest
 
 from riemann_framework.graded_prime_monoid import (
+    CANDIDATE_RULES,
     ONE,
     GradedPrimeNumber,
     bridge_to_primon_gas,
+    candidate_rule_report,
     dimension_of,
     dimension_tower,
     euler_product_from_grading,
@@ -344,3 +346,106 @@ def test_euler_product_from_grading_rejects_an_oversized_box():
 def test_euler_product_from_grading_rejects_a_degenerate_basis():
     with pytest.raises(ValueError, match="no primes"):
         euler_product_from_grading(2.0, prime_limit=1)
+
+
+# ============================================================
+# The uniqueness of the rule, illustrated by the rivals
+# ============================================================
+
+def test_the_forced_rule_agrees_with_unique_factorisation():
+    reports = {r.name: r for r in candidate_rule_report(60)}
+    assert reports["multiplication"].holds
+    assert reports["multiplication"].pairs_checked == 60 * 60
+
+
+def test_concatenating_prime_factors_is_the_same_rule_not_a_rival():
+    """The literal "the dimension grows" reading is addition, not an alternative.
+
+    Gluing the two lists of prime factors and adding the exponent vectors agree
+    everywhere, because a multiset union of prime factors *is* exponent addition.
+    This is asserted rather than argued in prose, since the natural guess is the
+    opposite -- that concatenation is the rival the theorem rules out. It is
+    checked through the public registry, so no private function is imported.
+    """
+    rules = {name: rule for name, rule, _ in CANDIDATE_RULES}
+    concatenate = rules["concatenate_prime_factors"]
+
+    assert {r.name: r.holds for r in candidate_rule_report(40)}[
+        "concatenate_prime_factors"
+    ]
+    for m in range(1, 30):
+        for n in range(1, 30):
+            assert concatenate(from_int(m), from_int(n)) == from_int(m * n)
+            assert concatenate(from_int(m), from_int(n)) == (
+                from_int(m) * from_int(n)
+            )
+
+
+@pytest.mark.parametrize(
+    "name, expected_pair",
+    [
+        ("exponent_max", (2, 2)),
+        ("exponent_product", (1, 2)),
+        ("support_union", (1, 4)),
+        ("exponent_xor", (2, 2)),
+    ],
+)
+def test_rival_rules_fail_unique_factorisation_at_a_checkable_pair(name, expected_pair):
+    """Each rival must fail, and at a pair small enough to verify by hand.
+
+    The counterexample is checked to be genuine -- that the rule really does
+    produce the integer reported -- so a report that merely *claimed* a failure
+    could not pass.
+    """
+    report = {r.name: r for r in candidate_rule_report(200)}[name]
+    assert not report.holds
+    # Bind to a local before unpacking: Pyright does not narrow
+    # `report.first_counterexample` from an `==` comparison, only from an
+    # explicit `is not None` on the expression it is about to unpack.
+    pair = report.first_counterexample
+    assert pair is not None
+    assert pair == expected_pair
+    m, n = pair
+    assert report.required == m * n
+    assert report.produced != report.required
+
+
+def test_reported_counterexample_matches_what_the_rule_computes():
+    rules = {name: rule for name, rule, _ in CANDIDATE_RULES}
+    for report in candidate_rule_report(30):
+        if report.holds:
+            continue
+        assert report.first_counterexample is not None
+        m, n = report.first_counterexample
+        actual = rules[report.name](from_int(m), from_int(n)).to_int()
+        assert actual == report.produced
+        assert actual != m * n
+
+
+def test_candidate_rule_report_covers_every_declared_rule():
+    declared = [name for name, _, _ in CANDIDATE_RULES]
+    assert [r.name for r in candidate_rule_report(20)] == declared
+    assert len(declared) == len(set(declared)), "rule names must be unique"
+
+
+def test_candidate_rule_report_rejects_a_vacuous_range():
+    """Below `n_max = 4` the rivals' counterexamples are out of range.
+
+    At `n_max = 2` the loop only reaches `n <= n_max // m`, so `exponent_max` and
+    `exponent_xor` -- whose first counterexample is `2 x 2` -- would be reported
+    as holding without ever being tested where they fail.
+    """
+    for n_max in (1, 2, 3):
+        with pytest.raises(ValueError, match=">= 4"):
+            candidate_rule_report(n_max)
+    # n_max = 4 is the smallest range that exposes every rival.
+    assert not {r.name: r for r in candidate_rule_report(4)}["exponent_max"].holds
+
+
+def test_rule_report_summary_says_which_way_it_went():
+    for report in candidate_rule_report(20):
+        if report.holds:
+            assert "agrees" in report.summary
+        else:
+            assert "fails at" in report.summary
+            assert str(report.required) in report.summary

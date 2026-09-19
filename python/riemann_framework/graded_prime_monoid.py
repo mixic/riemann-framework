@@ -62,6 +62,7 @@ import math
 from dataclasses import dataclass
 from functools import lru_cache
 from itertools import product
+from typing import Callable
 
 from .primon_gas import factorize, trace_exp
 
@@ -276,6 +277,204 @@ class IsomorphismReport:
     mismatches: list[tuple[int, int]]
     round_trip_ok: bool
     explanation: str
+
+
+# ============================================================
+# The uniqueness of the multiplication rule, illustrated
+# ============================================================
+#
+# `verify_monoid_isomorphism` checks that exponent-vector addition *does* agree
+# with integer multiplication. That leaves the interesting half unstated: what
+# happens to a rule that does not. The rules below are the ones a
+# "dimension-increasing number system" naturally suggests, and running each
+# against unique factorisation shows where it first breaks.
+#
+# This illustrates the uniqueness result; it does not establish it. The proof is
+# in the module docstring and rests on `from_int` being surjective, which no
+# finite enumeration could show.
+
+#: A candidate multiplication rule on the monoid.
+BinaryRule = Callable[[GradedPrimeNumber, GradedPrimeNumber], GradedPrimeNumber]
+
+
+def _prime_factor_list(element: GradedPrimeNumber) -> list[int]:
+    """`element` as the sorted list of its prime factors, with multiplicity."""
+    factors: list[int] = []
+    for p, e in zip(_first_primes(len(element.exponents)), element.exponents):
+        factors.extend([p] * e)
+    return factors
+
+
+def _resize(a: GradedPrimeNumber, b: GradedPrimeNumber):
+    k = max(len(a.exponents), len(b.exponents))
+    return a.pad_to(k).exponents, b.pad_to(k).exponents
+
+
+def _rule_multiplication(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Coordinatewise addition of exponents -- the rule unique factorisation forces."""
+    return a * b
+
+
+def _rule_concatenate_prime_factors(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Glue the two lists of prime factors: the literal "the dimension grows" reading.
+
+    Included because it is the first thing the slogan suggests, and because it
+    turns out to be *the same rule* rather than a rival -- recounting the glued
+    list is exponent addition. The report says so instead of pretending to
+    refute it. It is implemented by expanding to prime lists and recounting,
+    which is a genuinely different code path from `a * b`, so the agreement is
+    worth something.
+    """
+    combined = _prime_factor_list(a) + _prime_factor_list(b)
+    if not combined:
+        return ONE
+    basis = _primes_up_to(max(combined))
+    counts = {p: 0 for p in basis}
+    for p in combined:
+        counts[p] += 1
+    return GradedPrimeNumber(tuple(counts[p] for p in basis))
+
+
+def _rule_exponent_max(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Keep the larger exponent at each prime."""
+    left, right = _resize(a, b)
+    return GradedPrimeNumber(tuple(max(i, j) for i, j in zip(left, right)))
+
+
+def _rule_exponent_product(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Multiply the exponents at each prime."""
+    left, right = _resize(a, b)
+    return GradedPrimeNumber(tuple(i * j for i, j in zip(left, right)))
+
+
+def _rule_support_union(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Union of the two supports, each occupied prime taken with exponent 1."""
+    left, right = _resize(a, b)
+    return GradedPrimeNumber(tuple(1 if (i or j) else 0 for i, j in zip(left, right)))
+
+
+def _rule_exponent_xor(
+    a: GradedPrimeNumber, b: GradedPrimeNumber
+) -> GradedPrimeNumber:
+    """Xor the exponents at each prime."""
+    left, right = _resize(a, b)
+    return GradedPrimeNumber(tuple(i ^ j for i, j in zip(left, right)))
+
+
+#: Candidate rules, with what each is and why anyone would propose it.
+CANDIDATE_RULES: tuple[tuple[str, BinaryRule, str], ...] = (
+    ("multiplication", _rule_multiplication,
+     "coordinatewise addition of exponents (the forced rule)"),
+    ("concatenate_prime_factors", _rule_concatenate_prime_factors,
+     "glue the two lists of prime factors: the literal 'the dimension grows' reading"),
+    ("exponent_max", _rule_exponent_max, "keep the larger exponent at each prime"),
+    ("exponent_product", _rule_exponent_product, "multiply the exponents at each prime"),
+    ("support_union", _rule_support_union, "union of supports, exponent 1"),
+    ("exponent_xor", _rule_exponent_xor, "xor the exponents at each prime"),
+)
+
+
+@dataclass
+class RuleReport:
+    """Where a candidate rule first contradicts unique factorisation."""
+
+    name: str
+    description: str
+    holds: bool
+    pairs_checked: int
+    first_counterexample: tuple[int, int] | None = None
+    required: int | None = None
+    produced: int | None = None
+
+    @property
+    def summary(self) -> str:
+        if self.holds:
+            return (
+                f"{self.name}: agrees with unique factorisation on all "
+                f"{self.pairs_checked} pairs checked"
+            )
+        assert self.first_counterexample is not None
+        m, n = self.first_counterexample
+        return (
+            f"{self.name}: fails at {m} x {n} -- factorisation requires "
+            f"{m}*{n} = {self.required}, but the rule gives {self.produced}"
+        )
+
+
+def candidate_rule_report(n_max: int = 200) -> list[RuleReport]:
+    """Run every rule in `CANDIDATE_RULES` and find its first counterexample.
+
+    A rule is compatible with unique factorisation when
+    `rule(from_int(a), from_int(b)) == from_int(a * b)` for every pair. The
+    report records the first pair where that fails, together with the integer
+    factorisation requires and the one the rule produces, so the failure can be
+    checked by hand.
+
+    `n_max` must be at least 4. Below that the rival rules' smallest
+    counterexamples lie outside the range -- `2 x 2` for `exponent_max` and
+    `exponent_xor`, `1 x 4` for `support_union` -- and a rule would be reported
+    as holding without having been tested anywhere it fails. A vacuous "holds" is
+    worse than no report.
+    """
+    if not isinstance(n_max, int):
+        raise TypeError("n_max must be an integer")
+    if n_max < 4:
+        raise ValueError(
+            f"n_max must be >= 4, got {n_max}: below that the rival rules' first "
+            "counterexamples are out of range and the report would be vacuous"
+        )
+
+    elements: dict[int, GradedPrimeNumber] = {}
+
+    def element(k: int) -> GradedPrimeNumber:
+        # Lazily, because the rival rules break within the first few pairs --
+        # only `multiplication` and `concatenate_prime_factors` reach the end of
+        # the double loop, so precomputing all n_max^2 factorisations would do
+        # the work of the slowest rule for every rule.
+        if k not in elements:
+            elements[k] = from_int(k)
+        return elements[k]
+
+    reports: list[RuleReport] = []
+    for name, rule, description in CANDIDATE_RULES:
+        pairs_checked = 0
+        counterexample: tuple[int, int] | None = None
+        required: int | None = None
+        produced: int | None = None
+        for a in range(1, n_max + 1):
+            for b in range(1, n_max + 1):
+                pairs_checked += 1
+                target = element(a * b)
+                got = rule(element(a), element(b))
+                if got != target:
+                    counterexample = (a, b)
+                    required = a * b
+                    produced = got.to_int()
+                    break
+            if counterexample is not None:
+                break
+        reports.append(
+            RuleReport(
+                name=name,
+                description=description,
+                holds=counterexample is None,
+                pairs_checked=pairs_checked,
+                first_counterexample=counterexample,
+                required=required,
+                produced=produced,
+            )
+        )
+    return reports
 
 
 def dimension_of(n: int) -> int:

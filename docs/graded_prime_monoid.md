@@ -82,6 +82,41 @@ The honest reading is deflationary, and it is the finding: the
 dimension-increasing number system is `(N_{>0}, x)` seen through its prime
 factorisation. No alternative arithmetic was ever available to choose between.
 
+### 2.1 The rivals, and where each first breaks
+
+`verify_monoid_isomorphism` checks that addition *does* agree with integer
+multiplication. That leaves the interesting half unstated, so the module also
+runs six rules a "dimension-increasing number system" naturally suggests and
+reports the first pair where each contradicts unique factorisation. At
+`n_max = 200`:
+
+| rule | what it is | first failure | required | produced |
+|:---|:---|:---|:---|:---|
+| `multiplication` | coordinatewise addition of exponents | — | — | — |
+| `concatenate_prime_factors` | glue the two lists of prime factors | — | — | — |
+| `exponent_max` | keep the larger exponent at each prime | `2 x 2` | 4 | 2 |
+| `exponent_product` | multiply the exponents at each prime | `1 x 2` | 2 | 1 |
+| `support_union` | union of supports, exponent 1 | `1 x 4` | 4 | 2 |
+| `exponent_xor` | xor the exponents at each prime | `2 x 2` | 4 | 1 |
+
+The second row is the interesting one, and it is not a rival at all.
+**Concatenating the lists of prime factors is the same operation as adding the
+exponent vectors.** A multiset union of prime factors and a componentwise sum of
+exponents are two notations for one thing, so the literal "the dimension grows"
+reading is not ruled out by the theorem -- it is an instance of it. The module
+says so rather than pretending to refute it, and
+`test_concatenating_prime_factors_is_the_same_rule_not_a_rival` pins the
+agreement rather than leaving it as an aside.
+
+This illustration is not the proof. The proof is the surjectivity argument above,
+and no finite enumeration could replace it; what the table adds is concreteness,
+so the claim that addition is forced has something to point at.
+
+`candidate_rule_report` refuses `n_max < 4`. Below that the rivals' smallest
+counterexamples lie outside the loop -- `2 x 2` for `exponent_max` and
+`exponent_xor`, `1 x 4` for `support_union` -- and a rule would be reported as
+holding without having been tested anywhere it fails.
+
 ## 3. Three notions of "dimension", and only one of them grows
 
 This is where the slogan is easiest to misread, so the three candidates are worth
@@ -258,7 +293,7 @@ multiplication adds dimensions" cannot be that system, because it is not new.
 | file | role |
 |:---|:---|
 | `python/riemann_framework/graded_prime_monoid.py` | the monoid, the isomorphism check, the bridge, the Euler check |
-| `python/tests/test_graded_prime_monoid.py` | 42 tests |
+| `python/tests/test_graded_prime_monoid.py` | 52 tests |
 | `scripts/run_graded_prime_monoid_demo.py` | prints all five parts and writes the figure |
 | `output/graded_prime_monoid_convergence.png` | the Euler product approaching `zeta(2)` |
 
