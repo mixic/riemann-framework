@@ -392,7 +392,37 @@ The sentence above — "this falls directly out of unique prime factorization" �
 
 ![The Euler product climbing to zeta(2), and the gap on a log-log axis](output/graded_prime_monoid_convergence.png)
 
-[`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) carries the theorem, the three inequivalent notions of "dimension" the slogan can mean — only `Ω` is additive; `ω` is subadditive and exact on coprime factors; the ambient length is a `max` — and the honest scope. This is a precise statement of ordinary arithmetic. It is not a new number system and it does not touch the zeros.
+**The module's methods.** `graded_prime_monoid.py` exposes:
+
+| function | what it does |
+|:---|:---|
+| `GradedPrimeNumber` | the element type: a frozen tuple of exponents, `*` as coordinatewise addition, `pad_to(k)` for the direct-limit inclusion, and equality by *trimmed* tuple so `(1,)` and `(1, 0)` are the same element while `(0, 0, 1, 1)` is correctly distinct from `(1, 1)` |
+| `ONE` | the identity: dimension 0, the empty tuple, the integer 1 |
+| `from_int(n)` / `.to_int()` | the isomorphism both ways. `from_int(35)` is `(0, 0, 1, 1)` — internal zeros are kept because they mark which prime each slot is, trailing zeros are padding |
+| `dimension_of(n)` | `ω(n)`, the number of distinct primes: the "dimension" of the slogan |
+| `dimension_tower(n, max_dim)` | the `1 → (1,0) → (1,0,0) → …` tower, every entry decoding back to `n`. Arithmetically inert on its own, and included so it can be contrasted with `*`, where the dimension change is not inert |
+| `verify_monoid_isomorphism(n_max)` | brute force: `from_int(a) * from_int(b) == from_int(a*b)` on every pair up to `n_max`, plus the round trip `from_int(n).to_int() == n` |
+| `candidate_rule_report(n_max)` | six plausible multiplication rules against unique factorisation, with the first pair where each breaks |
+| `bridge_to_primon_gas(n_max)` | regroups `Σ n^{−s}` by dimension and **checks** the total against `primon_gas.trace_exp` rather than describing the comparison |
+| `euler_product_from_grading(...)` | sums `q^{ω(v)}` over the exponent-vector monoid and multiplies one local factor per prime separately, then compares the two |
+| `truncated_euler_product(s, prime_limit)` | `∏_{p≤P} 1/(1 − p^{−s})`, uncapped and cheap — the reference the graded sum approaches as the degree cap is raised |
+
+**The rules that are not the rule.** `candidate_rule_report` puts the rivals on the table, because "addition is forced" is easier to believe with them there. At `n_max = 200`, in 0.28s:
+
+| rule | what it is | first failure | required | produced |
+|:---|:---|:---|:---|:---|
+| `multiplication` | coordinatewise addition of exponents | — | — | — |
+| `concatenate_prime_factors` | glue the two lists of prime factors | — | — | — |
+| `exponent_max` | keep the larger exponent at each prime | `2 × 2` | 4 | 2 |
+| `exponent_product` | multiply the exponents at each prime | `1 × 2` | 2 | 1 |
+| `support_union` | union of supports, exponent 1 | `1 × 4` | 4 | 2 |
+| `exponent_xor` | xor the exponents at each prime | `2 × 2` | 4 | 1 |
+
+The second row is the finding, and it is not a rival. Gluing the two lists of prime factors is the literal "the dimension grows" reading, and it agrees with unique factorisation on all 40000 pairs — because recounting the glued list *is* exponent addition. The slogan and the algebra are one statement, not two competing ones. The legend is implemented by expanding to prime lists and recounting, a different code path from `a × b`, so the agreement is worth something.
+
+The illustration is not the proof. The proof is the surjectivity argument above, and no finite enumeration could replace it; what the table adds is concreteness. `candidate_rule_report` refuses `n_max < 4`, since below that the rivals' smallest counterexamples (`2 × 2` and `1 × 4`) fall outside the loop and a rule would be reported as holding without having been tested where it fails.
+
+[`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) carries the theorem, the three inequivalent notions of "dimension" the slogan can mean — only `Ω` is additive; `ω` is subadditive and exact on coprime factors; the ambient length is a `max` — the rival-rule section, and the honest scope. This is a precise statement of ordinary arithmetic. It is not a new number system and it does not touch the zeros.
 
 ## Cayley-Dickson and the four-square theorem: does dimension-lifting create an Euler product?
 
@@ -704,7 +734,7 @@ riemann-framework/
 │       ├── test_affine_reduction.py  # Records the affine-reduction result
 │       ├── test_idea_pipeline.py     # Pipeline + Stage-D probe tests
 │       ├── test_primon_gas.py        # Exact trace identity + the failed lift
-│       ├── test_graded_prime_monoid.py # Monoid identification + box identity
+│       ├── test_graded_prime_monoid.py # Monoid identification, rivals, Euler check
 │       ├── test_graded_algebra.py    # Graded algebra and shift-zeta (G1-G7)
 │       ├── test_graded_algebra_even_odd.py # even/odd interface regressions
 │       ├── test_falsification.py     # DSH falsification grid tests
@@ -722,7 +752,7 @@ riemann-framework/
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
-│   └── run_graded_prime_monoid_demo.py # Monoid identification + box identity
+│   └── run_graded_prime_monoid_demo.py # Monoid identification, rivals, Euler check
 │
 ├── ideas/                         # Candidate-idea records (JSON, stage E enforced)
 │   ├── dimension_shift_w.json
@@ -745,7 +775,7 @@ riemann-framework/
 │   ├── scientific_contribution_assessment.md # Current scientific status
 │   ├── future_work.md               # Engineering and research roadmap
 │   ├── shift_zeta_result.md         # Shift-zeta (graded algebra) negative result
-│   ├── graded_prime_monoid.md       # The monoid identification and its theorem
+│   ├── graded_prime_monoid.md       # Monoid, isomorphism, rivals, Euler bridge
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
