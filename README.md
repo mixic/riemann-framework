@@ -38,9 +38,10 @@ A passing test is **evidence**, not a mathematical proof.
 | Graded prime monoid | `(ℕ_{>0}, ×)` identified with the free commutative monoid on the primes; exponent-vector addition shown to be the **only** rule compatible with unique factorization, and to be exactly what makes the Euler product factorize. Ordinary arithmetic restated, not a new number system — see [`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) |
 | Shift-zeta (graded algebra) | **Negative result.** Well-defined and tested; does **not** reproduce the classical zeros. See [`docs/shift_zeta_result.md`](docs/shift_zeta_result.md) |
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
-| Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria |
+| Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria. **Scope limit:** every gate takes a map or an operator, so a proof-shaped claim has no valid input — see [`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) |
+| Proportion certificates | **Checked, and not RH.** The elementary components of two recent "more than 2/3 of zeros are simple and on the critical line" results: a rank–trace inequality (0 violations in 20 000 cases), a multiset inequality (0 in 3 000), and the constant chain to 0.6725007037 / 0.8362503518. The analytic inputs are unreachable here, and one paper proves its method cannot reach RH |
 | Formal proof of RH | Open problem |
-| Test suite | **569 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **589 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -556,7 +557,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**569 tests pass** on the current tree. They are not smoke tests: the suite
+**589 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -570,6 +571,7 @@ silently changed meaning.
 | `test_dsin.py` | 34 | DSIN simulation and the BB84 baseline |
 | `test_bb84_implementation.py` | 45 | Source, detectors, PNS, decoy bounds, finite keys |
 | `test_bb84.py` | 31 | The BB84 baseline, and exact equivalence between its two backends |
+| `test_proportion_certificates.py` | 20 | The checkable certificates behind two recent proportion theorems |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
