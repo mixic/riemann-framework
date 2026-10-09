@@ -40,6 +40,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria. **Scope limit:** every gate takes a map or an operator, so a proof-shaped claim has no valid input — see [`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) |
 | Proportion certificates | **Checked, and not RH.** The elementary components of two recent "more than 2/3 of zeros are simple and on the critical line" results: a rank–trace inequality (0 violations in 20 000 cases), a multiset inequality (0 in 3 000), and the constant chain to 0.6725007037 / 0.8362503518. The analytic inputs are unreachable here, and one paper proves its method cannot reach RH |
+| OpenAI Math family 003 | External quasi-Riemann manuscripts and Lean artifacts catalogued for follow-up; not imported or independently verified. See [`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md) |
 | Formal proof of RH | Open problem |
 | Test suite | **589 tests passing**; includes the negative results and a regression test for each corrected bug |
 
@@ -481,6 +482,11 @@ confirmed numerically against `mpmath.zeta` to a relative error of `~1.7×10⁻�
 Everything under `lean/` is compiled by [`lean_runner.py`](python/riemann_framework/lean_runner.py)
 as part of the test suite, so formal claims cannot silently rot out of sync with the code.
 
+The external quasi-Riemann manuscripts and their upstream Lean verification
+artifacts are catalogued separately in
+[`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md).
+They are not part of this library's build or proof claims.
+
 **Sorry-free — genuinely machine-verified:**
 
 - **`RiemannFramework.lean`** — the aggregate library root. It imports only the sorry-free
@@ -848,3 +854,8 @@ This project uses third-party dependencies with their own licenses,
 including mpmath, NumPy, Matplotlib, pytest, Lean, Mathlib, and portions of
 `lean-dojo/LeanMillenniumPrizeProblems`. Their respective licenses remain
 applicable to those components.
+
+The OpenAI Math family 003 manuscripts and Lean sources are linked for
+reference, not redistributed or incorporated into this repository. See
+[`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md) for
+their upstream revision, scope, and verification caveats.
