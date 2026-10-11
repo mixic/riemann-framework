@@ -43,6 +43,10 @@ output/*.png
 !output/dsin_commutator_norm.png
 !output/graded_prime_monoid_convergence.png
 !output/bb84_pns_attack.png
+!output/number_theory_claims.png
+!output/de_bruijn_newman.png
+!output/quantum_chaos_claims.png
+!output/finite_field_curves.png
 
 # OS
 .DS_Store

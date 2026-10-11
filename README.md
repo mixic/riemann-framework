@@ -42,8 +42,13 @@ A passing test is **evidence**, not a mathematical proof.
 | Proportion certificates | **Checked, and not RH.** The elementary components of two recent "more than 2/3 of zeros are simple and on the critical line" results: a rank–trace inequality (0 violations in 20 000 cases), a multiset inequality (0 in 3 000), and the constant chain to 0.6725007037 / 0.8362503518. The analytic inputs are unreachable here, and one paper proves its method cannot reach RH |
 | OpenAI Math family 003 | External quasi-Riemann manuscripts and Lean artifacts catalogued for follow-up; not imported or independently verified. See [`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md) |
 | Davenport–Heilbronn filter | **Working.** Screens a candidate's declared inputs against a function whose RH-analogue is **false**, returning `dead` / `eligible` / `needs_sourcing`. The dead list has one entry, and it is this repository's flagship proposal. The inventory is the deliverable: 9 rows, each with its source, 3 verified by computation, 3 left `unsourced` rather than guessed — see [`docs/dh_filter.md`](docs/dh_filter.md) |
+| Zeta-containment screen | **Working.** Asks whether a proposed framework's zeta function has `ζ` as a factor: the Gaussian and Eisenstein Dedekind zetas are `strictly_harder` (a proof implies RH but proves more), a lone `L(s,χ₋₄)` is a `separate_target` needing a transfer step, and Davenport–Heilbronn / Epstein have no Euler product at all. Both declared products are **verified** against each field's own series over 2000 coefficients — see [`docs/zeta_factors.md`](docs/zeta_factors.md) |
+| Number-theory claim checks | **Checked, and three claims in the source text are wrong.** A submitted popular account of Dirichlet characters, Miller–Rabin and lattice crypto was fact-checked: Chebyshev's bias refutes "the primes are evenly distributed", the GRH base count for a 500-digit `n` is 2,650,950 rather than "a few thousand", and the Willow result is `d=5→7` with `Λ = 2.14`. Shor, surface codes and ML-KEM security are **not simulated** and the document says why — see [`docs/number_theory_claims.md`](docs/number_theory_claims.md) |
+| de Bruijn–Newman constant | **Machinery working, and `Λ ≤ 0` is NOT verifiable.** `RH ⟺ Λ ≤ 0`, so it is the hypothesis restated; with `Λ ≥ 0` (Rodgers–Tao) and `Λ ≤ 0.2` (Polymath15) the question is `RH ⟺ Λ = 0` in the window `[0, 0.2]`. `H_0` is checked against `(1/8)ξ(1/2+iz/2)` to 1e−14 and its first zero against `2γ₁ = 28.269450...`. Three limits are measured and pinned: the low-zero scan is **insensitive** (flat count for every `t`), the quadrature drifts past `k≈6`, and the dynamics equation does not truncate — see [`docs/de_bruijn_newman.md`](docs/de_bruijn_newman.md) |
+| RH for curves over finite fields | **PROVED per curve — the one case where a computation is a proof.** `RH ⟺ |αᵢ| = √q` for `P(T) = Π(1−αᵢT)` of `Z(C,T)`. `P` has integer coefficients, so for genus 1 it reduces to `a² ≤ 4q` and for genus 2 to an integer test on `S(w) = w² − a₁w + (a₂−2q)`. Certified exactly: **942 elliptic curves over `F₅…F₁₉`, 324 smooth genus-2 over `F₃`, 10 000 over `F₅` — zero failures.** A sweep of all 729 tuples over `F₃` first reported 30 "violations"; all 30 were singular or `deg f = 4`, i.e. outside the theorem's hypotheses. Per-curve proofs do not prove Weil's theorem, and the proof does **not** transfer to `Q` — see [`docs/finite_field_curves.md`](docs/finite_field_curves.md) |
+| Imaginary time and prime orbits | **New; the rest of the quantum-chaos picture was already here.** The primon gas, GUE statistics and Berry–Keating were already implemented/documented, so the two genuinely absent pieces were added: **Wick rotation** (the real-time trace `Σ n^{−it}` diverges linearly; the imaginary-time trace `Σ n^{−τ} = ζ(τ)` converges — the critical strip is exactly the continuation problem), and the **prime-orbit dictionary** (`h = 1` forced by orbit periods `log p`, exact at first order: ratios 1.175 → 1.078). The error term does *not* become tractable: it oscillates over `K ≤ 89` zeros and needs `~N(X)` of them (138,068 at `X = 10⁵`) — see [`docs/quantum_chaos_claims.md`](docs/quantum_chaos_claims.md) |
 | Formal proof of RH | Open problem |
-| Test suite | **681 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **846 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -120,6 +125,38 @@ recalled, and then validated by the functional equation they must satisfy —
 residual `6.2e-30` at 30 digits. See [`docs/dh_filter.md`](docs/dh_filter.md),
 including the tension the filter surfaced between its own inventory and §1.4's
 input list.
+
+### The second screen: does the framework contain `ζ`?
+
+The filter above screens *ideas*. A companion screen, `zeta_factors.py`, screens
+*settings* — the number systems and function families that proposals keep
+reaching for. It asks one question: does the framework's zeta function have `ζ`
+as a factor?
+
+If yes, the framework is `strictly_harder`: a proof of its RH-analogue implies
+RH, but proves strictly more, so the target is bigger than the problem it was
+meant to simplify. If no, it is a `separate_target`: a proof delivers nothing
+about `ζ` without a transfer step, and that step is the entire content of the
+proposal. Neither is an endorsement — the screen's job is to force the transfer
+step into the open.
+
+```bash
+python scripts/run_zeta_factors.py
+```
+
+    !! strictly harder   dedekind_gaussian (zeta * dirichlet_L_chi4)
+    !! strictly harder   dedekind_eisenstein (zeta * dirichlet_L_chi3)
+    -- separate target   dirichlet_L_chi4_alone
+    ?? no Euler product  davenport_heilbronn
+    ?? no Euler product  epstein_rectangular
+
+The declarations are **checked, not trusted**: `ζ_ℚ(i) = ζ·L(s,χ₋₄)` is verified
+against `r2(n)/4` and `ζ_ℚ(√−3) = ζ·L(s,χ₋₃)` against `r3(n)/6`, over every
+`n ≤ 2000`. That is the Gaussian splitting law — `p ≡ 1 (4)` splits, `p ≡ 3 (4)`
+is inert, `p = 2` ramifies — checked as arithmetic rather than quoted. See
+[`docs/zeta_factors.md`](docs/zeta_factors.md), which also records the two bugs
+these checks caught: an Eisenstein enumeration bound short by a factor of `√2`,
+and a non-multiplicativity witness that not every pair actually witnesses.
 
 ## Numerical core
 
@@ -602,7 +639,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**681 tests pass** on the current tree. They are not smoke tests: the suite
+**846 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -619,6 +656,14 @@ silently changed meaning.
 | `test_proportion_certificates.py` | 20 | The checkable certificates behind two recent proportion theorems |
 | `test_dh_filter.py` | 41 | Davenport–Heilbronn calibration, inventory integrity, and verdict precedence |
 | `test_prime_certificate.py` | 51 | Sieve invariants, deterministic primality, and the certified millionth prime |
+| `test_zeta_factors.py` | 37 | The two number-field factorizations, the bound regression, and the containment verdicts |
+| `test_prime_races.py` | 18 | The prime race, Chebyshev's bias, and the `2946` regression |
+| `test_miller_rabin.py` | 14 | The liar bound, Carmichael numbers, and the GRH base count |
+| `test_lattice_reduction.py` | 17 | 2D reduction, SVP/CVP, and good-vs-bad bases |
+| `test_de_bruijn_newman.py` | 18 | `H_0` against the sourced reference, `2γ_k`, and the three limits |
+| `test_imaginary_time.py` | 15 | The two traces, Hagedorn, and Jacobi's theta identity |
+| `test_prime_orbits.py` | 16 | Orbit counting, `h = 1`, and the measured error-term limit |
+| `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
@@ -792,6 +837,14 @@ riemann-framework/
 │   │   ├── four_squares.py        # Jacobi four-square / sphere→Euler-product
 │   │   ├── lean_runner.py         # Compiles Lean files via subprocess
 │   │   ├── dh_filter.py           # Davenport-Heilbronn input filter + calibration
+│   │   ├── zeta_factors.py        # Does a framework's zeta contain zeta as a factor?
+│   │   ├── prime_races.py         # Primes in APs, Chebyshev's bias, Euler product check
+│   │   ├── miller_rabin.py        # The liar bound, Carmichael numbers, the GRH base count
+│   │   ├── lattice_reduction.py   # 2D Gauss reduction, SVP/CVP, good vs bad basis
+│   │   ├── de_bruijn_newman.py    # H_t = exp(-t D^2) H_0, and its three limits
+│   │   ├── imaginary_time.py      # Wick rotation: why the partition function exists
+│   │   ├── prime_orbits.py        # Prime orbit theorem, and where the dictionary stops
+│   │   ├── finite_field_curves.py # RH over F_q: exact per-curve certificates
 │   │   ├── prime_certificate.py   # Sieve invariants and the certified millionth prime
 │   │   ├── proportion_certificates.py # Certificates behind the two 2/3 proportion theorems
 │   │   ├── generate_plots.py      # Plot generation entry point
@@ -825,6 +878,14 @@ riemann-framework/
 │       ├── test_dh_filter.py         # DH calibration, inventory, verdict precedence
 │       ├── test_prime_certificate.py # Sieve invariants + certified millionth prime
 │       ├── test_proportion_certificates.py # Certificates behind the 2/3 theorems
+│       ├── test_zeta_factors.py      # Number-field factorizations + containment
+│       ├── test_prime_races.py       # Prime race, Chebyshev's bias, 2946 regression
+│       ├── test_miller_rabin.py      # Liar bound, Carmichael numbers, GRH base count
+│       ├── test_lattice_reduction.py # 2D Gauss reduction, SVP/CVP, good vs bad basis
+│       ├── test_de_bruijn_newman.py  # H_0 vs the sourced reference, and the limits
+│       ├── test_imaginary_time.py    # Two traces, Hagedorn, Jacobi theta
+│       ├── test_prime_orbits.py      # Orbit counting and the error-term limit
+│       ├── test_finite_field_curves.py # Field axioms, Hasse, smoothness hypotheses
 │       ├── test_dsin.py              # DSIN simulation tests
 │       ├── test_bb84_implementation.py # Source, detectors, PNS
 │       └── test_bb84.py              # Baseline + backend equivalence
@@ -837,6 +898,11 @@ riemann-framework/
 │   ├── run_bb84_implementation_demo.py # Source, detectors, PNS accounting
 │   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
 │   ├── run_dh_filter.py           # Screen ideas against Davenport–Heilbronn
+│   ├── run_zeta_factors.py        # Screen frameworks for containment of zeta
+│   ├── run_number_theory_claims_demo.py # Prime races, Miller-Rabin, 2D lattices
+│   ├── run_de_bruijn_newman_demo.py # H_t flow, zeros, and the three limits
+│   ├── run_quantum_chaos_claims_demo.py # Imaginary time, Hagedorn, prime orbits
+│   ├── run_finite_field_curves_demo.py # Finite-field spheres, Hasse bound, alpha_i
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
@@ -866,6 +932,11 @@ riemann-framework/
 │   ├── graded_prime_monoid.md       # Monoid, isomorphism, rivals, Euler bridge
 │   ├── bb84_implementation.md        # Source, detectors, PNS, what is not modelled
 │   ├── dh_filter.md                  # Davenport–Heilbronn input filter and dead list
+│   ├── zeta_factors.md               # Zeta-containment screen for frameworks
+│   ├── number_theory_claims.md       # Fact-check of a popular account + what is simulable
+│   ├── de_bruijn_newman.md           # Lambda, the window, and the three limits
+│   ├── quantum_chaos_claims.md       # What was already here, what is new, what is wrong
+│   ├── finite_field_curves.md        # RH over F_q: exact certificates, and no transfer
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
