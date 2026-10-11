@@ -41,8 +41,9 @@ A passing test is **evidence**, not a mathematical proof.
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria. **Scope limit:** every gate takes a map or an operator, so a proof-shaped claim has no valid input — see [`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) |
 | Proportion certificates | **Checked, and not RH.** The elementary components of two recent "more than 2/3 of zeros are simple and on the critical line" results: a rank–trace inequality (0 violations in 20 000 cases), a multiset inequality (0 in 3 000), and the constant chain to 0.6725007037 / 0.8362503518. The analytic inputs are unreachable here, and one paper proves its method cannot reach RH |
 | OpenAI Math family 003 | External quasi-Riemann manuscripts and Lean artifacts catalogued for follow-up; not imported or independently verified. See [`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md) |
+| Davenport–Heilbronn filter | **Working.** Screens a candidate's declared inputs against a function whose RH-analogue is **false**, returning `dead` / `eligible` / `needs_sourcing`. The dead list has one entry, and it is this repository's flagship proposal. The inventory is the deliverable: 9 rows, each with its source, 3 verified by computation, 3 left `unsourced` rather than guessed — see [`docs/dh_filter.md`](docs/dh_filter.md) |
 | Formal proof of RH | Open problem |
-| Test suite | **589 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **681 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -81,6 +82,44 @@ factor, making its "p-dependent mismatch" flag provably unreachable. The
 corrected comparison is `w(p^{-s})` versus `p^{-w(s)}`, which the identity map
 satisfies exactly (spread ~0) and the reflection `1 - conj(s)` does not
 (spread ~0.28).
+
+## The Davenport–Heilbronn filter
+
+The pipeline above asks how far an idea gets. The filter asks a blunter question
+first: **could it have worked at all?**
+
+Alpöge–Furman §1.4 records that their inputs hold for Davenport–Heilbronn zeta
+functions, "for which the analogue of RH is false". Read backwards, that is a
+necessary condition on any proof of RH:
+
+> an argument that goes through unchanged where the hypothesis fails cannot
+> establish the hypothesis — so any proof of RH must use at least one input that
+> **fails** for Davenport–Heilbronn.
+
+`riemann_framework/dh_filter.py` turns that into a screen. It classifies each
+input a candidate **declares** against a nine-row inventory and returns `dead`
+(every input transfers, so the argument would have proved a false statement),
+`eligible` (at least one input fails for DH — permission, not promise), or
+`needs_sourcing` (an input the inventory cannot classify, or nothing declared).
+
+```bash
+python scripts/run_dh_filter.py
+```
+
+Run against `ideas/`, the dead list has one entry, and it is this repository's
+flagship proposal: `dimension_shift_w` declares only the functional equation and
+the zero symmetry, both of which Davenport–Heilbronn has, while its zeros are
+*not* all on `Re(s) = 1/2`. The primon-gas lift survives, because the operator
+whose trace *is* the Euler product is exactly what DH lacks.
+
+The inventory is the real deliverable, and its sourcing is the point: every row
+names what was read, three rows are verified by computation instead of citation,
+and three are left `unsourced` rather than filled in from expectation. The
+Davenport–Heilbronn constant and coefficients were **derived** here rather than
+recalled, and then validated by the functional equation they must satisfy —
+residual `6.2e-30` at 30 digits. See [`docs/dh_filter.md`](docs/dh_filter.md),
+including the tension the filter surfaced between its own inventory and §1.4's
+input list.
 
 ## Numerical core
 
@@ -563,7 +602,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**589 tests pass** on the current tree. They are not smoke tests: the suite
+**681 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -578,6 +617,8 @@ silently changed meaning.
 | `test_bb84_implementation.py` | 45 | Source, detectors, PNS, decoy bounds, finite keys |
 | `test_bb84.py` | 31 | The BB84 baseline, and exact equivalence between its two backends |
 | `test_proportion_certificates.py` | 20 | The checkable certificates behind two recent proportion theorems |
+| `test_dh_filter.py` | 41 | Davenport–Heilbronn calibration, inventory integrity, and verdict precedence |
+| `test_prime_certificate.py` | 51 | Sieve invariants, deterministic primality, and the certified millionth prime |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 18 | Pipeline stages A–E and the Stage-D probe |
@@ -750,6 +791,9 @@ riemann-framework/
 │   │   ├── cayley_dickson.py      # Cayley-Dickson construction R→C→H→O→…
 │   │   ├── four_squares.py        # Jacobi four-square / sphere→Euler-product
 │   │   ├── lean_runner.py         # Compiles Lean files via subprocess
+│   │   ├── dh_filter.py           # Davenport-Heilbronn input filter + calibration
+│   │   ├── prime_certificate.py   # Sieve invariants and the certified millionth prime
+│   │   ├── proportion_certificates.py # Certificates behind the two 2/3 proportion theorems
 │   │   ├── generate_plots.py      # Plot generation entry point
 │   │   ├── test_plot.py           # Plot demo entry point
 │   │   └── plots.py               # Plot generation
@@ -778,6 +822,9 @@ riemann-framework/
 │       ├── test_cayley_dickson.py    # Cayley-Dickson property checks
 │       ├── test_dimension_lift.py    # Dimension-lift Euler-product checks
 │       ├── test_four_squares.py      # Jacobi four-square checks
+│       ├── test_dh_filter.py         # DH calibration, inventory, verdict precedence
+│       ├── test_prime_certificate.py # Sieve invariants + certified millionth prime
+│       ├── test_proportion_certificates.py # Certificates behind the 2/3 theorems
 │       ├── test_dsin.py              # DSIN simulation tests
 │       ├── test_bb84_implementation.py # Source, detectors, PNS
 │       └── test_bb84.py              # Baseline + backend equivalence
@@ -789,6 +836,7 @@ riemann-framework/
 │   ├── run_dsin_verification.py   # Run DSIN simulations, compare with BB84
 │   ├── run_bb84_implementation_demo.py # Source, detectors, PNS accounting
 │   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
+│   ├── run_dh_filter.py           # Screen ideas against Davenport–Heilbronn
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
@@ -817,6 +865,7 @@ riemann-framework/
 │   ├── shift_zeta_result.md         # Shift-zeta (graded algebra) negative result
 │   ├── graded_prime_monoid.md       # Monoid, isomorphism, rivals, Euler bridge
 │   ├── bb84_implementation.md        # Source, detectors, PNS, what is not modelled
+│   ├── dh_filter.md                  # Davenport–Heilbronn input filter and dead list
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
