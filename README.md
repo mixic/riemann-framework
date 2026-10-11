@@ -158,6 +158,156 @@ is inert, `p = 2` ramifies — checked as arithmetic rather than quoted. See
 these checks caught: an Eisenstein enumeration bound short by a factor of `√2`,
 and a non-multiplicativity witness that not every pair actually witnesses.
 
+## Checking submitted claims against the numbers
+
+Three long accounts of "the mathematics behind RH" were submitted for
+investigation. Rather than assess them by reading, the checkable claims were
+**measured** — and three of them are wrong.
+
+| claim | verdict, measured |
+|:---|:---|
+| the primes are "absolutely symmetric and fairly distributed" between residue classes | **wrong.** Chebyshev's bias. Counts below `10⁶` differ by 147 of ~39000; in reciprocal weighting the gap is `0.335` out of a total mass of `2.89`. The logarithmic density of the `3 mod 4` lead is `0.93`, and `2 mod 3` leads `1 mod 3` with density `1.000` |
+| for a 500-digit `n`, the GRH base count is "a few thousand" | **wrong by ~1000×.** It is `2,650,950`. Even 100 digits needs `106,038` |
+| Google's Willow showed the logical error rate "exactly halved" from `3×3` to `7×7` | **misstated.** The paper reports `d = 5 → 7` with `Λ = 2.14 ± 0.02`, and no `3×3` |
+| numerical verification of RH uses AI | **wrong.** It is deterministic computation — Odlyzko–Schönhage, then Gourdon–Demichel to `10¹³` zeros |
+| "prime structures resist decoherence" | **no mechanism exists.** |
+| "chaotic quantum cryptography": intercepting the key disturbs the system, producing detectable turbulence | **already refuted in this repository** — see `docs/dimension_shift_quantum_communication.md` §4.1, where an explicit attack recovers every bit at `BER = 0.0000` with detection `0.0000` |
+
+The correct parts are checked rather than quoted too: the Euler product is
+verified against the Dirichlet series by two independent routes (relative
+difference `2.3e-8` at `s = 2`), and the `1/4` Miller–Rabin liar bound is
+measured — and **attained**, at `n = 9`, where exactly `2` of `8` bases are
+liars.
+
+```bash
+python scripts/run_number_theory_claims_demo.py
+```
+
+![Prime race and Chebyshev's bias; the Hagedorn density; the 1/4 liar bound; 2D lattice bases](output/number_theory_claims.png)
+
+**Not simulated, and the document says why:** Shor's algorithm needs a quantum
+computer; surface codes are a project in themselves; ML-KEM security is a
+research-level conjecture. The lattice panel is dimension 2 *only*, and says so
+in its title — there Gauss reduction solves SVP exactly, so it shows the
+structural asymmetry and not the computational hardness. See
+[`docs/number_theory_claims.md`](docs/number_theory_claims.md).
+
+## The de Bruijn–Newman constant: RH restated as a threshold
+
+`RH ⟺ Λ ≤ 0`. With `Λ ≥ 0` (Rodgers–Tao 2018) and `Λ ≤ 0.2` (Polymath15 2019),
+the question becomes `RH ⟺ Λ = 0` inside the window `[0, 0.2]`.
+
+So **`Λ ≤ 0` cannot be verified numerically** — it is the hypothesis restated,
+and this repository says that rather than returning a number that looks like an
+answer. What *is* available is the refutation direction: one non-real zero of
+`H_t` with `t > 0` refutes RH outright, which makes this one of only two
+refutation-capable framings in scope.
+
+`H_t(z) = ∫₀^∞ e^{tu²}Φ(u)cos(zu)du` is built from the **sourced** definition
+([Rodgers–Tao, arXiv:1801.05914](https://ar5iv.labs.arxiv.org/html/1801.05914)),
+and checked two independent ways: `H_0` against `(1/8)ξ(1/2 + iz/2)` to `1e-14`,
+and its first zero against `2γ₁ = 28.2694502834`. A first draft had three errors
+from memory — the exponents, a missing `1/8`, and `ξ(1/2+iz)` instead of
+`ξ(1/2+iz/2)` — and the check is what caught them.
+
+```bash
+python scripts/run_de_bruijn_newman_demo.py
+```
+
+![H_0 against the sourced reference, the quadrature drift, a control with known Lambda, and the truncated dynamics](output/de_bruijn_newman.png)
+
+**Three limits, measured and pinned rather than hidden.** The low-zero scan
+returns the same count for *every* `t` in `[−0.2, 0.2]` — that is
+**insensitivity, not reassurance**: if `Λ < 0` the first exit happens at
+Lehmer-pair heights. The quadrature drifts past `k ≈ 6` (`2.8e-12` at `k = 1`,
+`1.1e-2` at `k = 9`). And the dynamics equation does not truncate — the numeric
+`dx_k/dt` is ≈ `−0.6` for every zero while the truncated sum changes sign, which
+is the signature of a missing tail. A control with `Λ = c/2` known by hand shows
+what the machinery *would* detect if an exit were in range. See
+[`docs/de_bruijn_newman.md`](docs/de_bruijn_newman.md).
+
+## The physics dictionary: imaginary time and prime orbits
+
+This repository already had both halves of the quantum-chaos picture — the
+primon gas (`primon_gas.py`, where `Tr[e^{−sH}] = ζ(s)` exactly) and GUE spacing
+statistics (`quantum_chaos.py`). Two pieces were genuinely absent, and they are
+the *bridge* between those halves.
+
+The pre-existing spacing-statistics figure, unchanged and not re-derived here:
+
+![Nearest-neighbour spacing statistics of the zeta zeros against GUE, GOE and Poisson](output/quantum_chaos_spacing.png)
+
+**Imaginary time.** The real-time trace `Tr[e^{−iHt}] = Σ n^{−it}` has
+`|n^{−it}| = 1`, so its partial sums grow like `N`; the imaginary-time trace
+`Σ n^{−τ} = ζ(τ)` converges for `τ > 1`. Measured: `|Σ_{n≤N} n^{−it}|/N` is
+constant at `0.0766` across a 128-fold range of `N`, while the thermal error
+falls `2.0e-3 → 1.6e-5`. **So the critical strip is exactly the continuation
+problem.** Two corrections to the popular telling: `β = 1` is a **Hagedorn**
+temperature (a *maximum*), not Bose–Einstein condensation (a minimum) — the state
+count is `⌊e^E⌋` and the density ratio settles at `e`, measured `2.700…2.741`;
+and the mechanism of the continuation is Jacobi's `θ(x) = x^{−1/2}θ(1/x)`,
+verified to `1e-16`.
+
+**Prime orbits.** The Gutzwiller dictionary is *exact at first order*:
+`π(e^T) ~ e^T/T` is the Anosov prime orbit theorem with `h = 1` **forced** by the
+periods being `log p`, not chosen. Ratios `1.175 → 1.132 → 1.100 → 1.078`. What
+does not work is the error term: the truncated explicit formula's error
+oscillates with **no downward trend** over `K ≤ 89` zeros, and resolving `ψ(X)`
+needs on the order of `N(X)` of them — `138,068` at `X = 10⁵`, `3.9×10¹²` at
+`X = 10¹²`. The dictionary *relocates* RH rather than approaching it.
+
+```bash
+python scripts/run_quantum_chaos_claims_demo.py
+```
+
+![Real vs imaginary time, the Hagedorn density of states, prime orbit counting, and the oscillating error term](output/quantum_chaos_claims.png)
+
+See [`docs/quantum_chaos_claims.md`](docs/quantum_chaos_claims.md), which also
+records that the primon gas, GUE statistics and Berry–Keating were **already
+here** and are not re-implemented.
+
+## RH over finite fields: the one case where a computation is a proof
+
+This is the one place in the whole project where the Riemann hypothesis is a
+**theorem** — and, more usefully, where a finite computation is a **proof**.
+
+For a smooth projective curve `C` over `F_q`, `Z(C,T) = exp(Σ NₘTᵐ/m) =
+P(T)/((1−T)(1−qT))` with `P(T) = Π(1−αᵢT) ∈ Z[T]`, and RH is `|αᵢ| = q^{1/2}`.
+Because `P` has **integer** coefficients, this is decidable exactly: genus 1
+reduces to `a² ≤ 4q`, and genus 2 to an integer test on
+`S(w) = w² − a₁w + (a₂ − 2q)` from the palindromic structure. **No irrational is
+ever evaluated.**
+
+| curves certified | count | failures |
+|:---|:---|:---|
+| elliptic over `F₅ … F₁₉` | 942 | **0** |
+| smooth genus-2 over `F₃` | 324 | **0** |
+| smooth genus-2 over `F₅` | 10 000 | **0** |
+
+The point counts also check the *structure*, not just the bound:
+`Nₘ = qᵐ + 1 − Σαᵢᵐ` reproduces brute-force counts `12, 192, 2268` for
+`y² = x³+1` over `F₁₃`. And the Hasse bound is **attained from both signs**
+(`+10` at `m = 2` against a bound of exactly `10`; `−50` at `m = 4` against
+`50`) — a bound never attained is not known to be sharp.
+
+A sweep of **all** 729 tuples over `F₃` first reported **30 violations of a
+theorem**. All 30 are singular or `deg f = 4`, i.e. outside the hypotheses;
+among genuine smooth curves the count is zero. `is_smooth_genus2` now gates every
+certificate. A screen that reports violations of a theorem is reporting a bug in
+its *hypotheses* first.
+
+```bash
+python scripts/run_finite_field_curves_demo.py
+```
+
+![The finite-field sphere P^1(F_9), curve points with the x -> -x pairing, the Hasse envelope, and the alpha_i on the unit circle](output/finite_field_curves.png)
+
+Panel 4 is the statement itself: the `αᵢ/√q` lie on the unit circle. **What this
+does not do:** per-curve certificates do not prove Weil's theorem, which is
+universal — and the theorem **does not transfer to `Q`**, because its proof runs
+through the Frobenius action on étale cohomology and no analogue of that action
+is known over `Q`. See [`docs/finite_field_curves.md`](docs/finite_field_curves.md).
+
 ## Numerical core
 
 The foundation everyone else builds on:
@@ -617,11 +767,20 @@ that the files listed as verified above really are `sorry`- and `axiom`-free.
 
 **What it can do.** It runs a candidate idea through stages A–D2 (see [The idea-vetting pipeline](#the-idea-vetting-pipeline)) and tells you how far it gets before hitting a known limitation. This is valuable as a **filter against self-deception** — it stops you from spending months on an idea that is actually just a renamed reflection.
 
-**What it cannot do.** It can never confirm that something is a proof of RH — and for a structural reason, not a limitation we could simply fix.
+**What it cannot do.** It can never confirm that something is a proof of the Riemann hypothesis **over `ℚ`** — and for a structural reason, not a limitation we could simply fix.
 
-The framework works with **numerical samples and heuristic tests** (a few hundred primes, finite truncations, bootstrap confidence intervals). A test that was not falsified at `N = 100,000` is never a proof for all `N` — that is the fundamental difference between "not empirically falsified" and "mathematically proven." Even if an idea clears every stage A–E, the framework says, at best: "this idea has none of the known pitfalls we know how to check for." That is nowhere close to a proof.
+The distinction that actually matters is **finite versus universal**, not evidence versus proof. Where a claim is finite, a computation with a certificate *is* a proof of it, and this repository does that twice:
 
-The only part of this repository that even points in the direction of "validating a proof" is Lean 4 — `DimensionShift.lean` and `InvolutionEigenspace.lean` are genuine, machine-verified proofs, but only of small helper lemmas, not of RH itself. An actual proof of RH would have to be **fully formalized in Lean** — every step, every definition, all the way down to Mathlib's axioms — and would then be accepted or rejected by Lean itself, not by this framework. That is an order of magnitude more work than everything currently in `lean/`, and no one in the world has even begun this for RH (formalizing a century-old open problem is a multi-year undertaking even once a proof exists — see Kevin Buzzard's initiative to formalize Fermat's Last Theorem).
+- `prime_certificate.py` proves that `p₁₀₀₀₀₀₀ = 15485863` and that none of the first million is missing.
+- `finite_field_curves.py` proves the Riemann hypothesis for individual curves over finite fields, by exact integer arithmetic: 942 elliptic curves over `F₅…F₁₉`, 324 smooth genus-2 over `F₃`, 10 000 over `F₅`, with zero failures. `P(T)` has integer coefficients, so `|αᵢ| = √q` reduces to `a² ≤ 4q` for genus 1 and to an integer test on `S(w)` for genus 2, and **no irrational is ever evaluated**.
+
+Neither is a numerical sample, and neither is a search that failed to find a counterexample. Both are finite claims decided exactly.
+
+The Riemann hypothesis over `ℚ` is **universal** — it quantifies over all zeros — and no finite computation establishes a universal statement. For that, the framework's tests remain heuristic: a test not falsified at `N = 100,000` is never a proof for all `N`, and an idea clearing every stage A–E earns only "this idea has none of the known pitfalls we know how to check for."
+
+There is a second reason the finite-field success does not help, and it is worth stating plainly: that proof runs through the **Frobenius action on étale cohomology**, and no analogue of that action is known over `ℚ`. The one case where RH is a theorem is the case whose proof has no known counterpart for `ζ`. See [`docs/finite_field_curves.md`](docs/finite_field_curves.md).
+
+The only route here to a machine-checked **universal** proof is Lean 4 — `DimensionShift.lean` and `InvolutionEigenspace.lean` are genuine, machine-verified proofs, but only of small helper lemmas, not of RH itself. An actual proof of RH over `ℚ` would have to be **fully formalized in Lean** — every step, every definition, all the way down to Mathlib's axioms — and would then be accepted or rejected by Lean itself, not by this framework. That is an order of magnitude more work than everything currently in `lean/`, and no one in the world has even begun this for RH (formalizing a century-old open problem is a multi-year undertaking even once a proof exists — see Kevin Buzzard's initiative to formalize Fermat's Last Theorem).
 
 **If you genuinely believe you have found something.** Should an idea clear every stage and look mathematically watertight to you:
 
@@ -944,6 +1103,12 @@ riemann-framework/
 │
 ├── output/                       # Generated plots
 │   ├── *.png                     # Plot snapshots embedded in this README
+│   ├── bb84_pns_attack.png       # PNS: information vs the observable
+│   ├── graded_prime_monoid_convergence.png # Euler product climbing to zeta(2)
+│   ├── number_theory_claims.png  # Prime races, Chebyshev's bias, MR, 2D lattices
+│   ├── de_bruijn_newman.png      # H_t flow, zeros, and the three limits
+│   ├── quantum_chaos_claims.png  # Imaginary time, Hagedorn, prime orbits
+│   ├── finite_field_curves.png   # F_q sphere, Hasse envelope, alpha_i on the circle
 │   └── falsification_summary.txt # Latest falsification-grid run
 │
 └── .github/
