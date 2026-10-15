@@ -101,7 +101,7 @@ def test_constructor_normalises_coefficients_to_complex():
     """
     for element in (
         GradedElement(2.0, -3.0),
-        GradedElement(mp.mpf("0.5"), mp.mpf("0.25")),
+        GradedElement.of(mp.mpf("0.5"), mp.mpf("0.25")),
         GradedElement(2, -3),
         GradedElement(complex(2, 1), complex(0, -1)),
     ):

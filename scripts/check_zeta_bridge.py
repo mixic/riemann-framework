@@ -23,6 +23,7 @@ This script verifies that for each known zero ρ:
   3. The quadruple {ρ, 1-ρ, conj ρ, 1-conj ρ} are all zeros
 """
 
+import io
 import sys
 from pathlib import Path
 
@@ -31,7 +32,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "python"))
 
 # Windows consoles default to a legacy code page (cp1252) that cannot encode the
 # Greek letters in the report below.
-if hasattr(sys.stdout, "reconfigure"):
+#
+# `isinstance` rather than `hasattr`: `sys.stdout` is typed as `TextIO`, which has
+# no `reconfigure` -- that method lives on the concrete `TextIOWrapper` -- so a
+# `hasattr` guard leaves the attribute access unresolvable to a checker, which
+# reports it as an unknown attribute on `TextIO`. The isinstance check both
+# documents the real precondition and narrows the type, so the call type-checks.
+# `hasattr` is not wrong at runtime; it is wrong as a *guard* for a checker that
+# cannot narrow on it.
+if isinstance(sys.stdout, io.TextIOWrapper):
     sys.stdout.reconfigure(encoding="utf-8")
 
 import mpmath as mp
@@ -62,7 +71,7 @@ def check_sigma_symmetry(n_zeros=10):
         is_fixed = mp.almosteq(sigma_rho, rho, abs_eps=mp.mpf('1e-20'))
 
         print(f"{n:>3} | {str(rho):>30} | {str(sigma_rho):>30} | "
-              f"{abs(zeta_at_sigma):>12.2e} | {str(is_fixed):>8}")
+              f"{float(abs(zeta_at_sigma)):>12.2e} | {str(is_fixed):>8}")
 
     print()
 
@@ -81,10 +90,10 @@ def check_quadruple(n_zeros=5):
         one_sub_conj = 1 - conj_rho
 
         print(f"Zero #{n}: ρ = {rho}")
-        print(f"  ρ           : ζ = {abs(zeta(rho)):.2e}")
-        print(f"  1 - ρ       : ζ = {abs(zeta(one_sub_rho)):.2e}")
-        print(f"  conj(ρ)     : ζ = {abs(zeta(conj_rho)):.2e}")
-        print(f"  1 - conj(ρ) : ζ = {abs(zeta(one_sub_conj)):.2e}")
+        print(f"  ρ           : ζ = {float(abs(zeta(rho))):.2e}")
+        print(f"  1 - ρ       : ζ = {float(abs(zeta(one_sub_rho))):.2e}")
+        print(f"  conj(ρ)     : ζ = {float(abs(zeta(conj_rho))):.2e}")
+        print(f"  1 - conj(ρ) : ζ = {float(abs(zeta(one_sub_conj))):.2e}")
         print()
 
 
@@ -104,7 +113,7 @@ def check_fixed_locus(n_zeros=20):
         re_is_half = mp.almosteq(mp.re(rho), mp.mpf('0.5'),
                                   abs_eps=mp.mpf('1e-20'))
 
-        print(f"{n:>3} | {mp.re(rho):>20} | {str(is_fixed):>10} | "
+        print(f"{n:>3} | {mp.nstr(mp.re(rho), 20):>20} | {str(is_fixed):>10} | "
               f"{str(re_is_half):>10}")
 
     print()

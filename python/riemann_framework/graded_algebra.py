@@ -127,8 +127,16 @@ class GradedElement:
     # ------------------------------------------------------------
 
     @staticmethod
-    def of(a, b=0) -> "GradedElement":
-        """Build an element from two (possibly real) coefficients."""
+    def of(a: Scalar, b: Scalar = 0) -> "GradedElement":
+        """Build an element from two (possibly real) coefficients.
+
+        Annotated `Scalar` rather than left bare. Unannotated, a type checker
+        infers `b: int` from the default `0` and then rejects every legitimate
+        call that passes an mpmath value -- `GradedElement.of(mp.mpf("0.5"),
+        mp.mpf("0.25"))` -- which is exactly what the tests do, deliberately, to
+        check that the coefficients are normalised. The body already calls
+        `complex(...)` on both arguments, so `Scalar` is the honest input type.
+        """
         return GradedElement(complex(a), complex(b))
 
     @staticmethod
@@ -166,7 +174,7 @@ class GradedElement:
             self.a * other.b + self.b * other.a,
         )
 
-    def scale(self, scalar) -> "GradedElement":
+    def scale(self, scalar: Scalar) -> "GradedElement":
         """Multiply by a scalar from the base field."""
         return GradedElement(self.a * scalar, self.b * scalar)
 

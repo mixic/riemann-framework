@@ -136,6 +136,24 @@ class GradedElement:
     odd: complex
     omega_sq: int = 1
 
+    @staticmethod
+    def of(even: Scalar, odd: Scalar = 0, omega_sq: int = 1) -> "GradedElement":
+        """Build an element from coefficients of any accepted scalar type.
+
+        `__post_init__` normalises, and its docstring records that `complex`
+        accepts `int`, `float`, `complex`, `mp.mpf` and `mp.mpc`. The *field*
+        annotations stay `complex` because that is what is stored after
+        normalisation -- and it is what every read site relies on, `.real` and
+        numeric formatting included. So the accepted-input type is named here
+        rather than by widening the fields, which would make every read site
+        imprecise and would additionally drag in members that `complex` has and
+        the stub's `mpf` does not (`.real`, `.imag`).
+
+        This mirrors the `of` on `graded_algebra.GradedElement`, which separates
+        the same two types the same way.
+        """
+        return GradedElement(complex(even), complex(odd), omega_sq)
+
     def __post_init__(self) -> None:
         """Validate `omega_sq` and normalise the coefficients to `complex`.
 
