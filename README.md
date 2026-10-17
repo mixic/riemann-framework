@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **882 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **922 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -267,6 +267,46 @@ python scripts/run_quantum_chaos_claims_demo.py
 See [`docs/quantum_chaos_claims.md`](docs/quantum_chaos_claims.md), which also
 records that the primon gas, GUE statistics and Berry–Keating were **already
 here** and are not re-implemented.
+
+## The Hilbert–Pólya prototype: an operator, and the four gaps
+
+Berry–Keating (`H = xp`) was *documented* in `docs/research_notes.md` and
+`docs/dimension_shift_quantum_chaos.md`, but no operator existed whose spectrum
+could be computed and held against the zeros. This builds one and screens it.
+
+The positive half is real. For `H = −i(x d/dx + 1/2)` on `L²(0,∞)` the formal
+eigenfunctions are `x^{−1/2+iE}`, whose exponent is `s − 1` at `s = 1/2 + iE`:
+**the critical line is the construction's fixed point, not a parameter.** Verified
+in exact arithmetic — shifting the real part by `δ` shifts the residual by exactly
+`|δ|`, so the check can fail.
+
+The other half is four gaps, each measured rather than asserted:
+
+| # | gap | measured |
+|:--|:---|:---|
+| 1 | no eigenvalue | `|ψ|² = x⁻¹` for every `E`, so `∫ = log(b/a)`: `13.816` at width `10⁶` and no limit at either end. The spectrum is all of `ℝ`, which contains the zeros **and every other real number** |
+| 2 | the box is a picket fence | `r = 1.000` against `0.610`; rungs every `2.3652` while the zero spacings run `0.716…6.887`; a box fitted to hold 100 zeros by `γ₁₀₀` predicts `21` levels below `T = 50`, where there are `10` — **2.10×** |
+| 3 | a real spectrum is free | `diag(any real list)` is self-adjoint, so spectral reality carries no arithmetic content. On the `PT` route reality is a *condition*: the exact threshold is `θ_c = arcsin(s/r) = π/6`, thirty degrees at `s/r = 1/2` |
+| 4 | imaginary time is blind to `Re(s)` | `Z(β) = Σe^{−βE_n}` consumes ordinates only. Shift every zero to `0.6 + iγ` and `Z(0.5) = 8.837461×10⁻⁴` is **identical** — difference exactly `0`, not small |
+
+Gap 4 is the one that constrains the popular framing. Wick rotation is a
+*consequence* of spectral theory, not a route into it: it reads `Im(s)` and never
+`Re(s)`, so it cannot distinguish the hypothesis from its negation. What is a
+theorem — and is verified to `1.2×10⁻¹⁶` — is the temperature statement
+`G(τ) = G(β − τ)`, with `β = 8πGM/c³` for a black hole (`T = 6.1687×10⁻⁸ K` at
+one solar mass, `T·β·k_B/ħ = 1`).
+
+```bash
+python scripts/run_hilbert_polya_demo.py
+```
+
+![The critical line as eigenfunction exponent, the picket-fence failure, GUE spacings, the PT threshold, imaginary-time ground-state dominance, and the KMS circle](output/hilbert_polya.png)
+
+[`docs/hilbert_polya.md`](docs/hilbert_polya.md) also records four corrections to
+the framing that prompted this: the "automatic proof" gap, the box claim, the
+imaginary-time claim, and the attribution — the 2017 PRL is Bender, Brody and
+**Müller**, not "Bender, Brody and Jones", and its claimed spectrum rests on
+boundary conditions that later work disputes.
 
 ## RH over finite fields: the one case where a computation is a proof
 
@@ -782,6 +822,8 @@ The Riemann hypothesis over `ℚ` is **universal** — it quantifies over all ze
 
 There is a second reason the finite-field success does not help, and it is worth stating plainly: that proof runs through the **Frobenius action on étale cohomology**, and no analogue of that action is known over `ℚ`. The one case where RH is a theorem is the case whose proof has no known counterpart for `ζ`. See [`docs/finite_field_curves.md`](docs/finite_field_curves.md).
 
+A third reason is logical and has nothing to do with `ℚ`, so it applies to the Hilbert–Pólya programme directly: **self-adjointness gives reality, not identification.** `diag` of any list of real numbers is a self-adjoint operator, so "there is a self-adjoint operator whose spectrum is real" is true of *every* real list, and a finite match of eigenvalues to zeros is a tautology with `n` numbers in it. What the conjecture needs is an operator **defined without reference to the zeros** whose spectrum is provably theirs, infinitely many of them. That is the gap the Hilbert–Pólya prototype above measures rather than closes.
+
 The only route here to a machine-checked **universal** proof is Lean 4 — `DimensionShift.lean` and `InvolutionEigenspace.lean` are genuine, machine-verified proofs, but only of small helper lemmas, not of RH itself. An actual proof of RH over `ℚ` would have to be **fully formalized in Lean** — every step, every definition, all the way down to Mathlib's axioms — and would then be accepted or rejected by Lean itself, not by this framework. That is an order of magnitude more work than everything currently in `lean/`, and no one in the world has even begun this for RH (formalizing a century-old open problem is a multi-year undertaking even once a proof exists — see Kevin Buzzard's initiative to formalize Fermat's Last Theorem).
 
 **If you genuinely believe you have found something.** Should an idea clear every stage and look mathematically watertight to you:
@@ -800,7 +842,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**882 tests pass** on the current tree. They are not smoke tests: the suite
+**922 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -824,6 +866,7 @@ silently changed meaning.
 | `test_de_bruijn_newman.py` | 18 | `H_0` against the sourced reference, `2γ_k`, and the three limits |
 | `test_imaginary_time.py` | 14 | The two traces, Hagedorn, and Jacobi's theta identity |
 | `test_prime_orbits.py` | 17 | Orbit counting, `h = 1`, and the measured error-term limit |
+| `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
 | `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
@@ -1008,6 +1051,7 @@ riemann-framework/
 │   │   ├── imaginary_time.py      # Wick rotation: why the partition function exists
 │   │   ├── prime_orbits.py        # Prime orbit theorem, and where the dictionary stops
 │   │   ├── finite_field_curves.py # RH over F_q: exact per-curve certificates
+│   │   ├── hilbert_polya.py       # Berry-Keating operator, and the four gaps
 │   │   ├── prime_certificate.py   # Sieve invariants and the certified millionth prime
 │   │   ├── proportion_certificates.py # Certificates behind the two 2/3 proportion theorems
 │   │   ├── generate_plots.py      # Plot generation entry point
@@ -1049,6 +1093,7 @@ riemann-framework/
 │       ├── test_imaginary_time.py    # Two traces, Hagedorn, Jacobi theta
 │       ├── test_prime_orbits.py      # Orbit counting and the error-term limit
 │       ├── test_finite_field_curves.py # Field axioms, Hasse, smoothness hypotheses
+│       ├── test_hilbert_polya.py     # The operator, the box, PT threshold, blindness
 │       ├── test_mpmath_stub.py       # Stub coverage + well-formedness guards
 │       ├── test_documentation_sync.py # README counts, paths, figures, links
 │       ├── test_dsin.py              # DSIN simulation tests
@@ -1068,6 +1113,7 @@ riemann-framework/
 │   ├── run_de_bruijn_newman_demo.py # H_t flow, zeros, and the three limits
 │   ├── run_quantum_chaos_claims_demo.py # Imaginary time, Hagedorn, prime orbits
 │   ├── run_finite_field_curves_demo.py # Finite-field spheres, Hasse bound, alpha_i
+│   ├── run_hilbert_polya_demo.py # The operator, the picket fence, PT, KMS
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
@@ -1102,6 +1148,7 @@ riemann-framework/
 │   ├── de_bruijn_newman.md           # Lambda, the window, and the three limits
 │   ├── quantum_chaos_claims.md       # What was already here, what is new, what is wrong
 │   ├── finite_field_curves.md        # RH over F_q: exact certificates, and no transfer
+│   ├── hilbert_polya.md              # The operator, four measured gaps, four corrections
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
@@ -1115,6 +1162,7 @@ riemann-framework/
 │   ├── de_bruijn_newman.png      # H_t flow, zeros, and the three limits
 │   ├── quantum_chaos_claims.png  # Imaginary time, Hagedorn, prime orbits
 │   ├── finite_field_curves.png   # F_q sphere, Hasse envelope, alpha_i on the circle
+│   ├── hilbert_polya.png         # Eigenfunction norm, picket fence, PT, KMS circle
 │   └── falsification_summary.txt # Latest falsification-grid run
 │
 └── .github/

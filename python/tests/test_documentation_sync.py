@@ -384,6 +384,10 @@ def test_the_committed_figure_check_is_not_fooled_by_a_local_file():
     committed = committed_output_figures()
     if committed is None:
         pytest.skip("not a git work tree")
+    # `pytest.skip` is not annotated `NoReturn` as far as any checker here can
+    # see, so the narrowing has to be stated for the type checker as well as
+    # relied on at runtime.
+    assert committed is not None
 
     assert "quantum_chaos_spacing.png" in committed, (
         "the README embeds output/quantum_chaos_spacing.png but git does not "
