@@ -196,8 +196,8 @@ call — 90 seconds per evaluation, now 5.9 s for the whole table.
 |:---|:---|
 | `python/riemann_framework/imaginary_time.py` | Wick rotation, the two traces, Hagedorn, Jacobi theta |
 | `python/riemann_framework/prime_orbits.py` | orbit counting, the `h = 1` correspondence, and the measured error-term limit |
-| `python/tests/test_imaginary_time.py` | 15 tests |
-| `python/tests/test_prime_orbits.py` | 16 tests |
+| `python/tests/test_imaginary_time.py` | 14 tests |
+| `python/tests/test_prime_orbits.py` | 17 tests |
 | `scripts/run_quantum_chaos_claims_demo.py` | the four-panel figure |
 
 ## References

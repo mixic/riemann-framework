@@ -13,9 +13,17 @@ happened in practice happened one layer down, in hardware:
 - **finite-key statistics** — the asymptotic analysis assumes infinitely many rounds.
 
 This article documents `bb84_implementation.py`, which models photon-number
-splitting together with the source and detector physics it needs, and implements
-the decoy-state mitigation with bounds taken from the literature. The other three
-are named below with what each would require, and are **not** implemented.
+splitting together with the source and detector physics it needs, implements the
+decoy-state mitigation with bounds taken from the literature (§2.1), and implements
+the finite-key statistics that turn an *estimated* error rate into a bounded one
+(§2.3). **Two** of the four attack classes are therefore absent — detector
+blinding, and timing side channels with Trojan-horse attacks — and §3 names each
+with what it would require.
+
+An earlier revision of this file said "the other three" and "the decoy-state
+mitigation is named rather than implemented". Both were stale: the code has
+`decoy_state_report`, `lower_bound_Y1`, `upper_bound_e1`, `finite_key_report` and
+`minimum_rounds`, and `tests/test_bb84_implementation.py` exercises them.
 
 Nothing here is a security proof for or against any deployed system. It is the
 standard photon-number-splitting accounting, written down so the numbers can be
@@ -243,13 +251,14 @@ idealised model for a break will not find one. The value of running attacks agai
 stating plainly, because a simulation environment invites the opposite expectation.
 
 **Cannot: speak to any deployed system.** The parameters here are representative,
-not measured, and three of the four historical attack classes are absent entirely.
+not measured, and two of the four historical attack classes are absent entirely —
+detector blinding, and timing side channels with Trojan-horse attacks.
 
 ## 5. Files
 
 | file | role |
 |:---|:---|
-| `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound |
+| `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound, decoy bounds, finite keys |
 | `python/tests/test_bb84_implementation.py` | 45 tests |
 | `scripts/run_bb84_implementation_demo.py` | prints all five parts and writes the figure |
 | `output/bb84_pns_attack.png` | information against observable, and the two rates |
@@ -268,7 +277,8 @@ not measured, and three of the four historical attack classes are absent entirel
 
 This is not a security proof for or against any deployed system, and it does not
 claim BB84 is broken. BB84 as a protocol is secure. What is modelled here is one
-hardware assumption the protocol does not cover, together with the accounting that
-shows why the protocol layer cannot see it. Three of the four historical attack
-classes are absent, and the decoy-state mitigation is named rather than
-implemented.
+hardware assumption the protocol does not cover, the accounting that shows why the
+protocol layer cannot see it, and the two mitigations that recover a usable rate —
+decoy states (§2.1) and finite-key statistics (§2.3), both implemented. Two of the
+four historical attack classes are absent: detector blinding, and timing
+side channels with Trojan-horse attacks.

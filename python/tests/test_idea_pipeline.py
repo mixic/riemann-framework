@@ -259,3 +259,51 @@ def test_load_idea_rejects_invalid_json(monkeypatch):
     monkeypatch.setattr(Path, "read_text", lambda self, encoding=None: "not json")
     with pytest.raises(InvalidIdeaError):
         load_idea("whatever.json")
+
+
+# ============================================================
+# Stage B must return a verdict, not raise
+# ============================================================
+
+def _idea_with(expression: str) -> Idea:
+    return Idea(
+        id="stage_b_probe",
+        hypothesis="h",
+        expression=expression,
+        falsification_criterion="fc",
+    )
+
+
+def test_stage_b_returns_a_verdict_for_an_expression_it_cannot_evaluate():
+    """`cot(1/sqrt(2))` parses, then fails to evaluate inside the affine gate.
+
+    `cot` is in the evaluator's grammar but not in its allowlist, so Stage A's
+    guard -- which wraps parsing -- cannot see the problem. Stage B then raised
+    `ExpressionError` at evaluation time, and the runner crashed with a traceback
+    instead of producing a verdict. Recorded as a known gap in
+    `docs/claimed_proof_triage.md`, fixed by wrapping the Stage B call the way
+    Stage A already was, and pinned here.
+
+    The verdict must be honest about *why*: the affine gate never ran, so this
+    says nothing about the expression's affine-ness.
+    """
+    verdict = run_pipeline(_idea_with("cot(1/sqrt(2))"))
+    assert verdict.stage_reached == "B"
+    assert verdict.passed is False
+    assert "could not evaluate" in verdict.summary
+    assert "never ran" in verdict.summary
+
+
+def test_stage_b_still_reports_an_affine_map_as_affine():
+    """The wrapper must not swallow the ordinary Stage B rejection."""
+    verdict = run_pipeline(_idea_with("1 - s_conj"))
+    assert verdict.stage_reached == "B"
+    assert verdict.passed is False
+    assert "known affine map" in verdict.summary
+
+
+def test_stage_a_still_reports_a_syntax_error():
+    """Stage A keeps its own guard, and the two must not be confused."""
+    verdict = run_pipeline(_idea_with("s +* 3"))
+    assert verdict.stage_reached == "A"
+    assert verdict.passed is False

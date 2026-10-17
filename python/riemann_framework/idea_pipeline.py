@@ -346,8 +346,28 @@ def run_pipeline(
             summary=f"Failed well-formedness check: {exc}",
         )
 
-    # Stage B: affine-reduction gate.
-    affine = check_affine_reduction(idea.expression)
+    # Stage B: affine-reduction gate. Wrapped for the same reason Stage A is.
+    # An expression can compile and then fail to *evaluate*: `cot(1/sqrt(2))` is
+    # in the evaluator's grammar but `cot` is not in its allowlist, so
+    # `check_affine_reduction` raises `ExpressionError` at evaluation time. Stage
+    # A's guard wraps parsing and cannot see that, and the uncaught exception
+    # crashed the runner with a traceback instead of producing a verdict. This
+    # was recorded as a known gap in docs/claimed_proof_triage.md before it was
+    # fixed here; it is now a test.
+    try:
+        affine = check_affine_reduction(idea.expression)
+    except ExpressionError as exc:
+        return Verdict(
+            idea_id=idea.id,
+            stage_reached="B",
+            passed=False,
+            summary=(
+                "Stage B could not evaluate the expression: "
+                f"{exc}. This is not a verdict about the idea -- the expression "
+                "is outside the evaluator's allowlist, so the affine gate never "
+                "ran. Supply an expression built from allowed functions."
+            ),
+        )
     if affine.is_affine:
         return Verdict(
             idea_id=idea.id,

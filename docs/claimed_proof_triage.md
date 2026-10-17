@@ -74,16 +74,23 @@ that verdict means **"this claim is outside the pipeline's input domain"**, not
 class of input is worse than one that refuses, and the cheapest fix available is to
 say so where the answer is printed.
 
-**A robustness gap this exposed.** The records use a constant certificate as their
-`expression`, which the evaluator accepts and Stage B then rejects as an affine
-constant — the documented behaviour. The first drafts used `cot(1/sqrt(2))`, which
-is *not* in the expression evaluator's allowlist, and the result was not a verdict:
-`check_affine_reduction` raises `ExpressionError` at evaluation time and
-`run_idea_pipeline.py` does not catch it, so the runner **crashed** with a
-traceback. Stage A catches forbidden tokens and syntax errors but not an expression
-that compiles and then fails to evaluate, because the guard wraps parsing and the
-failure happens later, inside the affine gate. Recorded rather than fixed silently;
-the fix is to wrap the Stage B call the way Stage A is already wrapped.
+**A robustness gap this exposed — now fixed.** The records use a constant
+certificate as their `expression`, which the evaluator accepts and Stage B then
+rejects as an affine constant — the documented behaviour. The first drafts used
+`cot(1/sqrt(2))`, which is *not* in the expression evaluator's allowlist, and the
+result was not a verdict: `check_affine_reduction` raises `ExpressionError` at
+evaluation time and `run_idea_pipeline.py` did not catch it, so the runner
+**crashed** with a traceback. Stage A catches forbidden tokens and syntax errors
+but not an expression that compiles and then fails to evaluate, because the guard
+wraps parsing and the failure happens later, inside the affine gate.
+
+This was recorded rather than fixed silently at the time. It is now fixed: the
+Stage B call is wrapped the way Stage A already was, and the runner returns a
+verdict at stage B that says the expression is outside the evaluator's allowlist
+and that the gate never ran — which is the honest description, since no affine
+analysis happened. `tests/test_idea_pipeline.py` pins it by pushing
+`cot(1/sqrt(2))` through the pipeline and asserting a stage-B verdict rather than
+an exception.
 
 ## 3. The papers' own ceilings, which are results in their own right
 
