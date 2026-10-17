@@ -305,8 +305,8 @@ def test_the_spectrum_is_real_below_the_threshold_and_complex_above():
     threshold = pt_threshold(1.0, 0.5)
     below = pt_eigenvalues(1.0, 0.5, threshold - 1e-9)
     above = pt_eigenvalues(1.0, 0.5, threshold + 1e-9)
-    assert np.all(np.abs(below.imag) < 1e-6)
-    assert np.all(np.abs(above.imag) > 0.0)
+    assert np.all(np.abs(np.imag(below)) < 1e-6)
+    assert np.all(np.abs(np.imag(above)) > 0.0)
     assert above[0].imag == pytest.approx(-above[1].imag)
 
 
@@ -315,7 +315,7 @@ def test_the_broken_phase_magnitude_matches_the_closed_form():
     theta = 0.55
     expected = np.sqrt(np.sin(theta) ** 2 - 0.25)
     assert pt_max_imaginary_part(1.0, 0.5, theta) == pytest.approx(expected)
-    assert np.abs(pt_eigenvalues(1.0, 0.5, theta).imag).max() == pytest.approx(expected)
+    assert np.abs(np.imag(pt_eigenvalues(1.0, 0.5, theta))).max() == pytest.approx(expected)
 
 
 def test_the_pt_scan_finds_a_single_crossing():

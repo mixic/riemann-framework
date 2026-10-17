@@ -260,6 +260,18 @@ cd python && python -m pytest tests/test_hilbert_polya.py -q
 only for the Hawking check. The linear-algebra panels are `numpy`; the zeros come
 from `prime_orbits.zeta_zero_ordinates`, cached.
 
+**Typing note, because it cost seven errors.** On arrays write `np.real(a)` and
+`np.imag(a)`, never the property forms `a.real` / `a.imag`. Under numpy 2.5's
+stubs the properties fail with `No overloads for "__get__" match the provided
+arguments`, while the function forms are clean — and so are scalar attributes
+such as `z.imag` on a `np.complex128` element, which is why the same expression
+is an error on the array and fine on `a[0]`. The committed `pyrightconfig.json`
+cannot resolve `numpy`, so `npx pyright` in this repository reports 100+ import
+errors and *none* of these attribute errors; they appear only in an editor with an
+interpreter configured. To reproduce that view, point a throwaway config at
+site-packages (`{"extraPaths": ["./python", "<site-packages>"], "stubPath":
+"./typings"}`). With `numpy` resolved the whole tree is clean: 0 errors.
+
 ## Files
 
 | File | Contents |

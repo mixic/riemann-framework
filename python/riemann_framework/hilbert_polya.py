@@ -524,8 +524,8 @@ def pt_scan(radius: float, coupling: float, thetas: list[float]) -> list[PtRow]:
         rows.append(
             PtRow(
                 theta=float(theta),
-                unbroken=bool(np.all(np.abs(eigenvalues.imag) < 1e-12)),
-                max_imaginary_part=float(np.abs(eigenvalues.imag).max()),
+                unbroken=bool(np.all(np.abs(np.imag(eigenvalues)) < 1e-12)),
+                max_imaginary_part=float(np.abs(np.imag(eigenvalues)).max()),
             )
         )
     return rows
@@ -618,7 +618,7 @@ def partition_function_of_zeros(beta: float, zeros: np.ndarray | list[complex]) 
     values = np.asarray(zeros, dtype=complex)
     if values.ndim != 1 or values.size == 0:
         raise ValueError("zeros must be a non-empty one-dimensional array")
-    return partition_function(beta, np.abs(values.imag))
+    return partition_function(beta, np.abs(np.imag(values)))
 
 
 def partition_function_from_zeros(beta: float, count: int = 100) -> float:

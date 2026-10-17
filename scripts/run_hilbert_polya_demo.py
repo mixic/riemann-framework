@@ -170,7 +170,7 @@ def panel_pt(ax) -> None:
     real_parts = [pt_eigenvalues(1.0, 0.5, float(t)) for t in thetas]
     lower_real = [float(e[0].real) for e in real_parts]
     upper_real = [float(e[1].real) for e in real_parts]
-    imaginary = [float(np.abs(e.imag).max()) for e in real_parts]
+    imaginary = [float(np.abs(np.imag(e)).max()) for e in real_parts]
     threshold = pt_threshold(1.0, 0.5)
     ax.plot(thetas, upper_real, color="#1f77b4", linewidth=1.6, label=r"Re $\lambda_\pm$")
     ax.plot(thetas, lower_real, color="#1f77b4", linewidth=1.6)
