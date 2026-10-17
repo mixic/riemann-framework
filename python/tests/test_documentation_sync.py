@@ -250,12 +250,55 @@ def _internal_links() -> set[str]:
     }
 
 
+@lru_cache(maxsize=1)
+def committed_output_figures() -> frozenset[str] | None:
+    """Basenames of `output/*` files that git actually tracks, or None.
+
+    `Path.exists()` is not the question CI asks. A generated plot can sit on the
+    author's disk, be excluded by the `output/` allowlist in `.gitignore`, and
+    never be committed -- so the local run passes and a clean checkout fails.
+    That is exactly how `output/quantum_chaos_spacing.png` broke CI while the
+    whole suite was green locally: the file was present here and ignored.
+
+    Returns None outside a git work tree (a source tarball), where the
+    comparison is not answerable and the existence check above must stand alone.
+    """
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "-z", "--", "output"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return frozenset(
+        Path(entry).name for entry in listed.stdout.split("\0") if entry.strip()
+    )
+
+
 def test_every_figure_reference_exists():
     figures = _figure_paths()
     assert figures, "no figures found in README.md -- has the format changed?"
     missing = [path for path in figures if not (REPO_ROOT / path).exists()]
     assert not missing, "README embeds figures that do not exist:\n" + "\n".join(
         f"  {path}" for path in missing
+    )
+
+    committed = committed_output_figures()
+    if committed is None:
+        return
+    uncommitted = [
+        path
+        for path in figures
+        if path.startswith("output/") and Path(path).name not in committed
+    ]
+    assert not uncommitted, (
+        "README embeds figures that are on this disk but not committed, so a\n"
+        "clean checkout (and hence CI) does not have them. Allowlist each one\n"
+        "in .gitignore and `git add` it:\n"
+        + "\n".join(f"  {path}" for path in uncommitted)
     )
 
 
@@ -275,10 +318,16 @@ def test_every_output_figure_is_shown_somewhere():
 
     `output/quantum_chaos_spacing.png` sat unshown for a long time before being
     embedded. Generated artefacts are in `.gitignore` by allowlist, so a figure
-    can be committed and never referenced.
+    can be committed and never referenced. The comparison is against *committed*
+    files, not whatever is lying on this disk: a stale local plot is not
+    something the README owes an image to.
     """
     shown = {path.split("/")[-1] for path in _figure_paths()}
-    present = {path.name for path in (REPO_ROOT / "output").glob("*.png")}
+    committed = committed_output_figures()
+    if committed is None:
+        present = {path.name for path in (REPO_ROOT / "output").glob("*.png")}
+    else:
+        present = {name for name in committed if name.endswith(".png")}
     orphans = sorted(present - shown)
     assert not orphans, (
         "these figures are in output/ but shown nowhere in README.md:\n"
@@ -316,6 +365,37 @@ def test_the_figure_parser_finds_the_new_layers():
         "finite_field_curves.png",
         "de_bruijn_newman.png",
         "quantum_chaos_claims.png",
+        "quantum_chaos_spacing.png",
         "number_theory_claims.png",
     ):
         assert expected in figures, expected
+
+
+def test_the_committed_figure_check_is_not_fooled_by_a_local_file():
+    """Driven at the real bug: `exists()` on this disk is not `tracked` by git.
+
+    Before this helper, the existence guard passed locally on
+    `output/quantum_chaos_spacing.png` -- a real file, ignored by the `output/`
+    allowlist, therefore absent from CI -- and the suite went green while CI
+    went red. The helper has to separate the two universes, so both halves are
+    asserted: the offending plot is now tracked, and a present-but-ignored path
+    is still outside the set.
+    """
+    committed = committed_output_figures()
+    if committed is None:
+        pytest.skip("not a git work tree")
+
+    assert "quantum_chaos_spacing.png" in committed, (
+        "the README embeds output/quantum_chaos_spacing.png but git does not "
+        "track it -- allowlist it in .gitignore and `git add` it"
+    )
+
+    probe = subprocess.run(
+        ["git", "check-ignore", "-q", "output/not_an_allowlisted_plot.png"],
+        cwd=REPO_ROOT,
+    )
+    assert probe.returncode == 0, (
+        "the output/*.png allowlist stopped ignoring anything, so this test no "
+        "longer demonstrates that an ignored file is excluded"
+    )
+    assert "not_an_allowlisted_plot.png" not in committed

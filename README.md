@@ -48,9 +48,9 @@ A passing test is **evidence**, not a mathematical proof.
 | RH for curves over finite fields | **PROVED per curve — the one case where a computation is a proof.** `RH ⟺ |αᵢ| = √q` for `P(T) = Π(1−αᵢT)` of `Z(C,T)`. `P` has integer coefficients, so for genus 1 it reduces to `a² ≤ 4q` and for genus 2 to an integer test on `S(w) = w² − a₁w + (a₂−2q)`. Certified exactly: **942 elliptic curves over `F₅…F₁₉`, 324 smooth genus-2 over `F₃`, 10 000 over `F₅` — zero failures.** A sweep of all 729 tuples over `F₃` first reported 30 "violations"; all 30 were singular or `deg f = 4`, i.e. outside the theorem's hypotheses. Per-curve proofs do not prove Weil's theorem, and the proof does **not** transfer to `Q` — see [`docs/finite_field_curves.md`](docs/finite_field_curves.md) |
 | Imaginary time and prime orbits | **New; the rest of the quantum-chaos picture was already here.** The primon gas, GUE statistics and Berry–Keating were already implemented/documented, so the two genuinely absent pieces were added: **Wick rotation** (the real-time trace `Σ n^{−it}` diverges linearly; the imaginary-time trace `Σ n^{−τ} = ζ(τ)` converges — the critical strip is exactly the continuation problem), and the **prime-orbit dictionary** (`h = 1` forced by orbit periods `log p`, exact at first order: ratios 1.175 → 1.078). The error term does *not* become tractable: it oscillates over `K ≤ 89` zeros and needs `~N(X)` of them (138,068 at `X = 10⁵`) — see [`docs/quantum_chaos_claims.md`](docs/quantum_chaos_claims.md) |
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
-| Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
+| Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **881 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **882 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -800,7 +800,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**881 tests pass** on the current tree. They are not smoke tests: the suite
+**882 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -826,7 +826,7 @@ silently changed meaning.
 | `test_prime_orbits.py` | 17 | Orbit counting, `h = 1`, and the measured error-term limit |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
-| `test_documentation_sync.py` | 15 | README test counts, paths, figures and links against live artefacts |
+| `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |

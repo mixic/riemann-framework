@@ -46,6 +46,7 @@ output/*.png
 !output/number_theory_claims.png
 !output/de_bruijn_newman.png
 !output/quantum_chaos_claims.png
+!output/quantum_chaos_spacing.png
 !output/finite_field_curves.png
 
 # OS
