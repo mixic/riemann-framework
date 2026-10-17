@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **922 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **955 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -307,6 +307,64 @@ the framing that prompted this: the "automatic proof" gap, the box claim, the
 imaginary-time claim, and the attribution — the 2017 PRL is Bender, Brody and
 **Müller**, not "Bender, Brody and Jones", and its claimed spectrum rests on
 boundary conditions that later work disputes.
+
+## Can a candidate be screened at all?
+
+Having built one operator and measured four gaps, the next question is whether a
+*candidate* can be screened. Three new constructions were built and put through
+five criteria. The answer is negative in a way that matters.
+
+**The prime-length quantum graph** is new here and is the literal realization of
+the Gutzwiller dictionary: a star graph with edge lengths `(1/2) log p_j`, so the
+round trip on edge `j` is `log p_j` and every closed path has length `log n` —
+verified from the geometry for all 23 paths with `n ≤ 30`. It is self-adjoint by
+construction (Kirchhoff at the vertex, Dirichlet at the ends), with one secular
+equation `Σ_j cot(kℓ_j) = 0` and 150 levels below `k = 120`. Its counting
+function is **linear**, `N/k = 1.250` against `L/π = 1.233`, and below
+`k = γ₁` it has **20 levels where the zeros have 1**.
+
+Then the uncomfortable part, which is the reason this track exists:
+
+| object | mean `r` | KS to Wigner |
+|:---|---:|---:|
+| GUE reference | `0.599` | — |
+| **prime-length graph** | **`0.641`** | **`0.0438`** |
+| zeta zeros | `0.610` | `0.0579` |
+
+An operator that provably is not the zeros fits the universal statistics **better
+than the zeros do**. So `mean_r_ratio` and `ks_test_against` cannot certify a
+candidate — and the DSH criterion S2 ("model statistics comparable to the zero
+baseline") is nearly vacuous, which `docs/central_hypothesis.md` had already
+warned about and which is now demonstrated.
+
+**The unitary twin** makes the logical point: `U diag(γ) U†` passes every
+numerical screen exactly — `max|E_n − γ_n| = 2×10⁻¹³`, `r = 0.610`, KS
+`0.0579` — and proves nothing, because by the spectral theorem *every* operator
+with these eigenvalues is unitarily equivalent to `diag(γ)`. The content of a
+Hilbert–Pólya construction is therefore never the existence of such an operator;
+it is that the operator is defined **without `zeta`** and its spectrum **proved**
+to be the zeros.
+
+**Density is a real constraint that is not yet a test.** `dN/dT = (1/2π)log(T/2π)`
+is unbounded, so no Weyl power law can match it asymptotically — that rejects the
+box and the graph in principle. But over the first 100 zeros a single power law
+`T^1.436` reproduces the count to **1.33 levels in 100**, so at `T ≤ 236` the
+obstruction is invisible. It is a requirement on a future construction, not a
+screen of a present one.
+
+```bash
+python scripts/run_operator_candidates_demo.py
+```
+
+![Counting functions of the three density classes, the rising zero density, the jittered lattice of the prime-length graph, its statistics against the zeros and Wigner, the unitary twin lying on the identity, and the screening table](output/operator_candidates.png)
+
+The screening table scores all four on five criteria and `survivors` returns the
+empty list. [`docs/operator_candidates.md`](docs/operator_candidates.md) records
+the numbers, the five-criterion checklist that replaces the four screens, and a
+careful reading of [arXiv:2503.09644](https://arxiv.org/abs/2503.09644) — the
+question that decides that construction is whether `H_M` is defined without
+`zeta`, and what its counting function is, neither of which can be settled
+numerically.
 
 ## RH over finite fields: the one case where a computation is a proof
 
@@ -842,7 +900,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**922 tests pass** on the current tree. They are not smoke tests: the suite
+**955 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -867,6 +925,7 @@ silently changed meaning.
 | `test_imaginary_time.py` | 14 | The two traces, Hagedorn, and Jacobi's theta identity |
 | `test_prime_orbits.py` | 17 | Orbit counting, `h = 1`, and the measured error-term limit |
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
+| `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
 | `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
@@ -1052,6 +1111,7 @@ riemann-framework/
 │   │   ├── prime_orbits.py        # Prime orbit theorem, and where the dictionary stops
 │   │   ├── finite_field_curves.py # RH over F_q: exact per-curve certificates
 │   │   ├── hilbert_polya.py       # Berry-Keating operator, and the four gaps
+│   │   ├── operator_candidates.py # Prime-length graph, the twin, the screening table
 │   │   ├── prime_certificate.py   # Sieve invariants and the certified millionth prime
 │   │   ├── proportion_certificates.py # Certificates behind the two 2/3 proportion theorems
 │   │   ├── generate_plots.py      # Plot generation entry point
@@ -1094,6 +1154,7 @@ riemann-framework/
 │       ├── test_prime_orbits.py      # Orbit counting and the error-term limit
 │       ├── test_finite_field_curves.py # Field axioms, Hasse, smoothness hypotheses
 │       ├── test_hilbert_polya.py     # The operator, the box, PT threshold, blindness
+│       ├── test_operator_candidates.py # Dictionary, statistics trap, twin, screens
 │       ├── test_mpmath_stub.py       # Stub coverage + well-formedness guards
 │       ├── test_documentation_sync.py # README counts, paths, figures, links
 │       ├── test_dsin.py              # DSIN simulation tests
@@ -1114,6 +1175,7 @@ riemann-framework/
 │   ├── run_quantum_chaos_claims_demo.py # Imaginary time, Hagedorn, prime orbits
 │   ├── run_finite_field_curves_demo.py # Finite-field spheres, Hasse bound, alpha_i
 │   ├── run_hilbert_polya_demo.py # The operator, the picket fence, PT, KMS
+│   ├── run_operator_candidates_demo.py # Prime-length graph, statistics trap, screens
 │   ├── run_shift_zeta_analysis.py # Shift-zeta numbers + plots
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
@@ -1149,6 +1211,7 @@ riemann-framework/
 │   ├── quantum_chaos_claims.md       # What was already here, what is new, what is wrong
 │   ├── finite_field_curves.md        # RH over F_q: exact certificates, and no transfer
 │   ├── hilbert_polya.md              # The operator, four measured gaps, four corrections
+│   ├── operator_candidates.md        # The prime-length graph, the twin, five criteria
 │   └── verification.md           # How an RH proof is checked
 │
 ├── typings/                      # Custom type stubs
@@ -1163,6 +1226,7 @@ riemann-framework/
 │   ├── quantum_chaos_claims.png  # Imaginary time, Hagedorn, prime orbits
 │   ├── finite_field_curves.png   # F_q sphere, Hasse envelope, alpha_i on the circle
 │   ├── hilbert_polya.png         # Eigenfunction norm, picket fence, PT, KMS circle
+│   ├── operator_candidates.png   # Density classes, statistics trap, twin, screens
 │   └── falsification_summary.txt # Latest falsification-grid run
 │
 └── .github/

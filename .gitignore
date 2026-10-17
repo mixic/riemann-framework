@@ -49,6 +49,7 @@ output/*.png
 !output/quantum_chaos_spacing.png
 !output/finite_field_curves.png
 !output/hilbert_polya.png
+!output/operator_candidates.png
 
 # OS
 .DS_Store
