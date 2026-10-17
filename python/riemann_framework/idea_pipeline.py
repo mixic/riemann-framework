@@ -282,6 +282,14 @@ class Verdict:
     probe finds no p-dependence in the map's mismatch with the Euler factor --
     the arithmetic clause a falsification criterion normally names -- and stage
     D2, when a proposed operator does not commute with the primon Hamiltonian.
+
+    A gate that *could not run* is a third outcome, and it is not a falsification:
+    when the expression parses but cannot be evaluated where a gate needs it (an
+    unsupported function, or a pole or branch point at one of the gate's sample
+    points -- `1/s` and `log(s)` are both well-defined maps that the affine gate's
+    stencil at the origin cannot evaluate), the pipeline stops with
+    `passed=False` and `details["inconclusive"] = True`. That verdict means the
+    idea is outside what this gate can grade, not that the idea failed it.
     """
 
     idea_id: str
@@ -294,10 +302,35 @@ class Verdict:
         lines = [
             f"Idea: {self.idea_id}",
             f"Stage reached: {self.stage_reached}",
-            f"Status: {'not falsified so far' if self.passed else 'falsified at this stage'}",
+            f"Status: {self._status()}",
             f"Summary: {self.summary}",
         ]
         return "\n".join(lines)
+
+    def _status(self) -> str:
+        if self.details.get("inconclusive"):
+            return "inconclusive (the gate could not run; not a falsification)"
+        return "not falsified so far" if self.passed else "falsified at this stage"
+
+
+def _inconclusive(idea: Idea, stage: str, exc: ExpressionError, **details: Any) -> Verdict:
+    """Verdict for an expression that parses but cannot be evaluated by a gate.
+
+    Kept distinct from a falsification on purpose: the gate never produced a
+    result, so reporting "falsified" would be a claim nothing supports.
+    """
+    return Verdict(
+        idea_id=idea.id,
+        stage_reached=stage,
+        passed=False,
+        summary=(
+            f"Stage {stage} could not evaluate the expression: {exc} "
+            "This is inconclusive, not a falsification: the expression parses, "
+            "but this gate cannot grade it as written. Rewrite it so that it is "
+            "defined at the gate's sample points, or review the idea by hand."
+        ),
+        details={"inconclusive": True, "evaluation_error": str(exc), **details},
+    )
 
 
 def run_pipeline(
@@ -346,28 +379,11 @@ def run_pipeline(
             summary=f"Failed well-formedness check: {exc}",
         )
 
-    # Stage B: affine-reduction gate. Wrapped for the same reason Stage A is.
-    # An expression can compile and then fail to *evaluate*: `cot(1/sqrt(2))` is
-    # in the evaluator's grammar but `cot` is not in its allowlist, so
-    # `check_affine_reduction` raises `ExpressionError` at evaluation time. Stage
-    # A's guard wraps parsing and cannot see that, and the uncaught exception
-    # crashed the runner with a traceback instead of producing a verdict. This
-    # was recorded as a known gap in docs/claimed_proof_triage.md before it was
-    # fixed here; it is now a test.
+    # Stage B: affine-reduction gate.
     try:
         affine = check_affine_reduction(idea.expression)
     except ExpressionError as exc:
-        return Verdict(
-            idea_id=idea.id,
-            stage_reached="B",
-            passed=False,
-            summary=(
-                "Stage B could not evaluate the expression: "
-                f"{exc}. This is not a verdict about the idea -- the expression "
-                "is outside the evaluator's allowlist, so the affine gate never "
-                "ran. Supply an expression built from allowed functions."
-            ),
-        )
+        return _inconclusive(idea, "B", exc)
     if affine.is_affine:
         return Verdict(
             idea_id=idea.id,
@@ -402,7 +418,10 @@ def run_pipeline(
     # informational, which let a map that fails to commute with every Euler
     # factor reach `passed=True` while its own summary said it did not engage
     # the Euler product at all.
-    probe = probe_multiplicative_coupling(idea.expression)
+    try:
+        probe = probe_multiplicative_coupling(idea.expression)
+    except ExpressionError as exc:
+        return _inconclusive(idea, "D", exc, affine=affine, statistics=stats)
     stage_reached = "D+" if probe.p_dependent_mismatch else "D"
 
     summary_parts = ["Cleared stage B (not a known affine map)."]

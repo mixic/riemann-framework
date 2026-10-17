@@ -14,16 +14,11 @@ happened in practice happened one layer down, in hardware:
 
 This article documents `bb84_implementation.py`, which models photon-number
 splitting together with the source and detector physics it needs, implements the
-decoy-state mitigation with bounds taken from the literature (§2.1), and implements
-the finite-key statistics that turn an *estimated* error rate into a bounded one
-(§2.3). **Two** of the four attack classes are therefore absent — detector
-blinding, and timing side channels with Trojan-horse attacks — and §3 names each
-with what it would require.
-
-An earlier revision of this file said "the other three" and "the decoy-state
-mitigation is named rather than implemented". Both were stale: the code has
-`decoy_state_report`, `lower_bound_Y1`, `upper_bound_e1`, `finite_key_report` and
-`minimum_rounds`, and `tests/test_bb84_implementation.py` exercises them.
+decoy-state mitigation with bounds taken from the literature, and corrects the
+error-rate estimate for a finite sample (a Hoeffding bound -- **not** a composable
+finite-key security statement; see section 2.3). The remaining hardware attacks --
+detector blinding, and timing side channels and Trojan-horse attacks -- are named
+in section 3 with what each would require, and are **not** implemented.
 
 Nothing here is a security proof for or against any deployed system. It is the
 standard photon-number-splitting accounting, written down so the numbers can be
@@ -236,8 +231,9 @@ the source and detectors, and for Trojan-horse a back-reflection channel from th
 source to Eve. The content is that the modulator's timing, or light reflected off
 the source, leaks the basis without touching the quantum channel.
 
-Both accounting gaps are now closed: decoy states in section 2.1 and finite-key
-statistics in section 2.3. What remains is detector physics.
+The decoy-state accounting gap is closed (section 2.1). The finite-key gap is
+closed only for the parameter-estimation step (section 2.3), not in a composable
+framework. What remains is detector physics, and a composable finite-key analysis.
 
 ## 4. What this can and cannot be used for
 
@@ -251,16 +247,16 @@ idealised model for a break will not find one. The value of running attacks agai
 stating plainly, because a simulation environment invites the opposite expectation.
 
 **Cannot: speak to any deployed system.** The parameters here are representative,
-not measured, and two of the four historical attack classes are absent entirely —
-detector blinding, and timing side channels with Trojan-horse attacks.
+not measured, and the two hardware attack classes -- detector blinding, and
+timing side channels and Trojan-horse attacks -- are absent entirely.
 
 ## 5. Files
 
 | file | role |
 |:---|:---|
-| `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound, decoy bounds, finite keys |
+| `python/riemann_framework/bb84_implementation.py` | source, detectors, PNS, the decoy-free bound, decoy-state bounds, finite-key correction |
 | `python/tests/test_bb84_implementation.py` | 45 tests |
-| `scripts/run_bb84_implementation_demo.py` | prints all five parts and writes the figure |
+| `scripts/run_bb84_implementation_demo.py` | prints all six parts and writes the figure |
 | `output/bb84_pns_attack.png` | information against observable, and the two rates |
 
 ## References
@@ -277,8 +273,9 @@ detector blinding, and timing side channels with Trojan-horse attacks.
 
 This is not a security proof for or against any deployed system, and it does not
 claim BB84 is broken. BB84 as a protocol is secure. What is modelled here is one
-hardware assumption the protocol does not cover, the accounting that shows why the
-protocol layer cannot see it, and the two mitigations that recover a usable rate —
-decoy states (§2.1) and finite-key statistics (§2.3), both implemented. Two of the
-four historical attack classes are absent: detector blinding, and timing
-side channels with Trojan-horse attacks.
+hardware assumption the protocol does not cover (a Poisson photon source, exploited
+by photon-number splitting), the accounting that shows why the protocol layer cannot
+see it, the decoy-state mitigation (the vacuum + weak decoy bounds of Ma et al.
+2005), and a finite-key error-rate correction that is not a composable security
+bound. Detector blinding, timing side channels and Trojan-horse attacks are not
+modelled.

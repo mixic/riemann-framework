@@ -26,6 +26,7 @@ from riemann_framework.idea_pipeline import (
     InvalidIdeaError,
     load_all_ideas,
     load_idea,
+    SAMPLE_POINTS,
     probe_multiplicative_coupling,
     run_pipeline,
 )
@@ -236,6 +237,71 @@ def test_pipeline_skips_stage_c_without_spectrum():
 
 
 # ============================================================
+# Expressions that parse but cannot be evaluated by a gate
+# ============================================================
+#
+# Stage A only compiles the expression; evaluation happens later, inside the
+# gates. Before this was handled, an expression that compiled but failed to
+# evaluate raised `ExpressionError` out of `run_pipeline` and crashed the runner
+# instead of producing a verdict. These tests pin the contract: the pipeline
+# always returns a Verdict, and an un-runnable gate is *inconclusive*, never a
+# falsification.
+
+@pytest.mark.parametrize(
+    "expression, reason",
+    [
+        ("cot(1/sqrt(2))", "function outside the evaluator's allowlist"),
+        ("1/s", "pole at the affine gate's stencil origin"),
+        ("log(s)", "branch point at the affine gate's stencil origin"),
+    ],
+)
+def test_unevaluable_expression_is_inconclusive_at_stage_b_not_a_crash(expression, reason):
+    verdict = run_pipeline(_idea(expression))  # must not raise
+    assert verdict.stage_reached == "B", reason
+    assert not verdict.passed
+    assert verdict.details["inconclusive"] is True
+    assert "failed to evaluate" in verdict.details["evaluation_error"]
+    assert "inconclusive" in verdict.summary.lower()
+
+
+def test_unevaluable_expression_is_not_reported_as_ill_formed():
+    # `1/s` is a perfectly good map; labelling it a stage-A well-formedness
+    # failure would blame the idea for a limitation of the gate.
+    verdict = run_pipeline(_idea("1/s"))
+    assert verdict.stage_reached != "A"
+    assert "well-formedness" not in verdict.summary
+
+
+def test_pole_at_a_stage_d_sample_point_is_inconclusive_at_stage_d():
+    # Clears stage B (non-affine, finite at the origin stencil) but divides by
+    # zero when the stage-D probe evaluates at its first sample point.
+    pole = SAMPLE_POINTS[0]
+    expression = f"1/(s - ({pole.real}+{pole.imag}j))"
+    verdict = run_pipeline(_idea(expression))  # must not raise
+    assert verdict.stage_reached == "D"
+    assert not verdict.passed
+    assert verdict.details["inconclusive"] is True
+    assert "affine" in verdict.details  # stage B did run and cleared
+
+
+def test_inconclusive_verdict_prints_as_inconclusive_not_falsified():
+    text = str(run_pipeline(_idea("cot(1/sqrt(2))")))
+    assert "inconclusive" in text
+    assert "falsified at this stage" not in text
+
+
+def test_genuine_falsifications_are_not_marked_inconclusive():
+    # The new flag must not leak onto real verdicts.
+    affine = run_pipeline(_idea("1 - s_conj"))
+    assert affine.stage_reached == "B"
+    assert "inconclusive" not in affine.details
+    assert "falsified at this stage" in str(affine)
+
+    identity_like = run_pipeline(_idea("s*s_conj - s"))
+    assert "inconclusive" not in identity_like.details
+
+
+# ============================================================
 # JSON loader
 # ============================================================
 
@@ -259,51 +325,3 @@ def test_load_idea_rejects_invalid_json(monkeypatch):
     monkeypatch.setattr(Path, "read_text", lambda self, encoding=None: "not json")
     with pytest.raises(InvalidIdeaError):
         load_idea("whatever.json")
-
-
-# ============================================================
-# Stage B must return a verdict, not raise
-# ============================================================
-
-def _idea_with(expression: str) -> Idea:
-    return Idea(
-        id="stage_b_probe",
-        hypothesis="h",
-        expression=expression,
-        falsification_criterion="fc",
-    )
-
-
-def test_stage_b_returns_a_verdict_for_an_expression_it_cannot_evaluate():
-    """`cot(1/sqrt(2))` parses, then fails to evaluate inside the affine gate.
-
-    `cot` is in the evaluator's grammar but not in its allowlist, so Stage A's
-    guard -- which wraps parsing -- cannot see the problem. Stage B then raised
-    `ExpressionError` at evaluation time, and the runner crashed with a traceback
-    instead of producing a verdict. Recorded as a known gap in
-    `docs/claimed_proof_triage.md`, fixed by wrapping the Stage B call the way
-    Stage A already was, and pinned here.
-
-    The verdict must be honest about *why*: the affine gate never ran, so this
-    says nothing about the expression's affine-ness.
-    """
-    verdict = run_pipeline(_idea_with("cot(1/sqrt(2))"))
-    assert verdict.stage_reached == "B"
-    assert verdict.passed is False
-    assert "could not evaluate" in verdict.summary
-    assert "never ran" in verdict.summary
-
-
-def test_stage_b_still_reports_an_affine_map_as_affine():
-    """The wrapper must not swallow the ordinary Stage B rejection."""
-    verdict = run_pipeline(_idea_with("1 - s_conj"))
-    assert verdict.stage_reached == "B"
-    assert verdict.passed is False
-    assert "known affine map" in verdict.summary
-
-
-def test_stage_a_still_reports_a_syntax_error():
-    """Stage A keeps its own guard, and the two must not be confused."""
-    verdict = run_pipeline(_idea_with("s +* 3"))
-    assert verdict.stage_reached == "A"
-    assert verdict.passed is False
