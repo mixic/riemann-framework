@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1010 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1011 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -909,7 +909,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1010 tests pass** on the current tree. They are not smoke tests: the suite
+**1011 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -943,7 +943,7 @@ silently changed meaning.
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |
 | `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
-| `test_falsification.py` | 21 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
+| `test_falsification.py` | 22 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
 | `test_explicit_formula.py` | 11 | Explicit-formula calculations |
 | `test_cayley_dickson.py` | 6 | Cayley–Dickson property checks |
 | `test_dimension_shift_chaos.py` | 17 | `sigma` enforced, both symmetry classes, the sector split |

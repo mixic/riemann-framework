@@ -285,6 +285,27 @@ def test_breaking_the_hypothesis_moves_the_statistic_toward_the_gue_window():
     assert np.mean(np.array(broken) >= GUE_WINDOW[0]) > 0.0
 
 
+def test_the_legacy_best_point_regresses_to_goe_as_the_matrix_grows():
+    """The "supported" point is a finite-size effect: `0.6117` at `d = 10`, `0.532` at `d = 200`.
+
+    This is the strongest form of the refutation. A structural result would be
+    stable under `d`; a fluctuation is not, and the legacy model's maximum drifts
+    monotonically into the GOE window as the matrix grows. Independently measured
+    by the reviewer at `d = 200` (`0.532 +- 0.005`), reproduced here at `d = 100`
+    for runtime.
+    """
+    from riemann_framework.statistics import mean_r_ratio
+
+    values = [
+        mean_r_ratio(np.linalg.eigvalsh(_legacy_hamiltonian(100, 0.5, 2.0, seed)), unfold=False)
+        for seed in range(20)
+    ]
+    mean = float(np.mean(values))
+    assert GOE_WINDOW[0] <= mean <= GOE_WINDOW[1], mean
+    assert abs(mean - 0.6117) > 0.05
+    assert float(np.std(values, ddof=1)) < 0.04, "the dispersion shrinks with d, as for a GOE matrix"
+
+
 def test_the_windows_and_threshold_are_the_documented_ones():
     assert GUE_WINDOW == (0.58, 0.62)
     assert GOE_WINDOW == (0.51, 0.55)

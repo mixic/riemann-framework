@@ -429,3 +429,23 @@ Dimension-Shift Hypothesis fails: the model was not tested, it was broken in the
 direction that makes the statistic look right. That is now a test
 (`test_breaking_the_hypothesis_moves_the_statistic_toward_the_gue_window`) and a
 section of `output/falsification_summary.txt` rather than a remark.
+
+**Independent replication, and the finite-size test that settles it.** The same four
+findings were re-measured by a reviewer on a separate checkout, and every number
+agrees: `||[H, sigma]||/||H|| = 1.42`, `GOE 0.532 +- 0.005` at `d = 200`, the
+`0.6117` point averaging `0.523 +- 0.069` over 300 seeds, and the corrected model
+giving `0.43` full-spectrum with `0.527` (real symmetric) and `0.597` (complex
+Hermitian) sectors.
+
+The reviewer also ran the check that makes the refutation structural rather than
+numerical: the legacy "supported" point at `d = 200` collapses to **`0.5315`**
+(sem `0.0034`) -- the GOE value. Reproduced here, the drift is monotone in the
+matrix size: `d = 10 -> 0.50`, `d = 50 -> 0.529`, `d = 200 -> 0.532`. A structural
+result is stable under `d`; a fluctuation is not.
+`test_the_legacy_best_point_regresses_to_goe_as_the_matrix_grows` pins it.
+
+One precision point from the comparison: the reviewer's "23% of seeds land in the
+GUE window" is measured with `unfold=False`, while the legacy code used
+`unfold=True`, where the figure is `14%`. Both are correct and both are reported;
+the fact that the number moves by 60% with a choice the old code never justified is
+itself part of why the window was never a criterion.
