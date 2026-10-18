@@ -13,12 +13,18 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-Run the dimension-shift chaos analysis and produce plots.
+"""Run the dimension-shift chaos analysis and produce plots.
 
-Usage:
-    cd python
+Usage, from the repository root:
+
     python scripts/run_dimension_shift_chaos.py
+
+Writes `output/dimension_shift_spectrum.png`, `dimension_shift_coupling_sweep.png`
+and `dimension_shift_symmetry_sweep.png`.
+
+The third figure is a **negative control**, not a feature sweep: it violates
+`[H, sigma] = 0`, which puts the model outside the Dimension-Shift Hypothesis
+entirely. Its filename is historical; the panel title says what it is.
 """
 
 from pathlib import Path
@@ -34,7 +40,7 @@ from riemann_framework.dimension_shift_chaos import (
     build_dimension_shift_hamiltonian,
     analyze_dimension_shift,
     sweep_coupling,
-    sweep_symmetry_breaking,
+    sigma_control,
     compare_to_riemann,
 )
 from riemann_framework.quantum_chaos import riemann_zero_heights
@@ -62,17 +68,18 @@ R_GUE = 0.599
 # ============================================================
 
 def plot_spectrum_comparison(dim_per_sector=30, coupling=1.0, seed=42):
-    """Compare the dimension-shift spectrum to the Riemann zeros."""
-    H = build_dimension_shift_hamiltonian(
+    """Compare the full spectrum and one sigma-sector to the Riemann zeros."""
+    analysis = analyze_dimension_shift(
         dim_per_sector=dim_per_sector,
         coupling=coupling,
         seed=seed,
     )
-    eigs = np.linalg.eigvalsh(H)
+    eigs = analysis["eigenvalues"]
+    sector = analysis["sector_plus"]
     gammas = riemann_zero_heights(len(eigs))
 
-    # Unfold both
     from riemann_framework.statistics import unfold_spectrum
+
     eigs_unfolded = unfold_spectrum(eigs)
     gammas_unfolded = unfold_spectrum(gammas)
 
@@ -80,22 +87,28 @@ def plot_spectrum_comparison(dim_per_sector=30, coupling=1.0, seed=42):
 
     ax = axes[0]
     ax.scatter(np.arange(len(eigs_unfolded)), eigs_unfolded,
-               s=10, color="blue", label="Dimension-shift")
+               s=10, color="blue", label="full spectrum (both sectors)")
     ax.scatter(np.arange(len(gammas_unfolded)), gammas_unfolded,
                s=10, color="red", alpha=0.5, label="Riemann zeros")
     ax.set_xlabel("Index n")
     ax.set_ylabel("Unfolded level")
-    ax.set_title("Unfolded spectra")
+    ax.set_title(
+        f"Unfolded spectra (sigma-sector mean r = {analysis['mean_r_plus']:.3f})"
+    )
     ax.legend()
     ax.grid(True, alpha=0.3)
 
     ax = axes[1]
     ax.hist(level_spacings(eigs), bins=20, density=True, alpha=0.5,
-            color="blue", label="Dimension-shift")
+            color="blue", label="full spectrum")
+    if sector is not None:
+        ax.hist(level_spacings(sector), bins=20, density=True, alpha=0.5,
+                color="teal", label="single sigma-sector")
     ax.hist(level_spacings(gammas), bins=20, density=True, alpha=0.5,
             color="red", label="Riemann zeros")
     s = np.linspace(0.01, 3.0, 200)
     ax.plot(s, gue_spacing_pdf(s), "k-", linewidth=1.5, label="GUE (theory)")
+    ax.plot(s, goe_spacing_pdf(s), "k:", linewidth=1.5, label="GOE (theory)")
     ax.plot(s, poisson_spacing_pdf(s), "k--", linewidth=1.5, label="Poisson (theory)")
     ax.set_xlabel("Level spacing s")
     ax.set_ylabel("P(s)")
@@ -115,7 +128,7 @@ def plot_spectrum_comparison(dim_per_sector=30, coupling=1.0, seed=42):
 # ============================================================
 
 def plot_coupling_sweep(dim_per_sector=30, seed=42):
-    """Plot the mean r-ratio as a function of the coupling."""
+    """The full spectrum against a single sector, across the coupling."""
     couplings = [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0]
     results = sweep_coupling(
         dim_per_sector=dim_per_sector,
@@ -123,11 +136,14 @@ def plot_coupling_sweep(dim_per_sector=30, seed=42):
         seed=seed,
     )
 
-    means = [r["mean_r"] for r in results]
+    means = [r["mean_r_full"] for r in results]
+    sectors = [r["mean_r_plus"] for r in results]
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(couplings, means, "o-", color="darkblue", linewidth=2,
-            markersize=8, label="Dimension-shift model")
+            markersize=8, label="full spectrum (superposition of sectors)")
+    ax.plot(couplings, sectors, "s--", color="teal", linewidth=1.6,
+            markersize=6, label="single sigma-sector")
 
     ax.axhline(R_POISSON, color="red", linestyle="--", linewidth=1.5,
                label=f"Poisson ({R_POISSON})")
@@ -136,10 +152,10 @@ def plot_coupling_sweep(dim_per_sector=30, seed=42):
     ax.axhline(R_GUE, color="green", linestyle="-.", linewidth=1.5,
                label=f"GUE ({R_GUE})")
 
-    ax.set_xlabel("Inter-sector coupling")
+    ax.set_xlabel("Inter-sector coupling (coupling = 0 is exactly degenerate)")
     ax.set_ylabel("Mean r-ratio")
-    ax.set_title("Coupling sweep: statistics vs. inter-sector mixing")
-    ax.legend()
+    ax.set_title("Coupling sweep: the full spectrum is mixed, a sector is not")
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -152,24 +168,30 @@ def plot_coupling_sweep(dim_per_sector=30, seed=42):
 
 
 # ============================================================
-# Plot 3: Symmetry-breaking sweep
+# Plot 3: Negative control
 # ============================================================
 
-def plot_symmetry_breaking_sweep(dim_per_sector=30, coupling=1.0, seed=42):
-    """Plot the mean r-ratio as a function of the symmetry-breaking."""
+def plot_sigma_control(dim_per_sector=30, coupling=1.0, seed=42):
+    """The NEGATIVE CONTROL: what happens when `[H, sigma] = 0` is violated.
+
+    This axis used to be called "symmetry breaking" and was swept as if it were a
+    tunable feature of the model. It is not: requirement 1 of the DSH is
+    `[H, sigma] = 0`, so a broken model is outside the hypothesis and supplies no
+    evidence about it. The panel is kept, relabelled, so the failure stays visible.
+    """
     values = [0.0, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0, 10.0]
-    results = sweep_symmetry_breaking(
+    results = sigma_control(
         dim_per_sector=dim_per_sector,
-        symmetry_breaking_values=values,
+        breaking_values=values,
         coupling=coupling,
         seed=seed,
     )
 
-    means = [r["mean_r"] for r in results]
+    means = [r["mean_r_full"] for r in results]
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(values, means, "s-", color="darkred", linewidth=2,
-            markersize=8, label="Dimension-shift model")
+            markersize=8, label="violated model (outside the DSH)")
 
     ax.axhline(R_POISSON, color="red", linestyle="--", linewidth=1.5,
                label=f"Poisson ({R_POISSON})")
@@ -178,10 +200,10 @@ def plot_symmetry_breaking_sweep(dim_per_sector=30, coupling=1.0, seed=42):
     ax.axhline(R_GUE, color="green", linestyle="-.", linewidth=1.5,
                label=f"GUE ({R_GUE})")
 
-    ax.set_xlabel("Symmetry-breaking strength")
+    ax.set_xlabel(r"$\sigma$-violation strength (outside the hypothesis)")
     ax.set_ylabel("Mean r-ratio")
-    ax.set_title("Symmetry-breaking sweep: from GOE toward GUE?")
-    ax.legend()
+    ax.set_title("Negative control: violating [H, sigma] = 0 on purpose")
+    ax.legend(fontsize=8)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -199,39 +221,44 @@ def plot_symmetry_breaking_sweep(dim_per_sector=30, coupling=1.0, seed=42):
 
 def main():
     print("=" * 60)
-    print("Dimension-Shift Chaos Analysis")
+    print("Dimension-Shift Chaos Analysis (sigma-enforced)")
     print("=" * 60)
 
     print("\n[1] Direct comparison to Riemann zeros")
-    cmp = compare_to_riemann(
+    comparison = compare_to_riemann(
         dim_per_sector=30,
         coupling=1.0,
         seed=42,
         n_riemann=60,
     )
-    print(f"    Dimension-shift: mean r = {cmp['dimension_shift']['mean_r']:.4f}, "
-          f"best fit = {cmp['dimension_shift']['best_fit']}")
-    print(f"    Riemann zeros:   mean r = {cmp['riemann']['mean_r']:.4f}")
-    print(f"    Reference values: {cmp['reference_values']}")
+    print(f"    full spectrum:   mean r = {comparison['model']['mean_r_full']:.4f}")
+    print(f"    single sector:   mean r = {comparison['model']['mean_r_plus']:.4f}")
+    print(f"    ||[H, sigma]||/||H|| = "
+          f"{comparison['model']['sigma_commutator_ratio']:.1e}")
+    print(f"    Riemann zeros:   mean r = {comparison['riemann']['mean_r']:.4f}")
+    print(f"    Reference values: {comparison['reference_values']}")
 
     print("\n[2] Coupling sweep")
     coupling_results = plot_coupling_sweep(dim_per_sector=30)
-    print("    coupling | mean r | best fit | KS(GUE) | KS(Poisson)")
-    for r in coupling_results:
-        print(f"    {r['coupling']:>8.2f} | {r['mean_r']:.4f} | "
-              f"{r['best_fit']:>7} | {r['ks_gue']:.4f}  | {r['ks_poisson']:.4f}")
+    print("    coupling | full   | sector+ | sector-")
+    for row in coupling_results:
+        print(f"    {row['coupling']:>8.2f} | {row['mean_r_full']:.4f} | "
+              f"{row['mean_r_plus']:.4f} | {row['mean_r_minus']:.4f}")
 
-    print("\n[3] Symmetry-breaking sweep")
-    sb_results = plot_symmetry_breaking_sweep(dim_per_sector=30, coupling=1.0)
-    print("    sym break | mean r | best fit | KS(GUE) | KS(Poisson)")
-    for r in sb_results:
-        print(f"    {r['symmetry_breaking']:>9.2f} | {r['mean_r']:.4f} | "
-              f"{r['best_fit']:>7} | {r['ks_gue']:.4f}  | {r['ks_poisson']:.4f}")
+    print("\n[3] Negative control: sigma violation (NOT part of the hypothesis)")
+    control = plot_sigma_control(dim_per_sector=30, coupling=1.0)
+    print("    violation | ||[H,sigma]||/||H|| | full mean r | sectors defined")
+    for row in control:
+        print(f"    {row['sigma_breaking']:>9.2f} | "
+              f"{row['sigma_commutator_ratio']:>20.3e} | "
+              f"{row['mean_r_full']:.4f} | {row['sector_plus'] is not None}")
 
     print("\n[4] Generating spectrum comparison plot...")
     plot_spectrum_comparison(dim_per_sector=30, coupling=1.0)
 
     print("\n Analysis complete.")
+    print(" The full spectrum is a superposition of two sectors and is not GUE;")
+    print(" a single sector inherits the class of the input blocks. No RH claim.")
 
 
 if __name__ == "__main__":

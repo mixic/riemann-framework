@@ -1,24 +1,90 @@
-Falsification Test for the Dimension-Shift Hypothesis
-=====================================================
+Falsification Test for the Dimension-Shift Hypothesis (DSH)
+===========================================================
 
-Reference systems (mean r):
-  poisson: 0.402114
-  goe: 0.549142
-  gue: 0.574342
-  riemann: 0.610276
+seeds per parameter point: 300
+parameter points: 24
+coupling = 0 excluded: it makes every level exactly doubly degenerate (mean r = 0), a degenerate control rather than a chaos class
 
-Grid summary:
-  n_runs: 90
-  n_gue: 10
-  n_goe: 16
-  n_poisson: 4
-  n_intermediate: 60
-  min_mean_r: 0.30477576547431035
-  max_mean_r: 0.6117470687340467
-  verdict: supported
+Reference systems (mean r, sampled at the grid's settings):
+  poisson         : 0.3860 +- 0.0000
+  goe             : 0.5284 +- 0.0329
+  gue             : 0.6005 +- 0.0284
+  asymptotic_goe  : 0.5300 +- 0.0000
+  asymptotic_gue  : 0.5990 +- 0.0000
 
-Maximum point:
-  {'dim_per_sector': 10, 'coupling': 0.5, 'symmetry_breaking': 2.0, 'mean_r': 0.6117470687340467, 'best_fit': 'gue', 'ks_gue': 0.13865075603557964, 'ks_poisson': 0.35564078053863823, 'verdict': 'gue'}
+VERDICT: mixed
 
 Explanation:
-  DSH is SUPPORTED: 10 of 90 parameter points reached GUE statistics (mean r in [0.58, 0.62]). Maximum mean r = 0.6117 at d=10, coupling=0.5, sb=2.0.
+  the full spectrum never reaches GUE (means 0.3689 .. 0.4287, a superposition of two sectors), while a single sigma-sector does -- in classes ['gue']. The sector class is inherited from the input blocks, so this shows the construction can carry GUE statistics, not that it produces them.
+
+Evidence required by the specification:
+  seeds: 300
+  mean per-seed std of r: 0.0584 (threshold 0.02; reachable: False)
+  mean fraction of seeds landing in the GUE window [0.58, 0.62]: 0.0071
+  supporting point: none (no point satisfies both conditions)
+
+Per-class verdicts (the matrix class is an input, not a result):
+  goe: inconclusive
+    the means (0.4020 .. 0.4280) match no reference window cleanly.
+  gue: mixed
+    the full spectrum never reaches GUE (means 0.3689 .. 0.4287, a superposition of two sectors), while a single sigma-sector does -- in classes ['gue']. The sector class is inherited from the input blocks, so this shows the construction can carry GUE statistics, not that it produces them.
+
+Grid (mean r of the FULL 2d-dimensional spectrum, +- per-seed std):
+    d coupling class  full mean      std      sem  sector+  sector-
+   10     0.25  goe     0.4020   0.0790   0.0046   0.5318   0.5305
+   10     0.25  gue     0.3689   0.0827   0.0048   0.5927   0.5973
+   10     0.50  goe     0.4254   0.0792   0.0046   0.5342   0.5248
+   10     0.50  gue     0.4151   0.0877   0.0051   0.6092   0.5993
+   10     1.00  goe     0.4249   0.0743   0.0043   0.5396   0.5357
+   10     1.00  gue     0.4282   0.0878   0.0051   0.5973   0.6003
+   10     2.00  goe     0.4280   0.0738   0.0043   0.5275   0.5320
+   10     2.00  gue     0.4153   0.0822   0.0047   0.5945   0.6084
+   20     0.25  goe     0.4185   0.0555   0.0032   0.5260   0.5272
+   20     0.25  gue     0.4011   0.0572   0.0033   0.5951   0.5968
+   20     0.50  goe     0.4240   0.0537   0.0031   0.5271   0.5305
+   20     0.50  gue     0.4210   0.0562   0.0032   0.5960   0.5927
+   20     1.00  goe     0.4248   0.0534   0.0031   0.5287   0.5356
+   20     1.00  gue     0.4184   0.0578   0.0033   0.6013   0.5985
+   20     2.00  goe     0.4251   0.0567   0.0033   0.5300   0.5340
+   20     2.00  gue     0.4287   0.0595   0.0034   0.6008   0.6017
+   40     0.25  goe     0.4186   0.0392   0.0023   0.5291   0.5370
+   40     0.25  gue     0.4139   0.0383   0.0022   0.5935   0.5927
+   40     0.50  goe     0.4254   0.0371   0.0021   0.5304   0.5337
+   40     0.50  gue     0.4203   0.0377   0.0022   0.5949   0.5969
+   40     1.00  goe     0.4205   0.0365   0.0021   0.5292   0.5257
+   40     1.00  gue     0.4244   0.0391   0.0023   0.5976   0.5985
+   40     2.00  goe     0.4233   0.0379   0.0022   0.5252   0.5292
+   40     2.00  gue     0.4253   0.0397   0.0023   0.6060   0.6019
+
+Size scaling of the per-seed std (why the std < 0.02 threshold cannot be met here):
+  size   20: mean 0.4252, std 0.0843
+  size   50: mean 0.4313, std 0.0506
+  size  100: mean 0.4190, std 0.0337
+  size  200: mean 0.4222, std 0.0264
+
+What the sigma-symmetry correction did:
+  ||[H, sigma]||_F / ||H||_F = 0.0e+00 at every reported point (the pre-correction model measured 1.346 .. 1.462).
+
+Sigma-violation control (NOT part of the hypothesis):
+  Violating [H, sigma] = 0 decouples the two blocks, and the statistic then moves TOWARD the GUE window:
+    violation   0.0: mean r 0.4125, fraction of draws in the GUE window 0.00
+    violation   2.0: mean r 0.5192, fraction of draws in the GUE window 0.05
+    violation   5.0: mean r 0.5369, fraction of draws in the GUE window 0.17
+  The pre-correction grid's best point had symmetry_breaking = 2.0, so the reported 'support' was found in the region where requirement 1 of the hypothesis is violated.
+
+Honest reading:
+  The full spectrum of a sigma-symmetric model is a superposition of
+  two sectors and lands near 0.42; it is never GUE. A single sector
+  reaches GUE only when the input blocks are GUE, i.e. by
+  inheritance, so the model demonstrates that the construction CAN
+  carry GUE statistics, not that it produces them.
+
+  Read on a single sigma-sector instead of the full spectrum:
+    class goe: sector+ 0.5252 .. 0.5396, sector- 0.5248 .. 0.5370
+    class gue: sector+ 0.5927 .. 0.6092, sector- 0.5927 .. 0.6084
+  The GOE class reads 'inconclusive' on the full spectrum because the
+  full spectrum is mixed by construction, not because the model is
+  unidentified: its sectors are GOE, and the GUE class's are GUE.
+
+This is numerical evidence about a model. It is not evidence for or
+against the Riemann hypothesis, which is open.

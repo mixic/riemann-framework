@@ -146,6 +146,9 @@ class _PrecisionContext:
 
 def workdps(n: int) -> _PrecisionContext: ...
 
+def dirichlet(s: Any, chi: Any, **kwargs: Any) -> Any: ...
+def findroot(f: Any, x0: Any, solver: str | None = None, tol: Any = ..., **kwargs: Any) -> Any: ...
+
 
 # Module-level constants and the mpmath context (`mp.mp.dps`).
 pi: Any

@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **955 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1010 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -455,9 +455,18 @@ Its fixed locus is nonetheless exactly the critical line, which is the property 
 
 ### Chaos models, statistics, and the falsification grid
 
-- **`dimension_shift_chaos.py`** — a family of coupled Hamiltonians built around the sector-swap involution, with a coupling and a symmetry-breaking parameter.
+- **`dimension_shift_chaos.py`** — a family of coupled Hamiltonians built around the sector-swap involution. **Corrected:** `[H, σ] = 0` is now *enforced* (`H = [[A, C], [C†, A]]`, so `‖[H,σ]‖/‖H‖ = 0` rather than `1.35…1.46`), the blocks can be GUE or GOE instead of only real symmetric, and the spectrum is split into its `σ = ±1` sectors. The sectors are `spec(A + C)` and `spec(A − C)` — verified numerically, not assumed.
 - **`quantum_chaos.py` / `statistics.py`** — mean adjacent-gap ratio statistics (`⟨r⟩`), matched against Poisson (`≈0.386`), GOE (`≈0.531`), and GUE (`≈0.600`) reference values, with bootstrap confidence intervals.
-- **`falsification_test.py`** — scans a grid over sector dimension, coupling strength, and symmetry breaking (90 parameter points), classifies each as Poisson-like / GOE-like / GUE-like / intermediate, and writes the result to `output/falsification_summary.txt` plus the heatmap and histogram figures below. This is stronger than presenting only favorable plots: it also exposes the parameter regions that do **not** support the target behavior.
+- **`falsification_test.py`** — **rewritten.** The previous version ran one seed per point and declared "DSH is SUPPORTED" if any of 90 grid points landed in `[0.58, 0.62]`. At `2d = 20` the per-seed standard deviation is `0.075`, and **14% of pure GOE draws enter that window** (`23%` without unfolding), so the window was reachable by noise. The reported point (`0.6117`) has a 300-seed mean of `0.523 ± 0.069`. Now every point runs **300 seeds** and reports mean ± std, standard error, and the per-class breakdown; the verdict is one of `supported_multi_seed` / `goe_only` / `poisson_only` / `mixed` / `inconclusive`.
+
+  **The corrected verdict is `mixed`, and "mixed" is not a success.** A `σ`-symmetric spectrum is a superposition of two sectors and lands at `0.369 … 0.429` — never GUE. A single sector reaches `0.594 … 0.609` **if and only if** the input blocks were GUE, i.e. the class is inherited, not produced. The specification's `std < 0.02` clause is also unreachable at these sizes (measured `0.084` at `2d = 20`, `0.026` at `2d = 200`), and is reported as such rather than redefined. See [`docs/lessons_learned.md`](docs/lessons_learned.md) §15.
+
+Three documents carry the surrounding material: [`docs/chirality.md`](docs/chirality.md)
+(mirror-closure is not achirality: 37 split / 40 inert primes below 400, lens
+spaces below 200, the `χ₋₄` parity test, and Davenport–Heilbronn),
+[`docs/pt_symmetric_hilbert_polya.md`](docs/pt_symmetric_hilbert_polya.md) (the
+`σ` ↔ energy-level dictionary, with two corrections to its popular form), and
+`chirality.py` / `dsin_sigma_symmetry.py` for the checks themselves.
 
 ### DSIN: a toy communication-channel simulation
 
@@ -900,7 +909,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**955 tests pass** on the current tree. They are not smoke tests: the suite
+**1010 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -934,10 +943,12 @@ silently changed meaning.
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |
 | `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
-| `test_falsification.py` | 9 | DSH falsification grid |
+| `test_falsification.py` | 21 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
 | `test_explicit_formula.py` | 11 | Explicit-formula calculations |
 | `test_cayley_dickson.py` | 6 | Cayley–Dickson property checks |
-| `test_dimension_shift_chaos.py` | 5 | Chaos pipeline |
+| `test_dimension_shift_chaos.py` | 17 | `sigma` enforced, both symmetry classes, the sector split |
+| `test_chirality.py` | 19 | Gaussian splitting, lens achirality, `chi_-4` parity, Davenport–Heilbronn |
+| `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
@@ -1089,7 +1100,9 @@ riemann-framework/
 │   │   ├── bb84_implementation.py # Source, detectors, PNS (implementation layer)
 │   │   ├── statistics.py          # Spectral statistics utilities
 │   │   ├── spectral_density.py    # Riemann-von Mangoldt diagnostics
-│   │   ├── falsification_test.py  # DSH falsification grid + verdicts
+│   │   ├── falsification_test.py  # Multi-seed DSH falsification + verdicts
+│   │   ├── chirality.py         # Mirror-closure vs achirality: 5 verified claims
+│   │   ├── dsin_sigma_symmetry.py # DSIN parity sectors, conservation, blind meter
 │   │   ├── affine_reduction.py    # Affine-reduction gate for candidate maps
 │   │   ├── idea_pipeline.py       # A–E vetting pipeline + Stage-D probe
 │   │   ├── primon_gas.py          # Exact anchor: Tr[e^{-sH}] = zeta(s)
@@ -1138,7 +1151,9 @@ riemann-framework/
 │       ├── test_graded_prime_monoid.py # Monoid identification, rivals, Euler check
 │       ├── test_graded_algebra.py    # Graded algebra and shift-zeta (G1-G7)
 │       ├── test_graded_algebra_even_odd.py # even/odd interface regressions
-│       ├── test_falsification.py     # DSH falsification grid tests
+│       ├── test_falsification.py     # Multi-seed verdicts + the seed floor
+│       ├── test_chirality.py         # Gaussian splitting, lens spaces, chi_-4, DH
+│       ├── test_dsin_sigma_symmetry.py # Parity sectors and the blind meter
 │       ├── test_cayley_dickson.py    # Cayley-Dickson property checks
 │       ├── test_dimension_lift.py    # Dimension-lift Euler-product checks
 │       ├── test_four_squares.py      # Jacobi four-square checks
@@ -1199,6 +1214,8 @@ riemann-framework/
 │   ├── project_critique_and_roadmap.md # Critical assessment and milestones
 │   ├── central_hypothesis.md       # Falsifiable dimension-shift hypothesis
 │   ├── lessons_learned.md          # Negative results and limitations
+│   ├── chirality.md                # Mirror-closure is not achirality: 5 checks
+│   ├── pt_symmetric_hilbert_polya.md # The sigma -> energy-level dictionary
 │   ├── scientific_contribution_assessment.md # Current scientific status
 │   ├── future_work.md               # Engineering and research roadmap
 │   ├── shift_zeta_result.md         # Shift-zeta (graded algebra) negative result

@@ -354,3 +354,78 @@ invariance hides in the same place, and the first fix — which was correct, and
 tested — is exactly what made the second one look trustworthy. A gate that
 reports a statistic it never acts on is the other half of the same failure: the
 number was right and the verdict ignored it.
+
+## 15. The DSH Falsification Verdict Was a Single-Seed Artefact
+
+The `falsification_summary.txt` that shipped until this correction said
+**"DSH is SUPPORTED"**. It was not, and the reasons are worth recording because
+each one is a pattern rather than a slip.
+
+**The verdict took the maximum of a noisy statistic.** The grid ran one seed per
+point and declared support if *any* of 90 points had a mean `r`-ratio in
+`[0.58, 0.62]`. At `2d = 20` the per-seed standard deviation of that statistic is
+`0.075`, and **14% of pure GOE draws** (`23%` with `unfold=False`) land in that
+window. With 90 points the window is hit by chance a dozen times over. The
+reported point — `d = 10, coupling = 0.5, sb = 2.0`, `0.6117` — has a 300-seed
+mean of `0.523 +- 0.069`: a `+1.3 sigma` fluctuation of a model that was never in
+the GUE class at all.
+
+**The model was GOE and said GUE.** Both blocks were real symmetric, so the model
+sat in the time-reversal-symmetric class (`0.53`), not the zeros' class (`0.60`).
+The module's own docstring stated the goal as "iterate on the model until the
+spectrum matches GUE statistics" — a description of p-hacking written where the
+method should have been.
+
+**Requirement 1 of the hypothesis was violated at every point.** `sigma` is the
+sector swap; `[H, sigma] = 0` requires equal diagonal blocks and a Hermitian
+coupling. The old model drew them independently, so
+`||[H, sigma]||_F / ||H||_F = 1.346 .. 1.462` — larger than 1, which should have
+been impossible to miss. The corrected construction measures `0.0` by making the
+block appear in both sectors.
+
+**The windows were calibrated against a single draw.** `R_GUE = 0.599` is the
+asymptotic value; the code's own reference call drew *one* 100×100 matrix and got
+`0.574`, and the window `[0.58, 0.62]` was then applied to data that could not
+reach its own reference. Sampled properly the references are `GOE 0.528 +- 0.033`
+and `GUE 0.600 +- 0.028`.
+
+**What the correction found.** With `sigma` enforced and 300 seeds per point the
+verdict is `mixed`, and "mixed" is not a success: the full spectrum of a
+`sigma`-symmetric model is a superposition of two sectors and lands at
+`0.369 .. 0.429`, never GUE; a single sector lands at `0.594 .. 0.609` when — and
+only when — the input blocks are GUE. The class is inherited, so the model
+demonstrates that the construction *can* carry GUE statistics, not that it
+produces them.
+
+**And one criterion needs fixing before it is used again.** The specification asks
+for `std < 0.02` over 300 seeds. Measured per-seed `std` is `0.084` at `2d = 20`,
+`0.034` at `2d = 100` and `0.026` at `2d = 200`, shrinking like `1/sqrt(2d)`;
+`0.02` needs a few hundred levels. The threshold is implemented as written, it is
+reported as unreachable, and the standard error of the mean (`0.004` at 300 seeds)
+is reported next to it. Redefining the threshold to make a verdict reachable would
+have repeated the original error in the opposite direction.
+
+Two further traps that cost time here, recorded so they cost less next time:
+`coupling = 0` makes every level exactly doubly degenerate, so the mean `r`-ratio
+is `0`, and such a point carries no class information — it is now excluded from
+the grid and kept as a control. And the bounded Davenport–Heilbronn zero scan in
+`chirality.py` locates **no** off-line zero up to `t = 40`, which is reported as a
+negative result rather than replaced by the literature's claim.
+
+**The "support" was found by violating the hypothesis.** The sharpest measurement to
+come out of the correction: violating `[H, sigma] = 0` decouples the two diagonal
+blocks, and the superposition then moves *toward* the GUE window rather than away
+from it. Measured at `d = 20`, `coupling = 1.0`, 60 seeds per row:
+
+| `sigma`-violation | mean `r` (full spectrum) | draws inside `[0.58, 0.62]` |
+|:---|---:|---:|
+| `0.0` (intact) | `0.4125` | `0.00` |
+| `2.0` | `0.5192` | `0.05` |
+| `5.0` | `0.5369` | `0.17` |
+
+The pre-correction grid's best point had `symmetry_breaking = 2.0`. So the region
+that produced "DSH is SUPPORTED" is the region in which requirement 1 of the
+Dimension-Shift Hypothesis fails: the model was not tested, it was broken in the
+direction that makes the statistic look right. That is now a test
+(`test_breaking_the_hypothesis_moves_the_statistic_toward_the_gue_window`) and a
+section of `output/falsification_summary.txt` rather than a remark.
