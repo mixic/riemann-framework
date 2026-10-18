@@ -804,3 +804,59 @@ working cryptographic protocol. The DSIN construction, its physical
 realization, and its connection to the Riemann Hypothesis remain unproven.
 No claim is made that the Riemann Hypothesis has been proved or that DSIN
 currently provides security equivalent to BB84.
+
+## Appendix: the material removed from the README
+
+The README's DSIN section was shortened to fifteen lines (roadmap milestone, for
+readability), and the detail below was carried by it. It is recorded here so that
+shortening the README did not delete evidence. The verbatim original is in git
+history (`git show e3bbcaf:README.md`).
+
+**Detection is a step function, not a graded measure.** Any departure from the `σ`
+eigenspace trips the detector, so the symmetry-breaking and intercept-resend
+detection rates sit at `1.000` even for small `ε` while the BER grows with `ε`. The
+detector answers "was the symmetry broken?", not "by how much?". Depolarizing noise
+gives a graded response only because it destroys the state outright with
+probability `p`, so detection tracks `p`.
+
+**A total, undetectable break.** The detector tests whether the received state is
+*an* eigenstate of `σ` (`|⟨σ⟩| = 1`), not whether it is the eigenstate that was
+sent — which the receiver cannot know. That distinction is not academic: the phase
+flip at `φ = π` maps every bit to its complement, leaves `|⟨σ⟩| = 1` intact, and is
+therefore invisible (`detection 2.22e-16`, `BER 1.0000`).
+
+**Comparison with BB84.** A protocol claim is meaningless without a baseline, and
+the two protocols do not detect eavesdropping the same way:
+
+| depolarizing noise | DSIN BER | BB84 sifted-key QBER | BB84 verdict |
+|:---|:---|:---|:---|
+| 0.00 | 0.0000 | 0.0000 | not detected |
+| 0.10 | 0.0440 | 0.0470 | not detected |
+| 0.20 | 0.0840 | 0.0920 | not detected |
+| 0.30 | 0.1680 | 0.1493 | **detected** |
+
+DSIN watches a per-round symmetry observable, so its detection rate is a genuine
+per-round frequency. BB84 has no per-round detection event: the bases are chosen
+independently at random, so they disagree about half the time regardless of any
+eavesdropper and those rounds are discarded in sifting. BB84 works from the sifted
+key by estimating its error rate and aborting above a threshold (`0.11` by default,
+the value used above). An earlier version of `bb84.py` counted basis mismatch as
+"detection" and reported `≈ 0.5` in every row: it was measuring sifting, not
+eavesdropping.
+
+**Backend note.** `run_bb84` simulates all rounds at once with NumPy
+(`backend="numpy"`, the default) instead of one round at a time (`backend="loop"`).
+Measured, the vectorization is worth **30–43×** from `n = 1e4` to `1e6` rounds. The
+two backends do not share a random stream — the looped version interleaves
+`integers` and `random` per round while a vectorized one draws grouped by kind — so
+same-seed equality was never available. What is pinned is exact agreement on
+identical draws plus statistical agreement on a common seed; see
+`python/tests/test_bb84.py`. `run_bb84` returns `ber` (the sifted-key QBER), a
+run-level `detected` flag, and `sifting_discard_rate` separately, so the two cannot
+be confused again.
+
+**What this is not.** Not a security proof, and not a candidate for one — §4.1 is
+the proof that none is available. There is no comparison with BB84's security
+guarantee, no detector noise model, no finite-key analysis, and no adversary beyond
+the four attacks modelled in `dsin.py`. §4.4 lists what a successor would need, and
+`docs/future_work.md` Priority 6 carries the verdict.

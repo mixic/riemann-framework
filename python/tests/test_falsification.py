@@ -125,16 +125,22 @@ def test_the_grid_refuses_the_degenerate_coupling():
 # ============================================================
 
 def test_supported_multi_seed_is_reachable():
-    verdict = classify_multi_seed([_point(0.60, std_full=0.01)])
+    """A *sector* in the window with `std < 0.02` earns the verdict."""
+    verdict = classify_multi_seed(
+        [_point(0.42, std_full=0.01, mean_plus=0.60, mean_minus=0.60)]
+    )
     assert verdict.verdict == "supported_multi_seed"
-    assert verdict.gue_points
+    assert verdict.sectors_in_window
     assert "300" in verdict.summary()
 
 
-def test_a_gue_mean_with_a_large_std_is_not_supported():
-    """The `std < 0.02` clause has teeth: the same mean fails with noise."""
-    verdict = classify_multi_seed([_point(0.60, std_full=0.05)])
+def test_a_sector_in_the_window_with_a_large_std_is_not_supported():
+    """The `std < 0.02` clause has teeth: the same sector mean fails with noise."""
+    verdict = classify_multi_seed(
+        [_point(0.42, std_full=0.05, mean_plus=0.60, mean_minus=0.60)]
+    )
     assert verdict.verdict != "supported_multi_seed"
+    assert verdict.verdict == "mixed"
 
 
 def test_goe_only():
@@ -162,6 +168,7 @@ def test_the_verdict_carries_seeds_and_dispersion():
 
 
 def test_per_class_breakdown_is_attached():
+    """`goe_only` per class, `mixed` overall: the class is an input, not a result."""
     verdict = classify_multi_seed(
         [
             _point(0.42, mean_plus=0.60, mean_minus=0.60, matrix_class="gue"),
@@ -170,7 +177,38 @@ def test_per_class_breakdown_is_attached():
     )
     assert set(verdict.per_class) == {"gue", "goe"}
     assert verdict.per_class["gue"].verdict == "mixed"
-    assert verdict.per_class["goe"].verdict == "inconclusive"
+    assert verdict.per_class["goe"].verdict == "goe_only"
+
+
+def test_a_sector_above_the_window_is_reported_not_promoted():
+    """`> 0.62` is outside `[0.58, 0.62]`, so it is an anomaly line, not a verdict.
+
+    The specification is internally inconsistent here: F1.1 says a sector above
+    `0.62` should be reported as `supported_multi_seed`, while the verdict table
+    requires `mean r in [0.58, 0.62]`. The table is implemented literally and the
+    excess is reported, because promoting an out-of-window number would be the same
+    error the single-seed grid made.
+    """
+    with_anomaly = classify_multi_seed(
+        [_point(0.42, mean_plus=0.65, mean_minus=0.60)]
+    )
+    assert with_anomaly.verdict == "mixed"  # sector- is inside the window
+    assert with_anomaly.sectors_outside_window
+    assert "ABOVE 0.62" in with_anomaly.summary()
+
+    only_above = classify_multi_seed([_point(0.42, mean_plus=0.65, mean_minus=0.53)])
+    assert only_above.verdict == "inconclusive"
+    assert only_above.sectors_outside_window
+    assert not only_above.sectors_in_window
+
+
+def test_a_full_spectrum_inside_the_window_is_a_structural_anomaly():
+    """Contradicts the superposition prediction, so it is flagged separately."""
+    verdict = classify_multi_seed(
+        [_point(0.60, mean_plus=0.60, mean_minus=0.60)]
+    )
+    assert verdict.full_spectrum_anomaly
+    assert "STRUCTURAL ANOMALY" in verdict.summary()
 
 
 # ============================================================

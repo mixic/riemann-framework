@@ -200,6 +200,26 @@ class MultiSeedPoint:
             for value in (self.mean_plus, self.mean_minus)
         )
 
+    @property
+    def sector_above_window(self) -> bool:
+        """A sector mean above `0.62`: reported, never promoted to a verdict."""
+        return any(
+            value > GUE_WINDOW[1] for value in (self.mean_plus, self.mean_minus)
+        )
+
+    @property
+    def classifications(self) -> dict[str, str]:
+        """`classify_verdict` applied to the full spectrum and to each sector.
+
+        Reported per point so a reader can see *which* spectrum a label came from;
+        the verdict itself is computed from the sector means (see `_label`).
+        """
+        return {
+            "full": classify_verdict(self.mean_full),
+            "sector_plus": classify_verdict(self.mean_plus),
+            "sector_minus": classify_verdict(self.mean_minus),
+        }
+
     def summary(self) -> str:
         return (
             f"d={self.dim_per_sector:3d} coupling={self.coupling:4.2f} "
@@ -208,6 +228,15 @@ class MultiSeedPoint:
             f"sector+ {self.mean_plus:.4f} +- {self.std_plus:.4f}, "
             f"sector- {self.mean_minus:.4f} +- {self.std_minus:.4f}, "
             f"||[H,sigma]||/||H|| = {self.sigma_commutator_ratio:.0e}"
+        )
+
+    def classified_summary(self) -> str:
+        labels = self.classifications
+        return (
+            f"d={self.dim_per_sector:3d} c={self.coupling:4.2f} {self.matrix_class}: "
+            f"full {self.mean_full:.4f} [{labels['full']}], "
+            f"sector+ {self.mean_plus:.4f} [{labels['sector_plus']}], "
+            f"sector- {self.mean_minus:.4f} [{labels['sector_minus']}]"
         )
 
 
@@ -328,6 +357,9 @@ class MultiSeedVerdict:
     std_threshold_reachable: bool = False
     mean_fraction_in_gue_window: float = float("nan")
     per_class: dict[str, "MultiSeedVerdict"] = field(default_factory=dict)
+    sectors_in_window: list[str] = field(default_factory=list)
+    sectors_outside_window: list[str] = field(default_factory=list)
+    full_spectrum_anomaly: bool = False
 
     def summary(self) -> str:
         lines = [
@@ -338,6 +370,20 @@ class MultiSeedVerdict:
             f"(threshold {STD_THRESHOLD} reachable: {self.std_threshold_reachable})",
             f"explanation: {self.explanation}",
         ]
+        if self.sectors_in_window:
+            lines.append(
+                "sectors inside [0.58, 0.62]: " + ", ".join(self.sectors_in_window)
+            )
+        if self.sectors_outside_window:
+            lines.append(
+                "sectors ABOVE 0.62 (reported, not promoted to a verdict): "
+                + ", ".join(self.sectors_outside_window)
+            )
+        if self.full_spectrum_anomaly:
+            lines.append(
+                "STRUCTURAL ANOMALY: a full spectrum landed inside the GUE window, "
+                "which contradicts the sector-superposition prediction"
+            )
         for name, sub in sorted(self.per_class.items()):
             lines.append(f"  class {name}: {sub.verdict} -- {sub.explanation}")
         return "\n".join(lines)
@@ -345,59 +391,86 @@ class MultiSeedVerdict:
 
 def _label(points: list[MultiSeedPoint]) -> tuple[str, str]:
     """Apply the specification's table to a set of points: `(verdict, explanation)`."""
-    means = [point.mean_full for point in points]
-    gue_points = [
-        point
+    full_means = [point.mean_full for point in points]
+    sector_rows = [
+        (point, label, mean, std)
         for point in points
-        if point.mean_in_gue_window and point.std_is_below_threshold
+        for label, mean, std in (
+            ("sector+", point.mean_plus, point.std_plus),
+            ("sector-", point.mean_minus, point.std_minus),
+        )
     ]
+    sector_means = [row[2] for row in sector_rows]
 
-    if gue_points:
-        best = max(gue_points, key=lambda point: point.mean_full)
+    # `supported_multi_seed` is a claim about a SECTOR, because the DSH's object is
+    # a spectral subsequence, not the whole superposition. The `std` clause is
+    # applied as written; it is unreachable at these matrix sizes (measured
+    # 0.084 at 2d = 20 down to 0.026 at 2d = 200) and is not relaxed here.
+    qualifying = [
+        row
+        for row in sector_rows
+        if GUE_WINDOW[0] <= row[2] <= GUE_WINDOW[1] and row[3] < STD_THRESHOLD
+    ]
+    if qualifying:
+        point, label, mean, std = max(qualifying, key=lambda row: row[2])
         return "supported_multi_seed", (
-            f"{len(gue_points)} of {len(points)} points have mean r in "
+            f"{len(qualifying)} of {2 * len(points)} sector means are in "
             f"[{GUE_WINDOW[0]}, {GUE_WINDOW[1]}] with per-seed std below "
-            f"{STD_THRESHOLD}; the strongest is d={best.dim_per_sector}, "
-            f"coupling={best.coupling}, class={best.matrix_class}, "
-            f"mean {best.mean_full:.4f} +- {best.std_full:.4f}."
+            f"{STD_THRESHOLD}; the strongest is {label} at d={point.dim_per_sector}, "
+            f"coupling={point.coupling}, class={point.matrix_class}: "
+            f"{mean:.4f} +- {std:.4f}."
         )
-    if all(GOE_WINDOW[0] <= mean <= GOE_WINDOW[1] for mean in means):
+    if all(GOE_WINDOW[0] <= mean <= GOE_WINDOW[1] for mean in sector_means):
         return "goe_only", (
-            f"every point has mean r in [{GOE_WINDOW[0]}, {GOE_WINDOW[1]}] "
-            f"(range {min(means):.4f} .. {max(means):.4f}): the model is in the "
-            "time-reversal-symmetric class."
+            f"every sector mean is in [{GOE_WINDOW[0]}, {GOE_WINDOW[1]}] "
+            f"(range {min(sector_means):.4f} .. {max(sector_means):.4f}): the model "
+            "is in the time-reversal-symmetric class, and no sector reaches GUE."
         )
-    if all(POISSON_WINDOW[0] <= mean <= POISSON_WINDOW[1] for mean in means):
+    if all(POISSON_WINDOW[0] <= mean <= POISSON_WINDOW[1] for mean in sector_means):
         return "poisson_only", (
-            f"every point has mean r in [{POISSON_WINDOW[0]}, {POISSON_WINDOW[1]}]: "
+            f"every sector mean is in [{POISSON_WINDOW[0]}, {POISSON_WINDOW[1]}]: "
             "the model is integrable across the tested parameters."
         )
-    if all(mean < 0.55 for mean in means) and any(
+    if all(mean < 0.55 for mean in full_means) and any(
         point.sector_reaches_gue for point in points
     ):
         sectors = sorted({point.matrix_class for point in points if point.sector_reaches_gue})
         return "mixed", (
-            f"the full spectrum never reaches GUE (means {min(means):.4f} .. "
-            f"{max(means):.4f}, a superposition of two sectors), while a single "
+            f"the full spectrum never reaches GUE (means {min(full_means):.4f} .. "
+            f"{max(full_means):.4f}, a superposition of two sectors), while a single "
             f"sigma-sector does -- in classes {sectors}. The sector class is "
             "inherited from the input blocks, so this shows the construction can "
             "carry GUE statistics, not that it produces them."
         )
     return "inconclusive", (
-        f"the means ({min(means):.4f} .. {max(means):.4f}) match no reference "
-        "window cleanly."
+        f"the sector means ({min(sector_means):.4f} .. {max(sector_means):.4f}) and "
+        f"the full-spectrum means ({min(full_means):.4f} .. {max(full_means):.4f}) "
+        "match no reference window cleanly."
     )
 
 
 def classify_multi_seed(points: list[MultiSeedPoint]) -> MultiSeedVerdict:
     """Apply the specification's verdict table to multi-seed evidence.
 
-    The verdict is evaluated on the **full** `2d`-dimensional spectrum, because
-    that is what the original grid measured; the sector columns are reported as
-    the desymmetrisation evidence, and a per-class breakdown is attached because
-    the model's class is an input, not a result. The distinction matters and is
-    why the old result was unreachable: the full spectrum of a sigma-symmetric
-    model is a superposition of two sectors and sits near `0.42`, never `0.60`.
+    The verdict is computed from the **sector** means, because the DSH's object is
+    a spectral subsequence and not the whole superposition; the full spectrum is
+    reported as the baseline it is. `mixed` is the label that records the
+    difference, and it is the one this model actually earns: a `sigma`-symmetric
+    spectrum is a superposition of two sectors, lands near `0.42` as a whole, and
+    reaches GUE in a sector only when the input blocks were GUE.
+
+    Two reporting anomalies are attached rather than folded into the verdict: a
+    sector mean above `0.62` (outside the window, so `supported_multi_seed` is not
+    earned) and a *full* spectrum inside the window (which would contradict the
+    superposition prediction and means the construction or the window is wrong).
+
+    Note one inconsistency in the specification, resolved here in favour of the
+    verdict table: its criterion F1.1 asks that a sector reaching `mean r > 0.62`
+    be *reported as* `supported_multi_seed`, while the table requires
+    `mean r in [0.58, 0.62]`. Promoting an out-of-window number to a positive
+    verdict would repeat exactly the error the single-seed grid made, so the table
+    is implemented literally and the excess is reported as
+    `sectors_outside_window`.
     """
     if not points:
         raise ValueError("need at least one multi-seed point")
@@ -409,10 +482,33 @@ def classify_multi_seed(points: list[MultiSeedPoint]) -> MultiSeedVerdict:
         raise ValueError(f"a verdict needs at least {SEEDS_MIN} seeds, got {seed_count}")
 
     verdict, explanation = _label(points)
+
+    def _anomalies(subset: list[MultiSeedPoint], seed_total: int) -> tuple[list[str], list[str], bool]:
+        inside: list[str] = []
+        outside: list[str] = []
+        for point in subset:
+            for label, mean in (
+                ("sector+", point.mean_plus),
+                ("sector-", point.mean_minus),
+            ):
+                tag = (
+                    f"{label} d={point.dim_per_sector} c={point.coupling:g} "
+                    f"{point.matrix_class} ({mean:.4f})"
+                )
+                if GUE_WINDOW[0] <= mean <= GUE_WINDOW[1]:
+                    inside.append(tag)
+                elif mean > GUE_WINDOW[1]:
+                    outside.append(tag)
+        anomaly = any(
+            GUE_WINDOW[0] <= point.mean_full <= GUE_WINDOW[1] for point in subset
+        )
+        return inside, outside, anomaly
+
     per_class: dict[str, MultiSeedVerdict] = {}
     for matrix_class in sorted({point.matrix_class for point in points}):
         subset = [point for point in points if point.matrix_class == matrix_class]
         class_verdict, class_explanation = _label(subset)
+        inside, outside, anomaly = _anomalies(subset, seed_count)
         per_class[matrix_class] = MultiSeedVerdict(
             verdict=class_verdict,
             seeds=seed_count,
@@ -430,8 +526,12 @@ def classify_multi_seed(points: list[MultiSeedPoint]) -> MultiSeedVerdict:
             mean_fraction_in_gue_window=float(
                 np.mean([point.fraction_full_in_gue_window for point in subset])
             ),
+            sectors_in_window=inside,
+            sectors_outside_window=outside,
+            full_spectrum_anomaly=anomaly,
         )
 
+    inside, outside, anomaly = _anomalies(points, seed_count)
     return MultiSeedVerdict(
         verdict=verdict,
         seeds=seed_count,
@@ -448,6 +548,9 @@ def classify_multi_seed(points: list[MultiSeedPoint]) -> MultiSeedVerdict:
             np.mean([point.fraction_full_in_gue_window for point in points])
         ),
         per_class=per_class,
+        sectors_in_window=inside,
+        sectors_outside_window=outside,
+        full_spectrum_anomaly=anomaly,
     )
 
 

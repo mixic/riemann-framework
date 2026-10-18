@@ -112,15 +112,30 @@ def _write_summary(
         f"  mean fraction of seeds landing in the GUE window "
         f"[{GUE_WINDOW[0]}, {GUE_WINDOW[1]}]: {verdict.mean_fraction_in_gue_window:.4f}"
     )
-    if verdict.gue_points:
-        best = verdict.gue_points[0]
+    lines.append(
+        f"  sector means inside [{GUE_WINDOW[0]}, {GUE_WINDOW[1]}]: "
+        f"{len(verdict.sectors_in_window)} of {2 * verdict.n_points}"
+    )
+    if verdict.sectors_outside_window:
         lines.append(
-            f"  supporting point: d={best.dim_per_sector}, "
-            f"coupling={best.coupling}, class={best.matrix_class}, "
-            f"mean r = {best.mean_full:.4f} +- {best.std_full:.4f}"
+            "  sector means ABOVE 0.62 (reported; not promoted to a verdict): "
+            + "; ".join(verdict.sectors_outside_window)
         )
     else:
-        lines.append("  supporting point: none (no point satisfies both conditions)")
+        lines.append("  sector means above 0.62: none")
+    lines.append(
+        "  full-spectrum structural anomaly (a whole spectrum inside the window): "
+        f"{verdict.full_spectrum_anomaly}"
+    )
+    if verdict.sectors_in_window:
+        lines.append(
+            "  supporting point: none qualifies -- "
+            f"{len(verdict.sectors_in_window)} sector means are inside the window, "
+            f"but the per-seed std is above {STD_THRESHOLD} at every point, so "
+            "supported_multi_seed is not earned"
+        )
+    else:
+        lines.append("  supporting point: no sector mean is inside the window")
     lines.append("")
     lines.append("Per-class verdicts (the matrix class is an input, not a result):")
     for name, sub in sorted(verdict.per_class.items()):
@@ -239,6 +254,75 @@ def _plot_grid(points: list[MultiSeedPoint]) -> None:
     plt.close(figure)
 
 
+def _plot_multi_seed(points: list[MultiSeedPoint]) -> None:
+    """Mean r with error bars against coupling, split by `sigma`-sector.
+
+    Three series per panel: the full spectrum (the superposition baseline) and the
+    `+1` / `-1` sectors. The point of the figure is that the two sectors track each
+    other and the full spectrum sits well below them -- the superposition is what
+    pushes the whole spectrum away from GUE.
+    """
+    classes = sorted({point.matrix_class for point in points})
+    dimensions = sorted({point.dim_per_sector for point in points})
+    figure, axes = plt.subplots(
+        1, len(classes), figsize=(6.5 * len(classes), 5), squeeze=False,
+        constrained_layout=True,
+    )
+    markers = {10: "o", 20: "s", 40: "^"}
+    for axis, matrix_class in zip(axes[0], classes):
+        subset = [point for point in points if point.matrix_class == matrix_class]
+        axis.axhspan(GUE_WINDOW[0], GUE_WINDOW[1], color="green", alpha=0.08,
+                     label=f"GUE window {GUE_WINDOW}")
+        for dimension in dimensions:
+            rows = sorted(
+                (point for point in subset if point.dim_per_sector == dimension),
+                key=lambda point: point.coupling,
+            )
+            if not rows:
+                continue
+            couplings = [point.coupling for point in rows]
+            label_suffix = f", d={dimension}" if dimension == dimensions[0] else ""
+            axis.errorbar(
+                couplings, [point.mean_full for point in rows],
+                yerr=[point.std_full for point in rows], fmt=f"{markers[dimension]}-",
+                color="darkblue", alpha=0.55, capsize=2, markersize=4,
+                label=f"full spectrum{label_suffix}" if label_suffix else None,
+            )
+            axis.errorbar(
+                couplings, [point.mean_plus for point in rows],
+                yerr=[point.std_plus for point in rows], fmt=f"{markers[dimension]}--",
+                color="teal", alpha=0.9, capsize=2, markersize=5,
+                label=f"sector +1{label_suffix}" if label_suffix else None,
+            )
+            axis.errorbar(
+                couplings, [point.mean_minus for point in rows],
+                yerr=[point.std_minus for point in rows], fmt=f"{markers[dimension]}:",
+                color="darkorange", alpha=0.9, capsize=2, markersize=5,
+                label=f"sector -1{label_suffix}" if label_suffix else None,
+            )
+        for name, colour, value in (
+            ("Poisson", "red", REFERENCE_R["poisson"]),
+            ("GOE", "orange", REFERENCE_R["goe"]),
+            ("GUE", "green", REFERENCE_R["gue"]),
+        ):
+            axis.axhline(value, color=colour, linewidth=1.0, linestyle="--", alpha=0.6,
+                         label=f"{name} {value:.3f}")
+        axis.set_xlabel("inter-sector coupling")
+        axis.set_ylabel("mean r-ratio ± per-seed std")
+        axis.set_ylim(0.33, 0.66)
+        axis.set_title(f"class = {matrix_class}")
+        axis.grid(alpha=0.25)
+    axes[0][0].legend(fontsize=6, ncol=2, loc="center right", framealpha=0.9)
+    figure.suptitle(
+        "Multi-seed falsification (%d seeds per point): the full spectrum is a "
+        "superposition of the two sectors\nand never reaches GUE; a sector does so "
+        "only when the input blocks were GUE." % SEEDS_MIN,
+        fontsize=10,
+    )
+    figure.savefig(OUTPUT_DIR / "falsification_multi_seed.png", dpi=150)
+    plt.close(figure)
+
+
 def _plot_distribution(points: list[MultiSeedPoint]) -> None:
     """The same numbers as error bars: means with one standard deviation."""
     figure, axis = plt.subplots(figsize=(9, 5))
@@ -335,6 +419,7 @@ def main() -> None:
         )
 
     _plot_grid(points)
+    _plot_multi_seed(points)
     _plot_distribution(points)
     _write_summary(
         OUTPUT_DIR / "falsification_summary.txt",
@@ -345,8 +430,8 @@ def main() -> None:
         control,
     )
     print(
-        "\nWrote falsification_summary.txt, falsification_heatmap.png, "
-        "falsification_histogram.png"
+        "\nWrote falsification_summary.txt, falsification_multi_seed.png, "
+        "falsification_heatmap.png, falsification_histogram.png"
     )
     print("\nThe full spectrum never reaches GUE: a sigma-symmetric model is a")
     print("superposition of two sectors. A sector reaches GUE only because its")

@@ -21,11 +21,14 @@ Evidence required by the specification:
   seeds: 300
   mean per-seed std of r: 0.0584 (threshold 0.02; reachable: False)
   mean fraction of seeds landing in the GUE window [0.58, 0.62]: 0.0071
-  supporting point: none (no point satisfies both conditions)
+  sector means inside [0.58, 0.62]: 24 of 48
+  sector means above 0.62: none
+  full-spectrum structural anomaly (a whole spectrum inside the window): False
+  supporting point: none qualifies -- 24 sector means are inside the window, but the per-seed std is above 0.02 at every point, so supported_multi_seed is not earned
 
 Per-class verdicts (the matrix class is an input, not a result):
-  goe: inconclusive
-    the means (0.4020 .. 0.4280) match no reference window cleanly.
+  goe: goe_only
+    every sector mean is in [0.51, 0.55] (range 0.5248 .. 0.5396): the model is in the time-reversal-symmetric class, and no sector reaches GUE.
   gue: mixed
     the full spectrum never reaches GUE (means 0.3689 .. 0.4287, a superposition of two sectors), while a single sigma-sector does -- in classes ['gue']. The sector class is inherited from the input blocks, so this shows the construction can carry GUE statistics, not that it produces them.
 

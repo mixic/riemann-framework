@@ -22,6 +22,154 @@ This document records negative knowledge and limitations from the Riemann
 Framework experiments. It is part of the research record, not a list of
 failures to hide.
 
+## Consolidated negative results (§1–§9)
+
+Every track in this repository ends in a negative result. This part consolidates
+them in one place, each with the claim that failed, the measurement that failed it,
+the structural reason where one is known, and what would be needed to fix it. The
+narrative sections that follow are the original record and are kept unchanged.
+
+### §1 The falsification grid: "DSH is SUPPORTED" was a single-seed artefact
+
+- **Claim that failed.** The dimension-shift Hamiltonian reaches GUE statistics, so
+  the Dimension-Shift Hypothesis is supported.
+- **Measurement.** The reported maximum was `⟨r⟩ = 0.6117` at `d = 10`,
+  `coupling = 0.5`, `symmetry_breaking = 2.0`, from one seed. Over 300 seeds that
+  point gives `0.5226 ± 0.0694`, and at `d = 200` it gives `0.5315 ± 0.0034`. The
+  model's `σ`-violation was never enforced: `‖[H,σ]‖/‖H‖ = 1.346 … 1.462`. 14% of
+  *pure GOE* draws land in the `[0.58, 0.62]` window (23% with `unfold=False`), so a
+  90-point grid hits it by chance about a dozen times.
+- **Structural reason.** The old model drew two independent real blocks, so (i) it
+  violated requirement 1 of the hypothesis, and (ii) it was GOE, not GUE. Once
+  `[H,σ] = 0` is enforced the spectrum is `spec(A+C) ⊕ spec(A−C)`, a superposition:
+  the full spectrum lands at `[0.3689, 0.4287]`, and a single sector reaches
+  `[0.5927, 0.6092]` only because GUE blocks were put in. The class is inherited.
+- **Fix applied.** 300 seeds per point, mean ± std and sem, sector split, five-label
+  verdict; `mixed` for the complex-Hermitian class, `goe_only` for the real one.
+- **Still open.** The `std < 0.02` clause is unreachable at these sizes (`0.084` at
+  `2d = 20` down to `0.026` at `2d = 200`); a size-aware criterion is needed.
+
+### §2 Shift-zeta: the graded lift does not reproduce the zeros
+
+- **Claim that failed.** A graded (shifted) extension of `ζ` on `A = A₀ + ωA₁`
+  reproduces the classical zeros and their functional equation.
+- **Measurement.** Of the seven criteria, `G5` (functional equation) **fails** for
+  `τ ≠ 1` and `G6` (zeros in `Fix(σ)`) fails numerically; `G7` passes only at
+  `τ = 1` (relative error `5.1e-4` at `s = 2`, `5.9e-12` at larger `s`). The graded
+  trace is strictly larger than the classical one away from `τ = 1`.
+- **Structural reason.** The graded trace agrees with `ζ` at `τ = 1` and nowhere
+  else: the lift is not a deformation that preserves the Euler product, so the
+  completion symmetry that forces the classical zeros into `Fix(σ)` has nothing to
+  act on.
+- **Fix needed.** A different lift — one whose `τ`-dependence sits in the Euler
+  product rather than outside it. None is known here.
+
+### §3 DSIN: the design is closed, not merely unproven
+
+- **Claim that failed.** A published `σ`-eigenvalue observable can support a
+  security bound for a communication channel.
+- **Measurement.** The `σ`-basis intercept-resend attack yields **detection
+  0.0000, BER 0.0000, one full bit**, and the fermionic phase flip at `φ = π` is
+  detected at `2.22e-16` while inverting every bit (`BER = 1.0000`).
+- **Structural reason.** One published observable means the adversary measures
+  exactly what Alice encoded; §4.1 of `docs/dimension_shift_quantum_communication.md`
+  proves that no function of that statistic bounds her information. The surviving
+  result, that a `σ`-commuting channel preserves `Fix(σ)`, is an exact commutation
+  theorem and never was a security statement.
+- **Fix needed.** None inside this design. A successor needs a second, incompatible
+  basis — which is BB84, and BB84 already exists.
+
+### §4 Hilbert–Pólya prototype: four independent gaps
+
+- **Claim that failed.** An operator whose eigenvalues are the zeros would prove RH.
+- **Measurement.** (i) no eigenvalue: truncated norm `13.816` at width `10⁶`, no
+  limit at either end; (ii) the hard box is a picket fence, `r = 1.000` against
+  `0.610`, and overcounts by `2.10×` at `T = 50`; (iii) a real spectrum is free:
+  `diag` of any real list is self-adjoint, and the `PT` model breaks at
+  `θ_c = arcsin(s/r) = π/6`; (iv) `Z(β)` is *identical* for zeros on and off the
+  line (`8.837461e-04`, difference `0`).
+- **Structural reason.** Scale invariance gives a continuous spectrum; a box gives
+  an arithmetic ladder; self-adjointness is a hypothesis about `H`, not about `ζ`;
+  and thermal functionals read only `Im(s)`.
+- **Fix needed.** An operator defined without `ζ`, with a proved identification of
+  its spectrum with the zeros. That is the open problem.
+
+### §5 Operator candidates: statistics cannot certify
+
+- **Claim that failed.** Matching GUE spacing statistics identifies a candidate with
+  the zeros.
+- **Measurement.** A prime-length star graph — Gutzwiller dictionary exact, closed
+  orbits `= log n`, self-adjoint by construction — scores `r = 0.641` and a KS
+  distance `0.0438` to the Wigner surmise, against the zeros' own `0.610` and
+  `0.0579`: it fits the universal statistics **better** than the zeros do, while its
+  counting function is linear. The unitary twin `U diag(γ) U†` passes everything to
+  `2e-13`.
+- **Structural reason.** Universal statistics are universal, and by the spectral
+  theorem every self-adjoint operator with spectrum `{γ_n}` is unitarily equivalent
+  to `diag(γ_n)`, so the existence of such an operator is empty.
+- **Fix needed.** Screen the *definition*, not the spectrum: independence from `ζ`
+  plus a proved identification.
+
+### §6 Primon gas symmetry: a basis permutation cannot commute
+
+- **Claim that failed.** Swapping the exponents of two primes is a symmetry of the
+  primon Hamiltonian and can lift to the chaos model.
+- **Measurement.** `‖[W, H]‖_F` stays bounded away from zero as `n_max` grows to
+  `4000` (and grows with it); at `n_max = 2000` about 800 basis vectors genuinely
+  move while about 400 are pinned by the truncation boundary.
+- **Structural reason.** `H` is diagonal with the strictly increasing, hence simple,
+  spectrum `log n`. A matrix commuting with a diagonal matrix of simple spectrum is
+  diagonal in that basis, so any map moving weight between `|n⟩` and `|m⟩` provably
+  fails. The nonzero norm is an illustration, not the argument.
+- **Fix needed.** A symmetry acting on a non-diagonal representation — the
+  Bost–Connes Galois action, for instance.
+
+### §7 de Bruijn–Newman: `Λ ≤ 0` is not numerically verifiable
+
+- **Claim that failed.** A numerical study of `H_t = e^{−tD²}H₀` can support
+  `Λ ≤ 0`.
+- **Measurement.** The zero-count scan is flat at `[9, 9, 9, 9, 9, 9, 9]` across the
+  whole tested range, and it would be flat under either hypothesis: if `Λ < 0` the
+  first exit sits at Lehmer-pair heights, far above the range. Known bounds are
+  `Λ ≥ 0` (Rodgers–Tao) and `Λ ≤ 0.2` (Polymath15).
+- **Structural reason.** `Λ ≤ 0` is *equivalent* to RH, so no computation can
+  establish it; the low-zero scan is insensitive by construction, not reassuring.
+- **Fix needed.** None. The equivalence is exact and the insensitivity is documented
+  in `INSENSITIVITY_NOTE`.
+
+### §8 DH filter: the flagship proposal is on the dead list
+
+- **Claim that failed.** The repository's flagship idea is a live candidate.
+- **Measurement.** It screens `dead`: every input it declares also transfers to
+  Davenport–Heilbronn, for which the analogue of RH is **false**. DH itself has the
+  functional equation (residual `2.3e-17`) but no Euler product — `b(2)b(3) = −κ²`
+  rather than `b(6)`.
+- **Structural reason.** The screening principle is that an input which survives
+  transfer to a known-false analogue cannot be evidence for the target. Validity
+  under DH is a property of the *argument*, not of the phenomenon.
+- **Fix needed.** Declare inputs that do not transfer. The filter names them.
+
+### §9 What this project learned about falsification
+
+1. **A maximum over a grid is a search, not a test.** Any verdict built from the
+   best of `N` noisy points needs a multiple-comparison correction; without one it
+   reports the noise.
+2. **A statistic needs a seed floor and a pre-registered window.** "Supported" is not
+   a word that can be attached to a number without a standard deviation.
+3. **A model correction invalidates the old verdict.** The `σ`-violation existed for
+   many commits, and every number computed under it had to be recomputed, not
+   reinterpreted.
+4. **A negative result must be recomputed, not just requalified.** Four of the nine
+   sections above were found by re-running a test that had passed.
+5. **An asymptotic obstruction is not a screen at accessible sizes.** The zero
+   density is asymptotically `T log T`, yet a power law `T^1.436` reproduces the
+   count to `1.33` levels in `100`, so the obstruction is a requirement on future
+   constructions, not a test of present ones.
+6. **Prose drifts last and worst.** Every mechanical guard in this repository
+   (`test_documentation_sync.py`) checks counts, paths, figures and links; none can
+   catch a sentence that stopped being true, and the sentences are where the
+   overstatement lives.
+
 ## 1. Numerical Evidence Is Not a Proof
 
 Known zeta zeros can be computed and checked to high precision, but finite

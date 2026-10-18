@@ -30,7 +30,7 @@ A passing test is **evidence**, not a mathematical proof.
 | Numerical zero verification | Working |
 | Explicit-formula calculations and plots | Working |
 | Dimension-shift experiments | Working and exploratory |
-| Dimension-shift falsification grid | **Corrected.** `[H, σ] = 0` is enforced (`‖[H,σ]‖/‖H‖ = 0.0`, was `1.35…1.46`); 300 seeds per point with mean ± std; verdict `mixed`, not "supported" — the full spectrum of a `σ`-symmetric model is a superposition of two sectors (`0.37…0.43`) and a single sector is GUE only when the input blocks were. See `docs/lessons_learned.md` §15 |
+| Dimension-shift falsification grid | **Corrected.** `[H, σ] = 0` is enforced (`‖[H,σ]‖/‖H‖ = 0.0`, was `1.35…1.46`); 300 seeds per point with mean ± std; verdict `mixed`, not "supported" — the full spectrum of a `σ`-symmetric model is a superposition of two sectors (`0.37…0.43`) and a single sector is GUE only when the input blocks were. See `docs/lessons_learned.md` §1, and §1–§9 for every negative result |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
 | BB84 implementation layer | **Started.** Photon source, detector model, photon-number splitting, the decoy-state mitigation, and finite-key statistics: the attack leaves `Q_μ` and `E_μ` exactly the honest channel's while Eve learns up to 99% of the sifted key; the decoy bound recovers a *valid* rate about 2% below the unsupported one; finite keys impose a floor of 5.6e5 pulses. Detector blinding and timing/Trojan-horse channels are not modelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1011 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1013 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -468,188 +468,45 @@ spaces below 200, the `χ₋₄` parity test, and Davenport–Heilbronn),
 `σ` ↔ energy-level dictionary, with two corrections to its popular form), and
 `chirality.py` / `dsin_sigma_symmetry.py` for the checks themselves.
 
+### The corrected falsification verdict
+
+The multi-seed grid (`output/falsification_summary.txt`, 300 seeds per point, 24
+points) gives **`mixed`**, and mixed is not a success:
+
+- the **full spectrum** of a `σ`-symmetric model is a superposition of its two
+  sectors and lands at `⟨r⟩ ∈ [0.3689, 0.4287]` — never GUE. A whole-spectrum
+  test is therefore asking the wrong question.
+- a **single sector** lands at `[0.5927, 0.6092]` for GUE input blocks and
+  `[0.5248, 0.5396]` for GOE ones. The class is *inherited, not produced*: 24 of
+  48 sector means sit inside `[0.58, 0.62]`, and every one of them is in the GUE
+  class, because GUE blocks were put in.
+- the specification's `std < 0.02` clause is **unreachable at these sizes**: the
+  per-seed std is `0.084` at `2d = 20`, `0.034` at `2d = 100` and `0.026` at
+  `2d = 200`, shrinking like `1/√(2d)`. The clause is implemented as written, so
+  `supported_multi_seed` is never earned; the standard error (`0.004` at 300
+  seeds) is reported next to it rather than replacing it.
+- per class the labels differ: `goe_only` for the real-symmetric construction
+  (all sectors in `[0.51, 0.55]`), `mixed` for the complex-Hermitian one.
+
+![Mean r-ratio with per-seed error bars against the coupling, split by σ-sector, for both matrix classes](output/falsification_multi_seed.png)
+
+Details and the four defects in `docs/lessons_learned.md` §1.
+
 ### DSIN: a toy communication-channel simulation
 
-**`dsin.py`** explores whether the dimension-shift structure could underlie a
-communication protocol. This is explicitly labeled a toy simulation with **no
-security proof** — it should not be equated with cryptographic protocols like
-BB84, and `docs/dimension_shift_quantum_communication.md` is explicit about the
-limitation.
+**Verdict: the design is closed — not unproven, closed.** A single published
+observable carries the bit, so the adversary's measurement is always the right one;
+§4.1 of [`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
+proves that no function of its statistic can bound her information. What survives is
+an exact commutation result — a `σ`-commuting channel preserves `Fix(σ)` — which was
+never a security statement. Verdict: [`docs/future_work.md`](docs/future_work.md) Priority 6.
 
-**Verdict: the design is closed.** It is not merely unproven. A single published
-observable carrying the bit means the adversary's measurement is always the right
-one, and §4.1 of that document proves that no function of the observable's
-statistic can bound her information. The sections below record the measurements
-that establish it, and [`docs/future_work.md`](docs/future_work.md) Priority 6
-carries the full verdict. What survives is the exact commutation result — a
-`σ`-commuting channel preserves `Fix(σ)` — which was always true and was never a
-security statement.
-
-**The construction.** The state space is a two-sector (graded) Hilbert space
-`H = H_b ⊕ H_f` of dimension `2d`, and the involution is the sector swap
-`σ|b,k⟩ = |f,k⟩`, `σ|f,k⟩ = |b,k⟩`. A bit is encoded in the eigenvalue of `σ`:
-
-| bit | state | `σ` eigenvalue |
-|:---|:---|:---|
-| 0 | `(|b,k⟩ + |f,k⟩)/√2` | `+1` |
-| 1 | `(|b,k⟩ − |f,k⟩)/√2` | `−1` |
-
-The channel Hamiltonian has the block form `[[H_b, V], [Vᵀ, H_f]]` with
-`H_b = H_f` and `V = Vᵀ`, which makes `[H, σ] = 0` **exactly**: the commutator
-norm is `0.00e+00` for every dimension up to `d = 12`, not merely small.
-Detection measures whether the received state is still a `σ` eigenstate.
-
-**Models available.** Noise: `none`, `depolarizing`, `phase` (a relative phase on
-the fermionic sector), `amplitude` (damping of that sector). Attacks:
-`intercept_resend`, `symmetry_breaking`, `partial_intercept` (intercept a
-fraction `p` of the traffic), and `sigma_basis_intercept` — the last being the
-one that decides the question, since it measures the encoding observable itself.
-`run_simulation` returns the BER, the detection rate, the mean fidelity against
-the transmitted state, and `mean_sigma_deviation`, the graded statistic the
-detector thresholds. `channel_time` defaults to `0.0` — no Hamiltonian evolution
-— so the ideal channel has unit fidelity; set it nonzero to include evolution
-under `H`.
-
-**Measured results** (`python scripts/run_dsin_verification.py`, `n = 500`, seed 42):
-
-| scenario | BER | detection rate |
+| scenario (`n = 500`, seed 42) | BER | detection rate |
 |:---|:---|:---|
 | ideal channel | 0.0000 | 0.0000 |
-| depolarizing `p = 0.1` / `0.3` / `0.5` | 0.044 / 0.168 / 0.252 | 0.104 / 0.332 / 0.502 |
-| symmetry-breaking `ε = 0.1` / `0.5` / `1.0` | 0.010 / 0.260 / 0.404 | 1.000 / 1.000 / 1.000 |
+| depolarizing `p = 0.1 / 0.3 / 0.5` | 0.044 / 0.168 / 0.252 | 0.104 / 0.332 / 0.502 |
+| symmetry-breaking `ε = 0.1 / 0.5 / 1.0` | 0.010 / 0.260 / 0.404 | 1.000 / 1.000 / 1.000 |
 | intercept-resend (mean of 5 seeds) | 0.4528 | 1.0000 |
-
-The detector is a **witness** of symmetry breaking, not a graded measure: any
-departure from the `σ` eigenspace trips it, so the symmetry-breaking and
-intercept-resend detection rates sit at 1.000 even for small `ε`, while the BER
-grows with `ε`. That is the honest reading of the table — the detector answers
-"was the symmetry broken?", not "by how much?". Depolarizing noise gives a graded
-response only because it destroys the state outright with probability `p`, so
-detection tracks `p`.
-
-**A total, undetectable break.** The detector tests whether the received state is
-*an* eigenstate of `σ` (`|⟨σ⟩| = 1`) — not whether it is the eigenstate that was
-sent, which the receiver cannot know. That distinction is not academic. Phase
-noise multiplies the fermionic sector by `e^{iφ}`, which sends `⟨σ⟩` to `±cos φ`;
-at `φ = π` it maps the `+1` eigenspace onto the `−1` eigenspace:
-
-| `φ` | BER | detection |
-|:---|:---|:---|
-| `0.25π` | 0.1660 | 1.0000 |
-| `0.50π` | 0.4840 | 1.0000 |
-| `0.75π` | 0.8440 | 1.0000 |
-| **`π`** | **1.0000** | **0.0000** |
-
-So the unitary `diag(I, −I)` inverts **every** transmitted bit while the detector
-reports nothing whatsoever. This is a property of the protocol as modelled, not a
-coding error, and `test_phase_flip_at_pi_inverts_every_bit_and_is_invisible` pins
-it so it cannot be lost silently. It is the concrete instance of the trap that
-`docs/future_work.md` Priority 6 names: **symmetry covariance is not protection**.
-Closing it needs a detector that checks eigen*value* consistency, which requires
-either a shared key or a BB84-style basis-sampling check — a protocol redesign,
-not a bug fix.
-
-**No error-rate-to-information relation, and none is possible on this
-observable.** The detector is binary, so a cautious eavesdropper is caught with
-the same probability as a reckless one. The graded statistic behind it *does*
-respond to attack strength — `SimulationResult.mean_sigma_deviation`, which rises
-from **0.0100** at `ε = 0.05` to **0.6958** at `ε = 1.0` (`n = 1000`, seed 42) —
-so the flat detection rate is a thresholding artefact and a graded detector is
-one line away. Removing the threshold would not help. The same statistic reads
-`2.22e-16` at `φ = π`, where every bit is inverted: it is *non-monotone in
-damage*, reporting a perfectly undisturbed channel under a total break. (It is
-stored as `|1 − |⟨σ⟩||` rather than `1 − |⟨σ⟩|` because `|⟨σ⟩|` rounds a few ulps
-above 1, which makes the unsigned form report a small *negative* deviation for an
-ideal channel.)
-
-The sharpest witness is not the phase flip but an adversary who measures `σ`
-itself — the receiver's own observable, in the published encoding basis. She
-recovers every bit (`1.0000` of the time), and because the post-measurement state
-of a state already inside the measured eigenspace is that state, Bob decodes
-everything correctly (`BER = 0.0000`) and the detector reports `0.0000`, on a
-deviation bit-identical to the no-eavesdropper run. Two strategies with equal
-deviation and different leakage mean that **no function of that deviation can
-bound the adversary's information**. That is a proof rather than a failure to
-find the right inequality; it is stated as a proposition with proof in
-[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
-§4.1, and `test_sigma_deviation_does_not_bound_leakage` pins it. In BB84 the
-statistic and the bound are linked — Eve's information about the key is bounded
-by the disturbance she causes — and that link is what a security proof is built
-from. DSIN has no such relation, which is a second and independent reason (beyond
-the absent proof machinery) that it cannot be set against BB84's guarantee.
-
-The entropic-uncertainty route is closed as well, and for a structural reason
-rather than a technical one. An uncertainty relation needs *two* mutually
-unbiased observables; a single-observable design has overlap `c = 1` and
-therefore no `log2(1/c)` term to bound anything with. The natural second
-observable in the DSIN sector — the sector basis, with `c = 1/2` — does give a
-non-degenerate relation, but it makes each 2-dimensional sector block *be* BB84,
-so it proves BB84's theorem rather than a new one. See §4.3.
-
-**What would have to change.** None of this means the *track* is closed, only that
-this design is. §4.4 of the same document converts the failure into a requirements
-list (R1–R4) that any successor has to meet; records why the obvious repair —
-moving the payload into the interior of `Fix(σ)` — relocates the hole rather than
-closing it, in coding terms because the adversary's payload measurement is a
-*logical operator* and no stabilizer can see one; and sketches two directions that
-are at least well-posed. It states requirements rather than results and makes no
-security claim.
-
-**A modelling bug found and fixed while writing this up.** The original
-`symmetry_breaking_attack` perturbed the two sectors by `+m` and `−m` with the
-*same* random `m`. That vector is `σ`-*odd*, so it lies inside the `−1`
-eigenspace — which is exactly the bit-1 encoding — and left bit-1 states
-undisturbed to machine precision (`|⟨σ⟩| = 1.000000`). The reported "detection
-rate" was therefore ≈ 0.53 **regardless of `ε`**: it was tracking the fraction of
-rounds that happened to encode bit 0, not any detection capability at all. The
-fix perturbs the sectors independently, so the perturbation carries both
-`σ`-even and `σ`-odd parts and disturbs both encodings (`|⟨σ⟩|` drops to ≈ 0.50
-for each). It is recorded here rather than silently corrected because the wrong
-number looked entirely plausible, and
-`test_symmetry_breaking_attack_disturbs_both_encodings` now pins it.
-
-**Neither number is a calibrated detection probability, and the fix did not make
-detection better.** The detector is unchanged — it was equally binary before and
-after. The old ≈ 0.53 measured how much of the traffic the attack could reach at
-all; the new 1.0000 records only that the alarm is not graded. Reading the change
-as "detection improved from 0.53 to 1.000" would be a mistake: detection
-probability is a step function of attack strength in both cases, and the flat
-1.0000 is not progress on the gap named in
-[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
-§4.1 — it is the same gap, now measured correctly.
-
-**Comparison with BB84.** `bb84.py` provides the baseline, because a protocol
-claim is meaningless without one. The two protocols do not detect eavesdropping
-the same way, and the comparison is only readable if that is stated:
-
-| depolarizing noise | DSIN BER | BB84 sifted-key QBER | BB84 verdict |
-|:---|:---|:---|:---|
-| 0.00 | 0.0000 | 0.0000 | not detected |
-| 0.10 | 0.0440 | 0.0470 | not detected |
-| 0.20 | 0.0840 | 0.0920 | not detected |
-| 0.30 | 0.1680 | 0.1493 | **detected** |
-
-The BB84 column is from the vectorized backend. `run_bb84` now simulates all rounds at once with NumPy (`backend="numpy"`, the default) instead of one round at a time; the looped path is kept as `backend="loop"`. Measured, the vectorization is worth **30–43×** (n = 10k to 1M rounds). The two backends do not share a random stream — the looped version interleaves `integers` and `random` per round while a vectorized one draws grouped by kind — so same-seed equality was never available and these figures differ slightly from an earlier revision. What is pinned instead is exact agreement on identical draws, plus statistical agreement on a common seed; see `python/tests/test_bb84.py`.
-
-DSIN watches a per-round symmetry observable, so its detection rate is a genuine
-per-round frequency. BB84 has no per-round detection event: Alice's and Bob's
-bases are chosen independently at random, so they disagree about half the time
-whether or not anyone is listening, and those rounds are simply discarded in
-sifting. BB84 works from the rounds that survive — the sifted key — by estimating
-its error rate and aborting above a threshold (0.11 by default, the value used
-above). An earlier version of `bb84.py` counted basis mismatch as "detection",
-which reported ≈ 0.5 in every row: it was measuring sifting, not eavesdropping.
-`run_bb84` now returns the sifted-key QBER as `ber`, a run-level `detected`
-flag, and `sifting_discard_rate` separately, so the two cannot be confused
-again.
-
-**What this is not.** Not a security proof, and not a candidate for one —
-[`docs/dimension_shift_quantum_communication.md`](docs/dimension_shift_quantum_communication.md)
-§4.1 is the proof that none is available. There is no comparison with BB84's
-security guarantee, no detector noise model, no finite-key analysis, and no
-adversary beyond the four attacks modelled in `dsin.py`. §4.4 of that document
-lists what a successor would need, and
-[`docs/future_work.md`](docs/future_work.md) Priority 6 carries the verdict.
 
 ## The BB84 implementation layer: what the protocol model cannot see
 
@@ -901,6 +758,39 @@ The only route here to a machine-checked **universal** proof is Lean 4 — `Dime
 
 **Honest advice, without wanting to take away your motivation:** this framework is an excellent tool for quickly discarding bad ideas and sharpening promising ones. But it is — and structurally can never be more than — a pre-filter. Confirmation of a real proof does not happen through code that prints "PASS"; it happens through human expert scrutiny and, ideally, full formal verification.
 
+## Roadmap
+
+**What is done.** Nine tracks, each with a document: the numerical core
+(`docs/verification.md`), the Davenport–Heilbronn filter (`docs/dh_filter.md`), the
+zeta-containment screen (`docs/zeta_factors.md`), the physics dictionary
+(`docs/quantum_chaos_claims.md`, `docs/pt_symmetric_hilbert_polya.md`), the
+finite-field theorem (`docs/finite_field_curves.md`), the de Bruijn–Newman
+restatement (`docs/de_bruijn_newman.md`), the screening of operator candidates
+(`docs/operator_candidates.md`), the DSH programme with its corrected verdict
+(`docs/central_hypothesis.md`, `docs/lessons_learned.md` §1), and the DSIN/BB84
+communication layer (`docs/dimension_shift_quantum_communication.md`,
+`docs/bb84_implementation.md`).
+
+**What is open.** The Lean formalization of RH (statements exist, all `sorry`); the
+DSH sector question; the BB84 implementation layer (detector blinding, timing side
+channels); and a size-aware replacement for the unreachable `std < 0.02` clause.
+
+| milestone | success criterion (measurable) | status |
+|:---|:---|:---|
+| M1 multi-seed verdict | verdict written with `n_seeds ≥ 300`, `std`, and the parameter point | **done** — `mixed`, 300 seeds, in `output/falsification_summary.txt` |
+| M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
+| M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | open, week 8 |
+| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | open, week 10 |
+| M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | open, week 12 |
+
+**What would falsify the project.** The DSH is abandoned if either holds:
+(1) at every `d ≥ 100` and every coupling, each `σ`-sector's mean `⟨r⟩` stays inside
+the GOE window `[0.51, 0.55]` once 300 seeds are used — i.e. the construction is GOE
+by structure and cannot carry the zeros' class; or (2) the sector class is shown to
+be inherited under every admissible choice of input blocks, so that any GUE result
+is an assumption rather than a consequence. Criterion (2) is already the current
+reading of the evidence; (1) is what M5 would settle.
+
 ## Test suite
 
 From `python/`:
@@ -909,7 +799,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1011 tests pass** on the current tree. They are not smoke tests: the suite
+**1013 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -943,7 +833,7 @@ silently changed meaning.
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |
 | `test_formal_proof.py` | 15 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
-| `test_falsification.py` | 22 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
+| `test_falsification.py` | 24 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
 | `test_explicit_formula.py` | 11 | Explicit-formula calculations |
 | `test_cayley_dickson.py` | 6 | Cayley–Dickson property checks |
 | `test_dimension_shift_chaos.py` | 17 | `sigma` enforced, both symmetry classes, the sector split |
