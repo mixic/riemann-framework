@@ -597,3 +597,52 @@ GUE window" is measured with `unfold=False`, while the legacy code used
 `unfold=True`, where the figure is `14%`. Both are correct and both are reported;
 the fact that the number moves by 60% with a choice the old code never justified is
 itself part of why the window was never a criterion.
+
+## 16. M5: the Dimension-Shift Hypothesis Is Abandoned
+
+The roadmap's decisive milestone ran, and the hypothesis did not survive it. Both
+defects found on the way are worth recording, because one of them produced a
+*favourable* wrong answer.
+
+**The measurement.** 300 seeds per point, `d = 100, 200`, four couplings, both
+matrix classes, `||[H, sigma]||_F / ||H||_F = 0` at every point:
+
+| input blocks | sector means | full-spectrum means |
+|:---|---:|---:|
+| GOE | `0.5279 … 0.5327` | `0.4225 … 0.4248` |
+| GUE | `0.5964 … 0.6017` | `0.4199 … 0.4238` |
+
+Criterion (2) holds: GUE blocks give `2/2` GUE sectors and GOE blocks give `0/2`, so
+the universality class is **inherited from the input blocks**, not produced by the
+`sigma` structure. Criterion (1) holds for the GOE class and fails for the GUE class,
+which makes it class-conditional -- a restatement of criterion (2), not independent
+evidence. Verdict: **abandoned**, in `docs/m5_verdict.md`.
+
+The structural lesson is compact: a `sigma`-symmetric Hamiltonian built from random
+blocks has sectors `spec(A ± C)`, so it inherits the class of `A` and `C`. Carrying
+the zeros' class would require *deriving* time-reversal breaking from the
+construction -- a specific arithmetic origin for `C` -- instead of choosing it as an
+ensemble.
+
+**The defect that exonerated it.** `MATRIX_CLASSES` is `("goe", "gue")`, and the first
+draft of criterion (2) assigned `gue_point = points[0]`, i.e. it named the GOE point
+"gue" and inverted the verdict. The first full run therefore reported
+
+> GUE blocks -> 0 GUE sectors; GOE blocks -> 2 GUE sectors -- **DSH SURVIVES**
+
+the opposite of the data, and in the direction that acquits the hypothesis. Points are
+now keyed by class name and the tests assert `points[i].matrix_class`. A bug that
+runs *towards* the hoped-for answer is the one most likely to be believed.
+
+**The defect that hid it in the test suite.** The criteria were originally named
+`test_criterion_1` / `test_criterion_2`. pytest collects every module-level name
+starting with `test_`, *including imported ones*, so `tests/test_m5_analysis.py` ran
+the full default grid twice as if those were tests: about twelve minutes of hidden
+computation, and `--collect-only` reported 18 items where 16 exist. Renamed to
+`evaluate_criterion_1` / `evaluate_criterion_2`, with
+`test_no_imported_symbol_is_collected_as_a_test` as the guard.
+
+**What M5 does and does not settle.** It settles one construction. It does not show
+that no dimension-shift idea can work; it shows which assumption has to change, and
+names it: the origin of `C`. It produces no evidence for or against the Riemann
+hypothesis.

@@ -1,0 +1,62 @@
+M5 Analysis: the decisive test for the Dimension-Shift Hypothesis
+==========================================================================
+
+seeds per parameter point: 300
+dimensions tested: [100, 200]
+couplings tested: [0.5, 1.0, 2.0, 5.0]
+matrix classes tested: ['goe', 'gue']
+wall-clock: 374 s
+
+VERDICT: ABANDONED
+DSH abandoned: True
+
+DSH is ABANDONED. Reason(s): the sector class is inherited, not produced. This is the result, not a failure.
+
+Criterion (1): structural GOE
+  holds (all admissible classes): False
+  holds per class: goe=True, gue=False
+  sectors tested: 48
+  sectors in GOE window: 24
+  sectors in GUE window: 24
+  full spectrum never in the GUE window: True
+  max sector mean: 0.6017 at {'d': 200, 'coupling': 0.5, 'matrix_class': 'gue', 'sector': '+1', 'mean_r': 0.6016874929055863, 'std_r': 0.02093269158443605}
+  Criterion (1) does NOT hold as stated: 24 of 48 sector means are in the GOE window and 24 are in the GUE window; the failing class is ['gue']. It is class-conditional: with GOE blocks the sectors are GOE because GOE was put in, and with GUE blocks they leave the window. A criterion that depends on the input class is criterion (2), not independent evidence.
+
+Criterion (2): inherited class
+  holds: True
+  GUE blocks -> GUE sectors: 2/2
+  GOE blocks -> GUE sectors: 0/2
+  Criterion (2) HOLDS: the sector class is inherited. GUE blocks give 2/2 GUE sectors; GOE blocks give 0/2. Any GUE result is therefore an assumption about the input, not a consequence of the sigma structure.
+
+Per-point table (mean +- per-seed std, 300 seeds):
+  class    d coupling               full          sector +1          sector -1  ||[H,o]||/||H||
+   goe  100     0.50    0.4216+-0.0233    0.5299+-0.0317    0.5285+-0.0301          0.0e+00
+   goe  100     1.00    0.4224+-0.0250    0.5315+-0.0279    0.5327+-0.0314          0.0e+00
+   goe  100     2.00    0.4235+-0.0242    0.5294+-0.0303    0.5279+-0.0315          0.0e+00
+   goe  100     5.00    0.4248+-0.0232    0.5284+-0.0313    0.5296+-0.0317          0.0e+00
+   goe  150     0.50    0.4236+-0.0199    0.5286+-0.0247    0.5289+-0.0257          0.0e+00
+   goe  150     1.00    0.4243+-0.0188    0.5307+-0.0261    0.5308+-0.0242          0.0e+00
+   goe  150     2.00    0.4226+-0.0210    0.5307+-0.0268    0.5316+-0.0263          0.0e+00
+   goe  150     5.00    0.4229+-0.0190    0.5297+-0.0256    0.5312+-0.0256          0.0e+00
+   goe  200     0.50    0.4228+-0.0165    0.5300+-0.0227    0.5290+-0.0213          0.0e+00
+   goe  200     1.00    0.4225+-0.0160    0.5287+-0.0225    0.5312+-0.0239          0.0e+00
+   goe  200     2.00    0.4233+-0.0170    0.5326+-0.0218    0.5296+-0.0215          0.0e+00
+   goe  200     5.00    0.4225+-0.0160    0.5317+-0.0238    0.5316+-0.0217          0.0e+00
+   gue  100     0.50    0.4241+-0.0252    0.6004+-0.0260    0.5996+-0.0294          0.0e+00
+   gue  100     1.00    0.4215+-0.0261    0.5992+-0.0284    0.6005+-0.0280          0.0e+00
+   gue  100     2.00    0.4238+-0.0257    0.5989+-0.0293    0.5987+-0.0305          0.0e+00
+   gue  100     5.00    0.4199+-0.0258    0.6013+-0.0303    0.5983+-0.0290          0.0e+00
+   gue  150     0.50    0.4208+-0.0210    0.6000+-0.0236    0.5982+-0.0245          0.0e+00
+   gue  150     1.00    0.4238+-0.0219    0.5964+-0.0243    0.6011+-0.0227          0.0e+00
+   gue  150     2.00    0.4217+-0.0211    0.5994+-0.0242    0.5991+-0.0242          0.0e+00
+   gue  150     5.00    0.4241+-0.0209    0.5991+-0.0225    0.5968+-0.0248          0.0e+00
+   gue  200     0.50    0.4233+-0.0185    0.6017+-0.0209    0.5985+-0.0209          0.0e+00
+   gue  200     1.00    0.4235+-0.0173    0.6011+-0.0188    0.6011+-0.0191          0.0e+00
+   gue  200     2.00    0.4239+-0.0168    0.5995+-0.0206    0.5979+-0.0182          0.0e+00
+   gue  200     5.00    0.4227+-0.0171    0.5996+-0.0207    0.5974+-0.0199          0.0e+00
+
+What is not claimed:
+  - not a proof of the Riemann hypothesis;
+  - not a proof that the DSH is false in every form -- one
+    construction is falsified;
+  - no new evidence for or against RH is produced here.

@@ -50,7 +50,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1013 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1030 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -781,8 +781,21 @@ channels); and a size-aware replacement for the unreachable `std < 0.02` clause.
 | M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
 | M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | open, week 8 |
 | M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | open, week 10 |
-| M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | open, week 12 |
+| M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | **done — the DSH is abandoned.** Criterion (2) holds: GUE blocks give 2/2 GUE sectors, GOE blocks give 0/2, so the class is inherited at 300 seeds and `d = 100, 200`. Criterion (1) holds only for GOE blocks and is therefore class-conditional, not independent evidence. See [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 
+**M5 outcome: the hypothesis is abandoned.** The milestone ran at 300 seeds per
+point for `d = 100, 200`, four couplings, both matrix classes, with
+`||[H, σ]||/||H|| = 0` everywhere. Sector means are `0.5279…0.5327` with GOE input
+blocks and `0.5964…0.6017` with GUE ones, while the full spectrum stays at
+`0.4199…0.4248` in both cases. Criterion (2) therefore holds — the class is
+inherited from the input, not produced by the `σ` structure — and criterion (1)
+holds only for the GOE class, which makes it class-conditional rather than
+independent. The verdict and both defects found while producing it are in
+[`docs/m5_verdict.md`](docs/m5_verdict.md).
+
+![Sector means with standard errors against coupling, per input class: the sectors track the input blocks](output/m5_criterion1.png)
+
+![Sector means for GUE versus GOE input blocks: the class is inherited](output/m5_criterion2.png)
 **What would falsify the project.** The DSH is abandoned if either holds:
 (1) at every `d ≥ 100` and every coupling, each `σ`-sector's mean `⟨r⟩` stays inside
 the GOE window `[0.51, 0.55]` once 300 seeds are used — i.e. the construction is GOE
@@ -799,7 +812,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1013 tests pass** on the current tree. They are not smoke tests: the suite
+**1030 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -839,6 +852,7 @@ silently changed meaning.
 | `test_dimension_shift_chaos.py` | 17 | `sigma` enforced, both symmetry classes, the sector split |
 | `test_chirality.py` | 19 | Gaussian splitting, lens achirality, `chi_-4` parity, Davenport–Heilbronn |
 | `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
+| `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
