@@ -235,6 +235,42 @@ The decoy-state accounting gap is closed (section 2.1). The finite-key gap is
 closed only for the parameter-estimation step (section 2.3), not in a composable
 framework. What remains is detector physics, and a composable finite-key analysis.
 
+### 3.1 Detector blinding is now modelled (`bb84_detector.py`)
+
+The gap named above is closed for the blinding attack. The mechanism: a bright pulse
+drives the avalanche photodiode out of Geiger mode into linear mode, where the
+response is proportional to incident power instead of saturating. A calibrated pulse
+then makes a *chosen* detector fire, so Bob's announced bit is Eve's bit in every
+round regardless of his basis, and the sifted key equals Eve's bits.
+
+Measured, at `n = 800` rounds per setting:
+
+| attack | sifted-key QBER | Eve's information | caught by the QBER test |
+|:---|---:|---:|:---|
+| intercept-resend | `0.2500` | `0.50` bits | **yes** |
+| blinding at `10⁶` mean photons/pulse | `0.0000` | `1.00` bits | **no** |
+
+The error-rate statistic — the one BB84 actually uses — sees the attack that is
+weak and misses the one that is total. That asymmetry is the finding.
+
+**Countermeasures, measured.**
+
+| countermeasure | effect |
+|:---|:---|
+| optical power monitor `≥ 10` photons | attack caught `100%`, honest false alarm `1.7e-10` (a `0.5`-photon pulse reaching `10` is a Poisson tail) |
+| optical power monitor `≥ 1` photon | attack caught `100%`, honest false alarm `39%` — unusable |
+| randomised detection efficiency `20%` | QBER rises `0.00 → 0.10`, still under the `0.11` abort threshold |
+| randomised detection efficiency `50%` | QBER `0.25`, detected — but a `50%` randomisation is a large hardware cost |
+
+The power monitor works because the two populations are separated by six orders of
+magnitude; randomisation only *shifts* the statistics and needs to be substantial.
+
+**What this is.** A model, not a security proof. The linear-mode response is a step,
+the monitor has idealised Poisson statistics with no dark counts or afterpulsing,
+and the counters are evaluated as mechanisms rather than as guarantees. It does not
+describe any deployed system. Timing side channels and Trojan-horse attacks remain
+unmodelled (see §3 above).
+
 ## 4. What this can and cannot be used for
 
 **Can:** retrace and visualise the PNS accounting; vary `mu`, `eta`, `e_det` and
@@ -247,8 +283,8 @@ idealised model for a break will not find one. The value of running attacks agai
 stating plainly, because a simulation environment invites the opposite expectation.
 
 **Cannot: speak to any deployed system.** The parameters here are representative,
-not measured, and the two hardware attack classes -- detector blinding, and
-timing side channels and Trojan-horse attacks -- are absent entirely.
+not measured; timing side channels and Trojan-horse attacks are absent entirely.
+Detector blinding is modelled in `bb84_detector.py` (§3.1).
 
 ## 5. Files
 

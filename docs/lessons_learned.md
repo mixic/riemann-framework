@@ -646,3 +646,27 @@ computation, and `--collect-only` reported 18 items where 16 exist. Renamed to
 that no dimension-shift idea can work; it shows which assumption has to change, and
 names it: the origin of `C`. It produces no evidence for or against the Riemann
 hypothesis.
+
+## 17. What the DSH Taught Us (summary)
+
+The full account is [`central_hypothesis.md` §10](central_hypothesis.md) — the
+document that proposed the hypothesis now carries its verdict, deliberately, so that
+a falsified proposal is readable in the form that was falsified. The constraints it
+leaves behind, in one table:
+
+| constraint | why |
+|:---|:---|
+| **≥ 300 seeds, and report the std** | the original "SUPPORTED" verdict came from one seed; 14% of pure GOE draws landed in its window |
+| **test the sector, not the full spectrum** | a `σ`-symmetric spectrum is a superposition of two sectors and lands at `0.37…0.43` for *either* input class; the summary statistic hides the class that the sectors show |
+| **a proposal must *produce* the class it claims** | the sectors are `spec(A ± C)`, so they inherit the class of `A` and `C`; `‖[H,σ]‖ = 0` in both cases |
+| **criteria must be reachable at the tested sizes** | `std < 0.02` cannot be met at `2d ≤ 200` (measured `0.084`, `0.034`, `0.026`); it was implemented as written and reported as unreachable |
+| **evaluate a criterion across the whole admissible family** | criterion (1) holds for GOE blocks and fails for GUE ones, so a single-class verdict would have been circular |
+| **document defects next to the verdict** | the first M5 run said *SURVIVES* because of a label swap — the error ran in the direction that acquitted the hypothesis |
+
+Two defects in the analysis, both recorded in [`m5_verdict.md`](m5_verdict.md): the
+label swap above, and `test_`-prefixed production functions that pytest collected as
+tests, which ran the full grid twice inside the suite.
+
+What survived: the involution and `σ² = id` (proved in Lean), the multi-seed
+falsification harness, the verified sector extraction, exact commutation enforcement,
+and a negative result that is structural rather than numerical.

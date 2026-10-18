@@ -23,16 +23,20 @@ This project is **not a proof** of the Riemann Hypothesis. It is a tool to:
 
 A passing test is **evidence**, not a mathematical proof.
 
+**Closing summary:** [`docs/state_of_the_project.md`](docs/state_of_the_project.md)
+states what the repository contains, what it proved, what it falsified (including the
+Dimension-Shift Hypothesis, abandoned by its own criteria), what it corrected, and
+what remains open.
 ## Status
 
 | Component | Status |
 |:---|:---|
 | Numerical zero verification | Working |
 | Explicit-formula calculations and plots | Working |
-| Dimension-shift experiments | Working and exploratory |
+| Dimension-shift experiments | **Closed.** The DSH was tested by its own falsification criteria and abandoned — the `σ`-sector class is inherited from the input blocks, not produced by the construction. See [`docs/central_hypothesis.md`](docs/central_hypothesis.md) §10 and [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 | Dimension-shift falsification grid | **Corrected.** `[H, σ] = 0` is enforced (`‖[H,σ]‖/‖H‖ = 0.0`, was `1.35…1.46`); 300 seeds per point with mean ± std; verdict `mixed`, not "supported" — the full spectrum of a `σ`-symmetric model is a superposition of two sectors (`0.37…0.43`) and a single sector is GUE only when the input blocks were. See `docs/lessons_learned.md` §1, and §1–§9 for every negative result |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
-| BB84 implementation layer | **Started.** Photon source, detector model, photon-number splitting, the decoy-state mitigation, and finite-key statistics: the attack leaves `Q_μ` and `E_μ` exactly the honest channel's while Eve learns up to 99% of the sifted key; the decoy bound recovers a *valid* rate about 2% below the unsupported one; finite keys impose a floor of 5.6e5 pulses. Detector blinding and timing/Trojan-horse channels are not modelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
+| BB84 implementation layer | **Started.** Photon source, detector model, photon-number splitting, the decoy-state mitigation, and finite-key statistics: the attack leaves `Q_μ` and `E_μ` exactly the honest channel's while Eve learns up to 99% of the sifted key; the decoy bound recovers a *valid* rate about 2% below the unsupported one; finite keys impose a floor of 5.6e5 pulses. Detector blinding is now modelled (`bb84_detector.py`: QBER `0.0000` under attack at `10⁶` photons, invisible to the error-rate statistic, caught by a power monitor); timing/Trojan-horse channels remain unmodelled — see [`docs/bb84_implementation.md`](docs/bb84_implementation.md) |
 | Lean formalization of RH | Involution and eigenspace lemmas proved; RH formalization not started |
 | Primon-gas anchor | Exact trace identity implemented and tested; anchors the Euler product, not the zeros |
 | Graded prime monoid | `(ℕ_{>0}, ×)` identified with the free commutative monoid on the primes; exponent-vector addition shown to be the **only** rule compatible with unique factorization, and to be exactly what makes the Euler product factorize. Ordinary arithmetic restated, not a new number system — see [`docs/graded_prime_monoid.md`](docs/graded_prime_monoid.md) |
@@ -50,7 +54,7 @@ A passing test is **evidence**, not a mathematical proof.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1030 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1047 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -772,15 +776,17 @@ communication layer (`docs/dimension_shift_quantum_communication.md`,
 `docs/bb84_implementation.md`).
 
 **What is open.** The Lean formalization of RH (statements exist, all `sorry`); the
-DSH sector question; the BB84 implementation layer (detector blinding, timing side
-channels); and a size-aware replacement for the unreachable `std < 0.02` clause.
+BB84 implementation layer (detector blinding, timing side channels); and a size-aware
+replacement for the unreachable `std < 0.02` clause. **The DSH sector question is
+closed** — abandoned on criterion (2), see
+[`docs/central_hypothesis.md`](docs/central_hypothesis.md) §10.
 
 | milestone | success criterion (measurable) | status |
 |:---|:---|:---|
 | M1 multi-seed verdict | verdict written with `n_seeds ≥ 300`, `std`, and the parameter point | **done** — `mixed`, 300 seeds, in `output/falsification_summary.txt` |
 | M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
-| M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | open, week 8 |
-| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | open, week 10 |
+| M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | **done** — `bb84_detector.py`: at `10⁶` mean photons per pulse the sifted-key QBER is `0.0000` while Eve holds `1.00` bits, so the error-rate statistic cannot see it; an optical power monitor at `≥ 10` photons catches the attack `100%` with honest false alarm `1.7e-10`. Randomised detector efficiency needs `≥ 50%` to reach the `0.11` abort threshold, so it is a partial defence. See [`docs/bb84_implementation.md`](docs/bb84_implementation.md) §3 |
+| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 8 Lean modules compile (`test_formal_proof.py`, 76 s) |
 | M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | **done — the DSH is abandoned.** Criterion (2) holds: GUE blocks give 2/2 GUE sectors, GOE blocks give 0/2, so the class is inherited at 300 seeds and `d = 100, 200`. Criterion (1) holds only for GOE blocks and is therefore class-conditional, not independent evidence. See [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 
 **M5 outcome: the hypothesis is abandoned.** The milestone ran at 300 seeds per
@@ -796,13 +802,18 @@ independent. The verdict and both defects found while producing it are in
 ![Sector means with standard errors against coupling, per input class: the sectors track the input blocks](output/m5_criterion1.png)
 
 ![Sector means for GUE versus GOE input blocks: the class is inherited](output/m5_criterion2.png)
-**What would falsify the project.** The DSH is abandoned if either holds:
-(1) at every `d ≥ 100` and every coupling, each `σ`-sector's mean `⟨r⟩` stays inside
-the GOE window `[0.51, 0.55]` once 300 seeds are used — i.e. the construction is GOE
-by structure and cannot carry the zeros' class; or (2) the sector class is shown to
-be inherited under every admissible choice of input blocks, so that any GUE result
-is an assumption rather than a consequence. Criterion (2) is already the current
-reading of the evidence; (1) is what M5 would settle.
+**What would falsify the project — and did.** The DSH was to be abandoned if either
+held: (1) at every `d ≥ 100` and every coupling, each `σ`-sector's mean `⟨r⟩` stays
+inside the GOE window `[0.51, 0.55]` at 300 seeds, so the construction is GOE by
+structure; or (2) the sector class is inherited under every admissible choice of
+input blocks, so any GUE result is an assumption rather than a consequence.
+
+**Criterion (2) fires.** GUE blocks give `2/2` GUE sectors and GOE blocks give `0/2`
+at `d = 100, 200` over four couplings at 300 seeds: the class is inherited. Criterion
+(1) holds only for the GOE class (24 of 48 sector means in each window), which makes
+it class-conditional rather than independent evidence. **The DSH is therefore
+abandoned**, by its own standard, and that is the completion of the programme rather
+than a failure of the project.
 
 ## Test suite
 
@@ -812,7 +823,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1030 tests pass** on the current tree. They are not smoke tests: the suite
+**1047 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -853,6 +864,7 @@ silently changed meaning.
 | `test_chirality.py` | 19 | Gaussian splitting, lens achirality, `chi_-4` parity, Davenport–Heilbronn |
 | `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
 | `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
+| `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
