@@ -268,3 +268,19 @@ The Riemann hypothesis is **open**. This page is a negative result about
 screening: the numerical criteria the programme relies on can be satisfied by
 operators that are not candidates at all, and the one criterion that decides
 cannot be measured. It is offered as a checklist, not as a construction.
+
+## Desymmetrise before screening
+
+A screening test built on spacing statistics is biased low whenever the candidate
+commutes with a symmetry, because the full spectrum is then a superposition of
+sectors and `⟨r⟩` falls toward Poisson without any integrability being involved.
+Measured: one sector gives `0.53` (GOE) / `0.60` (GUE), two sectors both give about
+`0.42`, and three or more give `0.39`, which is the Poisson value. A candidate that
+looked "Poisson-like" may simply have an unresolved symmetry.
+
+The prime-length graph in this module has no such symmetry (its spectrum is the
+secant equation's roots, not a union), so its measured `0.641` is not contaminated.
+But any candidate built as a direct sum, a graded space, or a `Z₂`-symmetric pair
+must be split first: see [`desymmetrisation.md`](desymmetrisation.md) and
+`desymmetrisation.desymmetrise`. Counts are not recoverable from the statistic —
+only the split is.

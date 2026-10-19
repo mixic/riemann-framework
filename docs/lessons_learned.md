@@ -669,4 +669,52 @@ tests, which ran the full grid twice inside the suite.
 
 What survived: the involution and `σ² = id` (proved in Lean), the multi-seed
 falsification harness, the verified sector extraction, exact commutation enforcement,
-and a negative result that is structural rather than numerical.
+the desymmetrisation detector of §18, and a negative result that is structural rather
+than numerical.
+
+## 18. An Instrument Is Not a Measurement
+
+The `σ` structure failed as a proof strategy (§16) and works as a diagnostic. The
+distinction is worth stating precisely, because it is the difference between a
+contribution and a claim.
+
+**The phenomenon is not ours.** A discrete symmetry splits a spectrum into independent
+blocks, and a union of unresolved blocks has less level repulsion than any of its
+parts, so `⟨r⟩` falls toward `0.386`. Giraud and co-workers derive gap-ratio
+distributions for spectra built from several blocks and use them to infer the block
+structure ([Phys. Rev. X **12**, 011006 (2022)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.12.011006),
+[arXiv:2008.11173](https://arxiv.org/abs/2008.11173)); the general point is standard
+quantum-chaos practice. The measured table in
+[`desymmetrisation.md`](desymmetrisation.md) is that result instantiated for one
+`σ`, not new physics.
+
+**What is ours is the sensor, and the record of its failure.** `desymmetrise(H, U)`
+verifies the involutions, splits, and compares the full spectrum with the sectors;
+`detect_hidden_symmetry` flags a bare spectrum. Both were calibrated against 300-seed
+measurements (`0.531`/`0.600` at one sector, `0.426`/`0.421` at two, `0.39–0.40` from
+three) and both are wrong often enough to be honest about:
+
+| limit | measured |
+|:---|:---|
+| it detects, it does not count | the table is many-to-one and the scatter (`≈0.03`) exceeds the gaps between counts; a true `N = 4` was estimated as `12` (reviewer) and saturates or refuses here |
+| the count is a property of the estimator | a *known* two-sector spectrum at `d = 40` maps to `None`, because its full mean `0.404` sits in the three-sector band |
+| at two sectors the class is erased | GOE `0.426` vs GUE `0.421`, a difference smaller than either standard deviation |
+| a pure single sector can be flagged | 4 of 40 GOE draws (10%) at `d = 60` fall below the `0.48` floor; 0 of 40 GUE draws do |
+
+**The second lesson is about utilities, not physics.** A split function that skips its
+precondition is worse than no function, because it returns plausible arrays. The
+reviewer's `make_sigma_symmetric_hamiltonian` does not commute with its own `σ`
+(`‖[H,σ]‖/‖H‖ = 1.14 … 1.18`); their `sector_spectra` diagonalises the involution and
+keeps the diagonal blocks, silently discarding the mass that makes them non-sectors.
+The version here refuses (`ValueError`, naming the commutator), and the refusal is a
+test rather than a docstring promise. The same applies to the `test_`-prefix defect of
+§16: a guard that is not driven into failing is a comment.
+
+**What that buys.** A false "Poisson" reading has a specific shape — `⟨r⟩` low, no
+analysis of the symmetries — and it is common in many-body simulations, cavity
+measurements and operator screening, including this repository's own screening step.
+The tool cannot tell symmetry from integrability and does not pretend to; it converts
+"the spectrum looks Poisson" into "find the symmetry, or say you cannot distinguish
+the two". That is the whole contribution, and it is the contribution an instrument
+makes: the physics stays known and the error gets harder to commit silently.
+

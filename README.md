@@ -33,6 +33,7 @@ what remains open.
 |:---|:---|
 | Numerical zero verification | Working |
 | Explicit-formula calculations and plots | Working |
+| Spectral desymmetrisation | **Utility + warning, not a measurement.** A `σ`-symmetric (or any `Z₂`-symmetric) spectrum is a union of sectors, so `⟨r⟩` falls toward Poisson without integrability: one sector `0.53`/`0.60`, two `0.42`, three or more `0.39`. `desymmetrise(H, involutions)` verifies the symmetries and splits; `contamination_warning(H, U)` compares a full spectrum with its sectors and `detect_hidden_symmetry(eigenvalues)` flags a bare spectrum. It detects but does not count — the sector *count* is not recoverable, and two-sector GOE and GUE are indistinguishable. See [`docs/desymmetrisation.md`](docs/desymmetrisation.md) |
 | Dimension-shift experiments | **Closed.** The DSH was tested by its own falsification criteria and abandoned — the `σ`-sector class is inherited from the input blocks, not produced by the construction. See [`docs/central_hypothesis.md`](docs/central_hypothesis.md) §10 and [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 | Dimension-shift falsification grid | **Corrected.** `[H, σ] = 0` is enforced (`‖[H,σ]‖/‖H‖ = 0.0`, was `1.35…1.46`); 300 seeds per point with mean ± std; verdict `mixed`, not "supported" — the full spectrum of a `σ`-symmetric model is a superposition of two sectors (`0.37…0.43`) and a single sector is GUE only when the input blocks were. See `docs/lessons_learned.md` §1, and §1–§9 for every negative result |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
@@ -54,7 +55,7 @@ what remains open.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1047 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1075 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -311,6 +312,45 @@ the framing that prompted this: the "automatic proof" gap, the box claim, the
 imaginary-time claim, and the attribution — the 2017 PRL is Bender, Brody and
 **Müller**, not "Bender, Brody and Jones", and its claimed spectrum rests on
 boundary conditions that later work disputes.
+
+## Hidden symmetries bias every spacing test
+
+A statistic measured on a Hamiltonian that commutes with an involution is measured on
+a **superposition**. Measured at 300 seeds per point:
+
+| unresolved independent sectors | GOE blocks | GUE blocks |
+|:---|---:|---:|
+| 1 | `0.531` | `0.600` |
+| 2 | `0.426` | `0.421` |
+| 3 | `0.404` | `0.399` |
+| 6 | `0.391` | `0.389` |
+
+Two limits follow, both measured. **At two sectors the class is erased** — `0.426`
+against `0.421`, a difference smaller than either standard deviation — so a class
+test on a two-sector full spectrum is uninformative rather than noisy. And the sector
+**count** is not recoverable: the single-spectrum scatter (`≈0.03`) is comparable to
+the gaps between successive counts, so `estimate_sector_count` saturates and scatters
+instead of reporting a number.
+
+`desymmetrisation.py` verifies that the involutions commute with `H` and with each
+other, splits into joint sectors (validated against `spec(A ± C)` for the `σ` case and
+against four known blocks for a `Z₂ × Z₂`), and warns. Two entry points cover a caller
+that has only a spectrum: `contamination_warning(H, U)` when a candidate involution is
+known (it refuses to split a matrix with `[H, U] ≠ 0`), and `detect_hidden_symmetry`
+when none is. The flag is not a classifier — `4` of `40` pure single-sector GOE spectra
+also fall below the floor. A low `⟨r⟩` is what an **integrable** system produces as
+well, and the warning says so: spacing statistics cannot separate the two, and the
+count cannot be read off. The rule is the title of the document: desymmetrise before
+testing the class.
+
+The phenomenon is standard quantum-chaos practice
+([Giraud et al., Phys. Rev. X **12**, 011006 (2022)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.12.011006));
+what is local is the measured table, the entry points and the recorded limit.
+
+![Mean r against the number of unresolved sectors, for GOE and GUE blocks, with both limits marked](output/desymmetrisation.png)
+
+[`docs/desymmetrisation.md`](docs/desymmetrisation.md) records the table, the split,
+the warning logic and its false-positive.
 
 ## Can a candidate be screened at all?
 
@@ -823,7 +863,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1047 tests pass** on the current tree. They are not smoke tests: the suite
+**1075 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -865,6 +905,7 @@ silently changed meaning.
 | `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
 | `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
 | `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
+| `test_desymmetrisation.py` | 28 | The sector table, the split, both limits of the warning, and the refusal to split a non-commuting matrix |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |

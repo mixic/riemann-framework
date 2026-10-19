@@ -34,6 +34,7 @@ output/*.png
 !output/falsification_multi_seed.png
 !output/m5_criterion1.png
 !output/m5_criterion2.png
+!output/desymmetrisation.png
 !output/falsification_summary.txt
 !output/shift_zeta_traces.png
 !output/shift_zeta_convergence.png

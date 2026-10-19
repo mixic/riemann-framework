@@ -399,3 +399,24 @@ criteria, and abandoned. The abandonment is documented with numbers, in the docu
 that proposed it.
 
 **That is the contribution.** Not the Riemann hypothesis — the science.
+
+### 10.11 What the `σ` structure still is: a detector
+
+The hypothesis is abandoned, and the structure that produced it is not useless. A
+`σ`-symmetric Hamiltonian has sector spectra `spec(A ± C)`, and a class test run on
+its full spectrum is run on a superposition: `⟨r⟩` falls from `0.53`/`0.60` at one
+sector to `0.43` at two and `0.39–0.40` from three upward. That is what made a GOE
+model look like GUE (§10.4), and it is the reason the M5 criteria were rewritten to
+test sectors.
+
+The same fact is a usable warning: [`desymmetrisation.md`](desymmetrisation.md)
+implements it — split-and-compare when the involution is known, a spectrum-only flag
+when it is not — with a 300-seed calibration table, and with its own failure on
+record: it detects contamination but cannot count the sectors, and at two sectors it
+cannot tell GOE from GUE. The phenomenon is standard
+([Giraud et al., Phys. Rev. X **12**, 011006 (2022)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.12.011006));
+what is local is the measured table, the entry points, and the documented limit.
+
+Read this the honest way. It is a sensor for a specific mistake, not evidence for the
+hypothesis: `⟨r⟩` low means *find the symmetry*, never *the class has changed*.
+
