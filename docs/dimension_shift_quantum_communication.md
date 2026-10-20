@@ -251,6 +251,10 @@ hoped-for picture. Two findings from `scripts/run_dsin_verification.py`
   `sigma` eigenstate, of the *opposite* eigenvalue, so `|<sigma>| = 1`,
   detection stays at `0.0000`, and every bit is inverted (measured
   `BER = 1.0000`). See the `phi = pi` row of the phase-noise sweep.
+  The engineering counterpart of this invariant-statistic blindness — a
+  Q-axis reflection in an I/Q channel, the corrected phase-imbalance matrix,
+  and the pilot/oracle conditions that break the tie — is in
+  [`phase_shift_involution.md`](phase_shift_involution.md).
 - **Neither flat detection figure is a calibrated probability, and the detector
   is unchanged.** An earlier revision of `symmetry_breaking_attack` reported a
   flat `≈ 0.53`; that figure measured the fraction of rounds whose state the

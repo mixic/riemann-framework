@@ -317,3 +317,9 @@ operation `sigma` is hypothetical. No claim is made that the Riemann
 Hypothesis has been proved. The purpose is to explore a structural direction
 with historical precedent and to identify the definitions and theorems that
 would be needed for further investigation.
+
+## See also
+
+- [The relative-phase involution in DSIN and its I/Q counterpart](phase_shift_involution.md)
+  — a separate object from `sigma`: what `tau = diag(I,-I)` is, what it is
+  not, and the engineering analogue at `phi = pi`.

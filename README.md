@@ -1168,6 +1168,7 @@ riemann-framework/
 │   ├── dimension_shift_quantum_chaos.md # Quantum-chaos extension
 │   ├── dimension_shift_computational_approach.md # Computational methodology
 │   ├── dimension_shift_quantum_communication.md # DSIN communication proposal
+│   ├── phase_shift_involution.md    # tau, its fixed locus, and the I/Q analogue
 │   ├── project_critique_and_roadmap.md # Critical assessment and milestones
 │   ├── central_hypothesis.md       # Falsifiable dimension-shift hypothesis
 │   ├── lessons_learned.md          # Negative results and limitations
