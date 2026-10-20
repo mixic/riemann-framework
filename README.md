@@ -133,6 +133,13 @@ residual `6.3e-30` at 30 digits. See [`docs/dh_filter.md`](docs/dh_filter.md),
 including the tension the filter surfaced between its own inventory and §1.4's
 input list.
 
+The filter is also written up as a standalone methods note,
+[`docs/dh_filter_methods_note.md`](docs/dh_filter_methods_note.md): self-contained, no
+dependency on the dimension-shift program or any other track here, with the
+inventory, the calibration, the worked example, the limitations and a submission
+checklist. It is a manuscript prepared for submission, not a published paper — no
+venue, no review, and no claim beyond the contrapositive.
+
 ### The second screen: does the framework contain `ζ`?
 
 The filter above screens *ideas*. A companion screen, `zeta_factors.py`, screens
