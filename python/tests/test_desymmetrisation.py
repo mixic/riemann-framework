@@ -34,6 +34,7 @@ import pytest
 
 from riemann_framework.desymmetrisation import (
     CLASS_SHIFT_THRESHOLD,
+    COUNT_LABELS,
     MULTI_SECTOR_CEILING,
     R_GOE,
     R_GUE,
@@ -41,19 +42,25 @@ from riemann_framework.desymmetrisation import (
     SINGLE_SECTOR_FLOOR,
     TWO_SECTOR_BAND,
     CalibrationRow,
+    CoverageRow,
     DesymmetrisedReport,
+    SectorCountEstimate,
+    SectorCountModel,
     SpectrumStatistics,
+    _synthetic_spectrum,
     calibration_table,
     class_information_at_two_sectors,
     classify_mean,
     commutator_ratio,
     contamination_warning,
     contamination_warnings,
+    default_sector_count_model,
     desymmetrise,
     detect_hidden_symmetry,
     estimate_sector_count,
     estimate_sectors_from_mean,
     is_involution,
+    sector_count_posterior,
     sector_spectra,
     sector_blocks,
     superposition_spectrum,
@@ -461,3 +468,132 @@ def _mean_r(eigenvalues) -> float:
     from riemann_framework.statistics import mean_r_ratio
 
     return float(mean_r_ratio(np.asarray(eigenvalues, dtype=float), unfold=False))
+
+
+# ============================================================
+# The count, with an error bar
+# ============================================================
+#
+# The point of this section is that "detects but does not count" was itself a
+# measurement, and a coarser one than had to be. Fitting the whole gap-ratio sequence
+# recovers the count at one and at two, and refuses above that. All three statements
+# are pinned here, including the refusal.
+
+@pytest.fixture(scope="module")
+def count_model() -> SectorCountModel:
+    return default_sector_count_model()
+
+
+def _count_estimate(model: SectorCountModel, truth, index: int):
+    return model.estimate(_synthetic_spectrum(truth, index, 50_000, model.total_levels))
+
+
+def test_one_sector_is_measured(count_model):
+    """`p = 0.97` on the true label, and a point interval."""
+    estimate = _count_estimate(count_model, 1, 0)
+    assert estimate.posterior[1] == pytest.approx(0.97, abs=0.05)
+    assert estimate.credible_interval == (1, 1)
+    assert estimate.map_label == 1
+    assert estimate.summary().startswith("1 (p =")
+
+
+def test_one_sector_is_excluded_for_every_other_truth(count_model):
+    """The non-vacuity check: the posterior does not put mass on 1 out of politeness."""
+    for truth in COUNT_LABELS:
+        if truth == 1:
+            continue
+        for index in range(5):
+            assert _count_estimate(count_model, truth, index).posterior[1] < 0.02, truth
+
+
+def test_two_sectors_comes_back_as_a_set_not_a_point(count_model):
+    """**The honest half-measure.** Two sectors is right 65% of the time, never 2 alone."""
+    estimates = [_count_estimate(count_model, 2, index) for index in range(20)]
+    probabilities = [estimate.posterior[2] for estimate in estimates]
+    assert sum(probabilities) / len(probabilities) > 0.45
+    exact = [estimate.credible_interval == (2, 2) for estimate in estimates]
+    assert sum(exact) / len(exact) <= 0.5
+    for estimate in estimates:
+        assert estimate.posterior[1] < 0.02
+        assert estimate.credible_interval[0] in (2, 3)
+
+
+def test_three_or_more_is_not_counted(count_model):
+    """**The negative result survives**, now with an interval: `>=3`, and 3..6 open."""
+    estimates = [_count_estimate(count_model, 4, index) for index in range(20)]
+    at_least_three = [
+        sum(estimate.posterior[label] for label in (3, 4, 5, 6, None))
+        for estimate in estimates
+    ]
+    assert sum(at_least_three) / len(at_least_three) > 0.9
+    true_mass = sum(estimate.posterior[4] for estimate in estimates) / len(estimates)
+    assert true_mass < 0.35
+    open_upper = sum(estimate.credible_interval[1] is None for estimate in estimates)
+    assert open_upper / len(estimates) >= 0.4
+
+
+def test_the_interval_is_calibrated_by_simulation(count_model):
+    """Coverage is measured, not assumed: `>= 0.80` everywhere, `1.00` at one sector."""
+    rows = count_model.coverage(draws=40, truths=(1, 2, 4, None))
+    by_truth = {row.truth: row for row in rows}
+    assert by_truth[1].coverage == 1.0
+    assert by_truth[1].exact >= 0.85
+    for row in rows:
+        assert row.coverage >= 0.80, row.summary()
+        assert 0.0 <= row.posterior_probability <= 1.0
+    assert "coverage" in rows[0].summary()
+
+
+def test_the_posterior_is_a_distribution(count_model):
+    estimate = _count_estimate(count_model, 3, 0)
+    assert set(estimate.posterior) == set(COUNT_LABELS)
+    assert sum(estimate.posterior.values()) == pytest.approx(1.0, abs=1e-12)
+    assert all(value >= 0.0 for value in estimate.posterior.values())
+    assert 0.0 <= estimate.probability <= 1.0
+
+
+def test_the_estimate_is_deterministic(count_model):
+    first = _count_estimate(count_model, 2, 3)
+    second = _count_estimate(count_model, 2, 3)
+    assert first.posterior == second.posterior
+    assert first.credible_interval == second.credible_interval
+
+    small_first = SectorCountModel.fit(total_levels=60, seeds=10)
+    small_second = SectorCountModel.fit(total_levels=60, seeds=10)
+    assert np.array_equal(small_first.edges, small_second.edges)
+    spectrum = _synthetic_spectrum(2, 0, 50_000, 60)
+    assert (
+        small_first.estimate(spectrum).posterior
+        == small_second.estimate(spectrum).posterior
+    )
+
+
+def test_the_model_validates_its_inputs(count_model):
+    with pytest.raises(ValueError, match="at least 24 levels"):
+        SectorCountModel.fit(total_levels=10)
+    with pytest.raises(ValueError, match="at least 4 bins"):
+        SectorCountModel.fit(bins=2)
+    with pytest.raises(ValueError, match="at least 8 training"):
+        SectorCountModel.fit(seeds=4)
+    with pytest.raises(ValueError, match="at least two sector"):
+        SectorCountModel.fit(max_sectors=1)
+    with pytest.raises(ValueError, match="at least two distinct"):
+        count_model.posterior(np.array([0.5]))
+    with pytest.raises(ValueError, match="level must lie"):
+        count_model.posterior(np.array([0.5, 0.6]), level=0.0)
+    with pytest.raises(ValueError, match="at least one draw"):
+        count_model.coverage(draws=0)
+
+
+def test_the_posterior_agrees_that_a_two_sector_model_is_contaminated():
+    """The estimate and the split tell the same story on a real `σ`-model spectrum."""
+    d = 60
+    hamiltonian = build_dimension_shift_hamiltonian(d, 1.0, "gue", seed=0)
+    report = desymmetrise(hamiltonian, [sector_swap(d)])
+    assert report.sector_count == 2
+
+    model = SectorCountModel.fit(total_levels=2 * d, seeds=40)
+    estimate = sector_count_posterior(np.linalg.eigvalsh(hamiltonian), model=model)
+    assert estimate.posterior[1] < 0.1
+    assert estimate.posterior[2] + estimate.posterior[3] > 0.4
+    assert "CI" in estimate.summary()

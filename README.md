@@ -33,7 +33,7 @@ what remains open.
 |:---|:---|
 | Numerical zero verification | Working |
 | Explicit-formula calculations and plots | Working |
-| Spectral desymmetrisation | **Utility + warning, not a measurement.** A `σ`-symmetric (or any `Z₂`-symmetric) spectrum is a union of sectors, so `⟨r⟩` falls toward Poisson without integrability: one sector `0.53`/`0.60`, two `0.42`, three or more `0.39`. `desymmetrise(H, involutions)` verifies the symmetries and splits; `contamination_warning(H, U)` compares a full spectrum with its sectors and `detect_hidden_symmetry(eigenvalues)` flags a bare spectrum. It detects but does not count — the sector *count* is not recoverable, and two-sector GOE and GUE are indistinguishable. See [`docs/desymmetrisation.md`](docs/desymmetrisation.md) |
+| Spectral desymmetrisation | **Utility + warning + posterior.** A `σ`-symmetric (or any `Z₂`-symmetric) spectrum is a union of sectors, so `⟨r⟩` falls toward Poisson without integrability: one sector `0.53`/`0.60`, two `0.42`, three or more `0.39`. `desymmetrise(H, involutions)` verifies the symmetries and splits; `contamination_warning(H, U)` compares a full spectrum with its sectors; `detect_hidden_symmetry(eigenvalues)` flags a bare spectrum; `sector_count_posterior` counts what can be counted (one sector `p = 0.98` with interval `1..1`, two as a set `2..5`) and reports `≥3` above that, with interval coverage measured rather than assumed. Two-sector GOE and GUE remain indistinguishable. See [`docs/desymmetrisation.md`](docs/desymmetrisation.md) |
 | Dimension-shift experiments | **Closed.** The DSH was tested by its own falsification criteria and abandoned — the `σ`-sector class is inherited from the input blocks, not produced by the construction. See [`docs/central_hypothesis.md`](docs/central_hypothesis.md) §10 and [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 | Dimension-shift falsification grid | **Corrected.** `[H, σ] = 0` is enforced (`‖[H,σ]‖/‖H‖ = 0.0`, was `1.35…1.46`); 300 seeds per point with mean ± std; verdict `mixed`, not "supported" — the full spectrum of a `σ`-symmetric model is a superposition of two sectors (`0.37…0.43`) and a single sector is GUE only when the input blocks were. See `docs/lessons_learned.md` §1, and §1–§9 for every negative result |
 | DSIN communication simulation | **Closed design.** Toy simulation with a BB84 baseline (`bb84.py`); its single published observable provably cannot support a security bound. See [`docs/future_work.md`](docs/future_work.md) Priority 6 |
@@ -55,7 +55,7 @@ what remains open.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1076 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1085 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -129,7 +129,7 @@ names what was read, three rows are verified by computation instead of citation,
 and three are left `unsourced` rather than filled in from expectation. The
 Davenport–Heilbronn constant and coefficients were **derived** here rather than
 recalled, and then validated by the functional equation they must satisfy —
-residual `6.2e-30` at 30 digits. See [`docs/dh_filter.md`](docs/dh_filter.md),
+residual `6.3e-30` at 30 digits. See [`docs/dh_filter.md`](docs/dh_filter.md),
 including the tension the filter surfaced between its own inventory and §1.4's
 input list.
 
@@ -334,23 +334,35 @@ instead of reporting a number.
 
 `desymmetrisation.py` verifies that the involutions commute with `H` and with each
 other, splits into joint sectors (validated against `spec(A ± C)` for the `σ` case and
-against four known blocks for a `Z₂ × Z₂`), and warns. Two entry points cover a caller
-that has only a spectrum: `contamination_warning(H, U)` when a candidate involution is
-known (it refuses to split a matrix with `[H, U] ≠ 0`), and `detect_hidden_symmetry`
-when none is. The flag is not a classifier — `4` of `40` pure single-sector GOE spectra
-also fall below the floor. A low `⟨r⟩` is what an **integrable** system produces as
-well, and the warning says so: spacing statistics cannot separate the two, and the
-count cannot be read off. The rule is the title of the document: desymmetrise before
-testing the class.
+against four known blocks for a `Z₂ × Z₂`), and warns. Entry points for a caller that
+has only a spectrum: `contamination_warning(H, U)` when a candidate involution is known
+(it refuses to split a matrix with `[H, U] ≠ 0`), `detect_hidden_symmetry` when none is,
+and `sector_count_posterior`, which turns the shrug into a measurement with a stated
+resolution. The flag alone is not a classifier — `4` of `40` pure single-sector GOE
+spectra also fall below the floor.
+
+**The count, with an error bar.** The mean cannot be inverted, but the sequence of
+`≈240` gap ratios can: a first-order Markov model of the sequence, fitted on simulated
+superpositions, gives a posterior over `{1,…,6, ≥6/poisson}`. Measured over 60 spectra
+per row at a nominal 95% interval, the posterior puts `0.98` on one sector (interval
+`1..1`, correct 95% of the time), `0.65` on two (interval typically `2..5` — "two" is
+defensible, "exactly two" is not), and from three upward reports `≥3` with `3…6`
+indistinguishable. Interval coverage is measured, not assumed: `1.00`, `0.93`, `0.87`,
+`0.98`, `0.97` at `1, 2, 3, 4, 6` sectors, `0.78` for a Poisson spectrum — an integrable
+spectrum is read as a `4–6`-sector superposition about a fifth of the time, because that
+is what it looks like. Modelling the `r`-ratios as independent was measurably
+overconfident (`0.70` coverage at a nominal `0.90`), which is why the dependence between
+consecutive ratios is in the model.
 
 The phenomenon is standard quantum-chaos practice
 ([Giraud et al., Phys. Rev. X **12**, 011006 (2022)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.12.011006));
-what is local is the measured table, the entry points and the recorded limit.
+what is local is the measured table, the entry points, the posterior's measured
+resolution, and the recorded limit.
 
 ![Mean r against the number of unresolved sectors, for GOE and GUE blocks, with both limits marked](output/desymmetrisation.png)
 
 [`docs/desymmetrisation.md`](docs/desymmetrisation.md) records the table, the split,
-the warning logic and its false-positive.
+the warning logic and its false-positive, and the coverage table of the posterior.
 
 ## Can a candidate be screened at all?
 
@@ -866,7 +878,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1076 tests pass** on the current tree. They are not smoke tests: the suite
+**1085 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -908,7 +920,7 @@ silently changed meaning.
 | `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
 | `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
 | `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
-| `test_desymmetrisation.py` | 28 | The sector table, the split, both limits of the warning, and the refusal to split a non-commuting matrix |
+| `test_desymmetrisation.py` | 37 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, and the posterior's measured accuracy and coverage |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |

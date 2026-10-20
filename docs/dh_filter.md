@@ -89,7 +89,7 @@ must satisfy*, which is a stronger check than a quotation would have been:
 ```
 κ                = 0.2840790438404122960282918
 |τ(χ)/(i√5)|     = 1
-worst |Λ(s) − Λ(1−s)| / max(...)   =  6.2e-30   at 30 digits
+worst |Λ(s) − Λ(1−s)| / max(...)   =  6.3e-30   at 30 digits
 ```
 
 A residual at `1e-30` is the functional equation holding to working precision. It

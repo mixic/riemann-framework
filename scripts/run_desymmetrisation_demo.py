@@ -13,7 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Plot the contamination table: mean r against the number of unresolved sectors.
+"""Plot the contamination table, and print the posterior's measured accuracy.
 
 Usage, from the repository root:
 
@@ -22,7 +22,11 @@ Usage, from the repository root:
 Writes `output/desymmetrisation.png`. The panel is the evidence for the warning's
 thresholds, and it shows both limits at once: the two curves are on top of each
 other from two sectors on (so the class is unreadable), and from three sectors on
-the value is at the Poisson level (so the sector count is unrecoverable).
+the value is at the Poisson level (so the mean alone is unrecoverable).
+
+The second half of the output is the sector-count posterior: what it recovers
+(one sector, and two as a set) and what it refuses (three and above), measured as
+interval coverage rather than asserted.
 """
 
 from __future__ import annotations
@@ -50,6 +54,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from riemann_framework.desymmetrisation import (  # noqa: E402
+    COUNT_LABELS,
     MULTI_SECTOR_CEILING,
     R_GOE,
     R_GUE,
@@ -57,6 +62,7 @@ from riemann_framework.desymmetrisation import (  # noqa: E402
     SINGLE_SECTOR_FLOOR,
     TWO_SECTOR_BAND,
     calibration_table,
+    default_sector_count_model,
     estimate_sector_count,
 )
 
@@ -145,8 +151,16 @@ def main() -> None:
     ]
     print("  the same mean inverted for a sector count gives: "
           + ", ".join(f"{value:.1f}" for value in estimates))
-    print("  -> the count saturates and is not recoverable; the warning is a flag,")
-    print("     not a classifier.")
+    print("  -> the mean alone saturates and is not recoverable; the warning is a")
+    print("     flag, not a classifier.")
+    print()
+    print("The count as a posterior, measured (nominal 95% interval, 60 spectra):")
+    model = default_sector_count_model()
+    for row in model.coverage(draws=60, truths=COUNT_LABELS):
+        print("  " + row.summary())
+    print("  -> one sector is measured; two is a set, not a point; three and above")
+    print("     comes back as '>=3' with 3..6 indistinguishable, which is the")
+    print("     original negative result carrying an error bar rather than a shrug.")
     print()
     print("No Riemann-hypothesis claim is made here.")
 

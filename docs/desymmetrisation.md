@@ -26,10 +26,11 @@ union of the sector eigenvalues, and a union of independent spectra has less lev
 repulsion than any of its parts. The mean adjacent-gap ratio `⟨r⟩` therefore falls —
 all the way to the Poisson value as the number of unresolved sectors grows.
 
-This module provides the split and the warning. It is a tool, not a result about the
-zeta function, and it exists because the same mistake was made in this repository:
-the dimension-shift model's class was tested on the full spectrum of a `σ`-symmetric
-Hamiltonian, which is why a GOE model appeared to reach GUE statistics.
+This module provides the split, the warning, and a posterior over the number of
+unresolved sectors. It is a tool, not a result about the zeta function, and it exists
+because the same mistake was made in this repository: the dimension-shift model's class
+was tested on the full spectrum of a `σ`-symmetric Hamiltonian, which is why a GOE model
+appeared to reach GUE statistics.
 
     python scripts/run_desymmetrisation_demo.py   # output/desymmetrisation.png
 
@@ -53,16 +54,17 @@ one-sector floor below is set at `0.48` rather than at the reference value.
 
 ![Mean r against the number of unresolved sectors, for GOE and GUE blocks](output/desymmetrisation.png)
 
-## The two limits
+## The two limits of the mean
 
-**It detects but does not count.** The map from `⟨r⟩` to the number of sectors is
+**The mean detects but does not count.** The map from `⟨r⟩` to the number of sectors is
 many-to-one, and the single-spectrum scatter (`≈0.03`) is comparable to the gaps
 between successive sector counts (`0.426 → 0.404 → 0.396`). `estimate_sector_count`
 inverts the table and is included to *demonstrate* the failure: for a true `N = 4` it
 returns values spread over `2 … 4`, and below the three-sector level it saturates at
 the largest tabulated count instead of reporting "cannot tell". The reviewer's
 attempt returned `12` for a true `4`; the magnitude is a property of the estimator,
-the instability is a property of the data.
+the instability is a property of the data. The next section recovers what a mean cannot
+by using the whole sequence; the limit itself does not move.
 
 **At two sectors the class information is erased.** GOE gives `0.426` and GUE `0.421`
 — a difference smaller than either standard deviation. A class test run on a
@@ -70,6 +72,58 @@ two-sector full spectrum is not noisy, it is uninformative. The rule this module
 enforces:
 
 > **Desymmetrise before testing the class.**
+
+## The count, with an error bar
+
+The mean cannot be inverted, but the `≈240` gap ratios of a spectrum carry more than
+their average. `sector_count_posterior` fits the sequence directly:
+
+- the data are the `r`-ratios, not their mean;
+- each hypothesis — `1 … 6` unresolved sectors, with GOE and GUE marginalised at equal
+  weight, plus a Poisson hypothesis standing for "integrable, or more sectors than are
+  distinguishable from it" — contributes a **first-order Markov model** of the binned
+  sequence, fitted on 200 simulated spectra of the same size;
+- the likelihood is a product *along the chain*, because consecutive `r`-ratios share a
+  spacing. Treating them as independent counted the same information twice and was
+  measurably overconfident: coverage `0.70` at a nominal `0.90` (measured, `d = 60`);
+- the answer is a posterior over `{1, …, 6, ≥6/poisson}` and the shortest contiguous
+  interval carrying 95% of its mass.
+
+| true count | posterior on the truth | interval covers | interval is a point |
+|:---|---:|---:|---:|
+| 1 | `0.98` | `1.00` | `0.95` |
+| 2 | `0.65` | `0.93` | `0.28` |
+| 3 | `0.24` | `0.87` | `0.00` |
+| 4 | `0.17` | `0.98` | `0.00` |
+| 6 | `0.20` | `0.97` | `0.00` |
+| Poisson | `0.20` | `0.78` | `0.00` |
+
+Measured over 60 simulated spectra per row (`SectorCountModel.coverage`), 240 levels,
+with the seeds pinned in the demo script.
+
+The rows are three different claims, and the difference matters:
+
+- **one sector is measured.** `0.98` on the truth, interval `1..1` in 95% of draws, and
+  the posterior on `1` stays below `0.02` for every other truth — including a Poisson
+  spectrum. This is a measurement, not a warning;
+- **two sectors is a set.** `0.65` on the truth, with the interval typically `2..5`.
+  The point estimate is right about two thirds of the time and the interval almost
+  never collapses to `2..2`. "Two" is defensible; "exactly two" is not;
+- **three or more is not counted.** The interval's lower bound rises with the truth
+  (`P(lower ≥ 3)` is `0.65`, `0.80`, `0.83`, `0.88` at `3, 4, 5, 6` sectors) and the
+  open label carries `0.63` at six. The estimator returns `≥3`, which is the original
+  negative result — now with an interval instead of a shrug.
+
+The weakest row is the Poisson one, and it deserves saying plainly: an integrable
+spectrum is read as a `4–6`-sector superposition in about a fifth of the draws, because
+that is what it resembles. The open label exists so the estimator is *allowed* to say
+"not a finite superposition", not because it can tell the two apart.
+
+Two limits on the calibration itself. The model is a plug-in fit from 200 spectra, so
+its own uncertainty is not integrated out — one reason the measured coverage is printed
+next to the nominal level (`0.87` at three sectors, `1.00` at one) rather than assumed.
+And the model is tied to the spectrum size it was fitted for; `SectorCountModel.fit`
+takes `total_levels` so that a mismatched model is a caller's decision, not a default.
 
 ## Precedent, and what is new here
 
@@ -112,14 +166,15 @@ sectors and emits up to three flags, in decreasing order of reliability:
 | full mean in the two-sector band `[0.40, 0.49]` | the class is unreadable there | medium — an absolute band, and one spectrum scatters by `≈0.03` |
 | full mean `≤ 0.40` | consistent with `≥ 3` sectors **or** integrability | a flag only — spacing statistics cannot separate the two |
 
-Five further entry points serve a caller that has only a spectrum — the screening case,
+Six further entry points serve a caller that has only a spectrum — the screening case,
 where the candidate operator is known and its symmetries are not:
 
 | entry point | input | what it can say |
 |:---|:---|:---|
 | `contamination_warning(H, U)` | a *candidate* involution | verifies it, splits, compares — the reliable half, and it raises if `[H,U] ≠ 0` |
 | `detect_hidden_symmetry(eigenvalues)` | the spectrum | a severity (`none`/`mild`/`severe`) with the integrability caveat inside its own text |
-| `estimate_sectors_from_mean(mean_r)` | a mean `r` | `1`, `2`, or `None` — deliberately never a count above two |
+| `sector_count_posterior(eigenvalues)` | the spectrum | a posterior over `{1,…,6, ≥6/poisson}` and a 95% interval — `1` is a measurement, `2` a set, `≥3` the honest ceiling |
+| `estimate_sectors_from_mean(mean_r)` | a mean `r` | `1`, `2`, or `None` — the mean-inverting estimator, kept to demonstrate the failure |
 | `classify_mean(mean_r)` | a mean `r` | `goe`/`gue`/`poisson`/`intermediate`, in the windows `m5_analysis.py` uses |
 | `sector_spectra(H, U)` | a candidate involution | the sector spectra, or a `ValueError` naming the failed commutation |
 
@@ -158,12 +213,13 @@ tool that makes the mistake hard.
 
 | File | Contents |
 |:---|:---|
-| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the failed estimator |
-| `python/tests/test_desymmetrisation.py` | 28 tests, including the table, both limits, and the refusal to split a non-commuting matrix |
-| `scripts/run_desymmetrisation_demo.py` | the figure and the table |
+| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, and the failed mean-inverting estimator kept as the demonstration |
+| `python/tests/test_desymmetrisation.py` | 37 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, and the posterior's measured accuracy and coverage |
+| `scripts/run_desymmetrisation_demo.py` | the figure, the table, and the coverage rows |
 
 ## Status
 
-An instrument: the phenomenon is standard, and what is new here is a measured
-calibration, a warning that plugs into the screening step, and a recorded failure to
-count. No statement about the Riemann hypothesis is made or implied.
+A tool, and a measurement with a stated resolution: the phenomenon is standard; what is
+local is a measured calibration, a warning that plugs into the screening step, a
+posterior that counts one sector and bounds two, and a recorded refusal to count above
+that. No statement about the Riemann hypothesis is made or implied.
