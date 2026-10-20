@@ -16,6 +16,7 @@
 """Formal assert: Lean 4 proof without `sorry`."""
 
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -65,6 +66,18 @@ OPEN_RH_FILES = [
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis.lean",
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
     RIEMANN_FRAMEWORK_DIR / "ZetaConjecture.lean",
+]
+
+# The theorems that say what the `RHIdea` obligations are worth. They live in a file
+# that also contains a `sorry` (the wall itself), so `check_lean_file` cannot vouch for
+# them individually: `#print axioms` can, and a `sorry` inside any of these proofs would
+# surface there as `sorryAx` even though the file compiles.
+OBLIGATION_THEOREMS = [
+    "RiemannFramework.RHIdea.riemannHypothesisStatement",
+    "RiemannFramework.sigma_meets_mechanical_obligations",
+    "RiemannFramework.RHIdea_sigma_iff_riemannHypothesis",
+    "RiemannFramework.RHIdea_exists_iff_riemannHypothesis",
+    "RiemannFramework.myNewOperator_eq_sigma",
 ]
 
 
@@ -134,3 +147,57 @@ def test_rh_statement_stays_open(lean_file):
     assert not status["success"], (
         f"{lean_file.name} reports a complete proof:\n{status['output']}"
     )
+
+
+@requires_lean
+def test_the_obligation_theorems_are_proved_not_asserted():
+    """`#print axioms` on the `RHIdea` theorems: standard axioms only, no `sorryAx`.
+
+    `NewIdeaTest.lean` contains a `sorry` by design (the wall, `testMyIdea`), so the
+    file-level checks cannot separate a proved theorem from an assumed one. This one
+    can: if any of these proofs used `sorry`, Lean would print `sorryAx` in its
+    axiom list.
+
+    The scratch file lives under `.lake/` rather than in a pytest `tmp_path` because
+    the scratch directory is deliberately not on the Lean include path and is ignored
+    by git -- and because `lake env lean` resolves the imports through the build
+    directory next to it.
+    """
+    scratch = PROJECT_ROOT / ".lake" / "obligation_axioms.lean"
+    scratch.parent.mkdir(exist_ok=True)
+    scratch.write_text(
+        "import RiemannFramework.NewIdeaTest\n\n"
+        + "\n".join(f"#print axioms {name}" for name in OBLIGATION_THEOREMS)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        build = subprocess.run(
+            ["lake", "build", "RiemannFramework.NewIdeaTest"],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+        assert build.returncode == 0, build.stdout + build.stderr
+
+        result = subprocess.run(
+            ["lake", "env", "lean", str(scratch)],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+    finally:
+        scratch.unlink(missing_ok=True)
+
+    output = result.stdout + result.stderr
+    assert result.returncode == 0, output
+    assert "sorryAx" not in output, (
+        "an obligation theorem depends on `sorryAx`, so it is not proved:\n" + output
+    )
+    for name in OBLIGATION_THEOREMS:
+        assert f"'{name}' depends on axioms" in output, (
+            f"`#print axioms {name}` produced no axiom line:\n{output}"
+        )

@@ -210,7 +210,7 @@ directions of the ledger (`python/tests/test_formal_proof.py`):
 | `SanityChecks.lean` | all worked examples for `σ` | — |
 | `ZetaBridge.lean` | all 31 declarations: `sigma`, `sigma_re`, `sigma_im`, `sigma_involutive`, `fixed_point_of_re_eq_half`, `re_of_fixed_point_eq_half`, `sigma_fixed_iff_re_eq_half`, `riemannZeta_zero_conj`, `riemannZeta_zero_one_sub`, `cos_pi_mul_div_two_ne_zero`, `riemannZeta_one_sub_prefactor_ne_zero`, `riemannZeta_zero_iff_one_sub`, `riemannZeta_zero_sigma` (`σ`-invariance), `riemannZeta_zero_iff_conj`, `riemannZeta_zero_iff_sigma`, `riemannZeta_zero_quadruple`, `rh_iff_zeros_fixed_by_sigma`, `fixed_on_zeros_iff_no_distinct_reflection`, `riemannHypothesis_iff_no_two_cycle`, and the Section 5 verdict | — |
 | `ZetaConjecture.lean` | `RiemannHypothesisStatement`, `rh_of_zeros_fixed_by_sigma`, `prove_rh_via_sigma` | `zeros_are_fixed_by_sigma` |
-| `NewIdeaTest.lean` | `RHIdea`, `RHIdea.riemannHypothesisStatement`, `testMyIdea.is_involution`, `testMyIdea.eval_re` | `testMyIdea.fixed_on_zeros` |
+| `NewIdeaTest.lean` | `RHIdea`, `RHIdea.riemannHypothesisStatement`, `sigma_meets_mechanical_obligations`, `RHIdea_sigma_iff_riemannHypothesis`, `RHIdea_exists_iff_riemannHypothesis`, `myNewOperator_eq_sigma`, `testMyIdea.is_involution`, `testMyIdea.eval_re` | `testMyIdea.fixed_on_zeros` |
 | `RiemannHypothesis.lean` | the definitions `IsNontrivialZero`, `IsOnCriticalLine` | `riemann_hypothesis` |
 | `RiemannHypothesis_optimized.lean` | the Clay equivalences (`iff_real_part`, `iff_mathlib`, `of_mathlib`, `mathlib`) and every supporting lemma | `clay_prize_riemann_hypothesis` |
 
