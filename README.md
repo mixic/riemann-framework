@@ -25,8 +25,19 @@ A passing test is **evidence**, not a mathematical proof.
 
 **Closing summary:** [`docs/state_of_the_project.md`](docs/state_of_the_project.md)
 states what the repository contains, what it proved, what it falsified (including the
-Dimension-Shift Hypothesis, abandoned by its own criteria), what it corrected, and
-what remains open.
+Dimension-Shift Hypothesis, abandoned by its own criteria), what it corrected, what
+remains open, and an index of every document here.
+
+## Manuscripts
+
+| manuscript | status | materials |
+|:---|:---|:---|
+| [Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage](docs/desymmetrisation_paper.md) | draft complete, reproducible; **not submitted** | [submission checklist](docs/submission_checklist.md), [cover letter](docs/cover_letter.md) |
+| [The Davenport–Heilbronn filter as a standalone methods note](docs/dh_filter_methods_note.md) | draft complete; **not submitted** | §9 of the note lists what remains |
+
+Neither has a venue, a DOI or a referee report. The figures, tables and Lean checks are
+reproducible from the repository; the submission steps are the author's.
+
 ## Status
 
 | Component | Status |
@@ -55,7 +66,7 @@ what remains open.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1102 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1107 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -394,6 +405,22 @@ and axiom-free apart from `propext`, checked by `#print axioms` in
 [`docs/desymmetrisation.md`](docs/desymmetrisation.md) records the table, the split,
 the warning logic and its false-positive, the coverage table of the posterior, and the
 dynamical analogue with its invariants.
+
+### The manuscript and its figures
+
+[`docs/desymmetrisation_paper.md`](docs/desymmetrisation_paper.md) is the diagnostic
+written up as a methods manuscript, with its
+[submission checklist](docs/submission_checklist.md) and an unsent
+[cover letter](docs/cover_letter.md). All four figures are produced by
+`scripts/generate_desymmetrisation_figures.py`, which computes every plotted number at
+draw time — a figure drawn from a typed-in table could not fail a test, so it would not
+be evidence.
+
+![Full-spectrum mean r against the number of unresolved sectors, one dot per spectrum](output/desymmetrisation_warning.png)
+
+![Measured coverage of the sector-count posterior against the nominal 95% level](output/desymmetrisation_coverage.png)
+
+![Sector populations under the double-bracket flow, commuting and cross-sector starts](output/desymmetrisation_flow.png)
 
 ## Can a candidate be screened at all?
 
@@ -872,7 +899,7 @@ closed** — abandoned on criterion (2), see
 | M1 multi-seed verdict | verdict written with `n_seeds ≥ 300`, `std`, and the parameter point | **done** — `mixed`, 300 seeds, in `output/falsification_summary.txt` |
 | M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
 | M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | **done** — `bb84_detector.py`: at `10⁶` mean photons per pulse the sifted-key QBER is `0.0000` while Eve holds `1.00` bits, so the error-rate statistic cannot see it; an optical power monitor at `≥ 10` photons catches the attack `100%` with honest false alarm `1.7e-10`. Randomised detector efficiency needs `≥ 50%` to reach the `0.11` abort threshold, so it is a partial defence. See [`docs/bb84_implementation.md`](docs/bb84_implementation.md) §3 |
-| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 8 Lean modules compile (`test_formal_proof.py`, 76 s) |
+| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 9 Lean modules compile (`test_formal_proof.py`) |
 | M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | **done — the DSH is abandoned.** Criterion (2) holds: GUE blocks give 2/2 GUE sectors, GOE blocks give 0/2, so the class is inherited at 300 seeds and `d = 100, 200`. Criterion (1) holds only for GOE blocks and is therefore class-conditional, not independent evidence. See [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 
 **M5 outcome: the hypothesis is abandoned.** The milestone ran at 300 seeds per
@@ -909,7 +936,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1102 tests pass** on the current tree. They are not smoke tests: the suite
+**1107 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -936,6 +963,7 @@ silently changed meaning.
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
 | `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
+| `test_desymmetrisation_figures.py` | 5 | The manuscript's figures regenerate, and their numbers match Appendix B and Appendix C within noise |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
 | `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
