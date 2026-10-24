@@ -48,6 +48,7 @@ LEAN_FILES = [
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
     RIEMANN_FRAMEWORK_DIR / "NewIdeaTest.lean",
     RIEMANN_FRAMEWORK_DIR / "SanityChecks.lean",
+    RIEMANN_FRAMEWORK_DIR / "DynamicalDesymmetrisation.lean",
 ]
 
 # Files that must be *complete*: compiled, and free of both `sorry` and `axiom`.
@@ -56,6 +57,7 @@ SORRY_FREE_FILES = [
     RIEMANN_FRAMEWORK_DIR / "DimensionShift.lean",
     RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean",
     RIEMANN_FRAMEWORK_DIR / "ZetaBridge.lean",
+    RIEMANN_FRAMEWORK_DIR / "DynamicalDesymmetrisation.lean",
 ]
 
 # Files that state the Riemann Hypothesis target itself. None of these may ever
@@ -79,6 +81,20 @@ OBLIGATION_THEOREMS = [
     "RiemannFramework.RHIdea_exists_iff_riemannHypothesis",
     "RiemannFramework.myNewOperator_eq_sigma",
 ]
+
+# The symmetry-preservation lemmas for the double-bracket flow. The file is sorry-free,
+# so `check_lean_file` already covers it; the axiom check is kept here so that every
+# theorem the documentation calls machine-verified appears in the same list.
+DYNAMICAL_THEOREMS = [
+    "RiemannFramework.commute_doubleBracketIncrement",
+    "RiemannFramework.commute_euler_step",
+]
+
+#: Every module imported by the axiom-check scratch file.
+AXIOM_CHECK_MODULES = (
+    "RiemannFramework.NewIdeaTest",
+    "RiemannFramework.DynamicalDesymmetrisation",
+)
 
 
 def test_lean_file_lists_are_current():
@@ -151,12 +167,13 @@ def test_rh_statement_stays_open(lean_file):
 
 @requires_lean
 def test_the_obligation_theorems_are_proved_not_asserted():
-    """`#print axioms` on the `RHIdea` theorems: standard axioms only, no `sorryAx`.
+    """`#print axioms` on the theorems the documentation calls verified.
 
-    `NewIdeaTest.lean` contains a `sorry` by design (the wall, `testMyIdea`), so the
-    file-level checks cannot separate a proved theorem from an assumed one. This one
-    can: if any of these proofs used `sorry`, Lean would print `sorryAx` in its
-    axiom list.
+    Two families are checked. The `RHIdea` obligations live in a file that also
+    contains a `sorry` (the wall, `testMyIdea`), so the file-level checks cannot
+    separate a proved theorem from an assumed one; the double-bracket lemmas live in a
+    sorry-free file but belong in the same guarantee. If any of these proofs used
+    `sorry`, Lean would print `sorryAx` in its axiom list.
 
     The scratch file lives under `.lake/` rather than in a pytest `tmp_path` because
     the scratch directory is deliberately not on the Lean include path and is ignored
@@ -166,15 +183,19 @@ def test_the_obligation_theorems_are_proved_not_asserted():
     scratch = PROJECT_ROOT / ".lake" / "obligation_axioms.lean"
     scratch.parent.mkdir(exist_ok=True)
     scratch.write_text(
-        "import RiemannFramework.NewIdeaTest\n\n"
-        + "\n".join(f"#print axioms {name}" for name in OBLIGATION_THEOREMS)
+        "".join(f"import {module}\n" for module in AXIOM_CHECK_MODULES)
+        + "\n"
+        + "\n".join(
+            f"#print axioms {name}"
+            for name in OBLIGATION_THEOREMS + DYNAMICAL_THEOREMS
+        )
         + "\n",
         encoding="utf-8",
     )
 
     try:
         build = subprocess.run(
-            ["lake", "build", "RiemannFramework.NewIdeaTest"],
+            ["lake", "build", "RiemannFramework.NewIdeaTest", "RiemannFramework.DynamicalDesymmetrisation"],
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
@@ -197,7 +218,7 @@ def test_the_obligation_theorems_are_proved_not_asserted():
     assert "sorryAx" not in output, (
         "an obligation theorem depends on `sorryAx`, so it is not proved:\n" + output
     )
-    for name in OBLIGATION_THEOREMS:
+    for name in OBLIGATION_THEOREMS + DYNAMICAL_THEOREMS:
         assert f"'{name}' depends on axioms" in output, (
             f"`#print axioms {name}` produced no axiom line:\n{output}"
         )

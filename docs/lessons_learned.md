@@ -728,3 +728,35 @@ The tool cannot tell symmetry from integrability and does not pretend to; it con
 the two". That is the whole contribution, and it is the contribution an instrument
 makes: the physics stays known and the error gets harder to commit silently.
 
+## 19. A Dynamical Analogue Is Not the Same Tool
+
+The double-bracket flow `dρ/dβ = [[ρ, H], ρ]` — the object behind the multi-copy
+imaginary-time circuits — looks like the dynamical version of §18's static split, and it
+is not. Three measurements, each cheap and each decisive:
+
+| claim | measured |
+|:---|:---|
+| the flow is isospectral | spectrum of `ρ` drifts `8e-12` over `β = 15` |
+| a state commuting with `σ` stays commuting | coherence `0`, populations constant to `1e-8` |
+| a state that does *not* commute is pushed into one sector | coherence `1.41 → 3e-3`, populations `(0.50, 0.50) → (1.00, 0.00)` |
+| the Hamiltonian never evolves | `H` is an input, so no spacing statistic of `H` changes |
+
+The third row is the surprise and it runs the other way from the guess that motivated
+the work: the flow does not "preserve the sectors" from an arbitrary start, it
+*selects* one. The fourth row is why none of this helps the M5 misreading: the class is
+a property of `H`, and a flow on `ρ` cannot touch it. An analogy between two tools has
+to be checked at the level of what each one measures, not at the level of the
+vocabulary they share.
+
+The same check produced a negative about the quoted circuit identity,
+`Tr₂(u ρ₁⊗ρ₂ u†) = ρ₁ − ε[[ρ₁,H],ρ₁] + O(ε^{3/2})`: every natural generator gives a
+first-order term `i√ε[H,ρ]` that the identity does not have, so the identity is recorded
+as **unverified from the description available** rather than reproduced. That is the
+right status for a formula one has read about but not read.
+
+What is genuinely machine-checked is the algebraic core of the invariance: the increment
+commutes with a symmetry that commutes with `ρ` and `H`, and so does one Euler step
+(`DynamicalDesymmetrisation.lean`, `sorry`-free, axioms `[propext]` only). Small, and
+exactly as large as the claim.
+
+

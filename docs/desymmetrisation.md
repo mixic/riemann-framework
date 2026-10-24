@@ -198,6 +198,52 @@ GUE spectra are. A `severe` flag therefore means *do not call this Poisson yet* 
 *this is a superposition*. The reliable half is the comparison against resolved
 sectors, which is exactly what the tool exists to make easy.
 
+## The dynamical analogue: the double-bracket flow
+
+There is a dynamical counterpart of the split, and its first finding is that the analogy
+holds for **states**, not spectra. The flow is the double-bracket gradient flow
+
+```
+dρ/dβ = [[ρ, H], ρ] = 2ρHρ − Hρ² − ρ²H
+```
+
+the object used for ground-state preparation in the multi-copy circuits of the
+imaginary-time literature. Three facts, all measured by `dynamical_desymmetrisation.py`
+and its tests:
+
+| claim | measured |
+|:---|:---|
+| the flow is isospectral | spectrum of `ρ` drifts by `8e-12` over `β = 15` |
+| a state commuting with `σ` stays commuting | `‖[ρ,σ]‖ = 0` at every step, sector populations constant to `1e-8` |
+| a state that does **not** commute is pushed into one sector | coherence `1.41 → 3e-3`, populations `(0.50, 0.50) → (1.00, 0.00)` |
+| the Hamiltonian is untouched | `H` is an input; no spacing statistic of `H` changes, so a contaminated spectrum stays contaminated |
+
+The third row is not in the literature's description of the flow and was found here: it
+is a state **selecting** a sector, not a spectrum being split. That is also the honest
+boundary — the dynamical desymmetriser cannot repair the M5 misreading, because the
+class is a property of `H`, and `H` never evolves.
+
+The invariance row is also machine-verified in Lean:
+`RiemannFramework.commute_doubleBracketIncrement` proves that the increment commutes with
+an involution that commutes with `ρ` and `H`, and `commute_euler_step` lifts that to one
+Euler step. Both are `sorry`-free and depend only on `propext`.
+
+![Coherence with the involution and sector populations against flow time](output/dynamical_desymmetrisation.png)
+
+A separate check in the same module is a **negative** result. The multi-copy identity
+quoted for these circuits,
+
+```
+Tr₂(u ρ₁ ⊗ ρ₂ u†) = ρ₁ − ε[[ρ₁, H], ρ₁] + O(ε^{3/2}),
+```
+
+was tested against the natural generators (`exp(i√ε(H₁ − H₂))`, the same with a swap,
+and the Trotter split of the two phases). Every one of them produces a first-order term
+`i√ε[H, ρ₁]` — which the identity does not have — and a second-order term that is not
+±`[[ρ,H],ρ]`. The identity is therefore recorded as **unverified from the description
+available here**, not as confirmed: it evidently depends on the circuit's generator,
+which was not read. What is verified is the flow and its invariants.
+
 ## Where this applies in the repository
 
 The `σ`-sectors of the dimension-shift model are the case that produced the
@@ -216,10 +262,15 @@ tool that makes the mistake hard.
 | `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, and the failed mean-inverting estimator kept as the demonstration |
 | `python/tests/test_desymmetrisation.py` | 37 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, and the posterior's measured accuracy and coverage |
 | `scripts/run_desymmetrisation_demo.py` | the figure, the table, and the coverage rows |
+| `python/riemann_framework/dynamical_desymmetrisation.py` | the double-bracket flow, its invariants, and the negative circuit check |
+| `python/tests/test_dynamical_desymmetrisation.py` | 15 tests: isospectrality, the preserved commutant, sector selection, and the unverified identity |
+| `scripts/run_dynamical_desymmetrisation_demo.py` | the trajectory figure and the circuit table |
+| `lean/RiemannFramework/DynamicalDesymmetrisation.lean` | the symmetry-preservation lemmas, `sorry`- and axiom-free |
 
 ## Status
 
 A tool, and a measurement with a stated resolution: the phenomenon is standard; what is
 local is a measured calibration, a warning that plugs into the screening step, a
-posterior that counts one sector and bounds two, and a recorded refusal to count above
-that. No statement about the Riemann hypothesis is made or implied.
+posterior that counts one sector and bounds two, a recorded refusal to count above that,
+and a dynamical counterpart that is honest about acting on states rather than spectra.
+No statement about the Riemann hypothesis is made or implied.

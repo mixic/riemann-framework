@@ -55,7 +55,7 @@ what remains open.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1085 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1102 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -368,8 +368,32 @@ resolution, and the recorded limit.
 
 ![Mean r against the number of unresolved sectors, for GOE and GUE blocks, with both limits marked](output/desymmetrisation.png)
 
+**The dynamical counterpart.** `dynamical_desymmetrisation.py` implements the
+double-bracket flow `dρ/dβ = [[ρ, H], ρ]`, the flow that the multi-copy
+imaginary-time circuits are built on, and measures what it preserves: the spectrum of
+`ρ` (drift `8e-12` over `β = 15`), the trace, and — when the state commutes with the
+involution — the sector populations (`1e-8`). It also finds what the literature's
+description does not cover: a state that does *not* commute is driven into a single
+sector (coherence `1.41 → 3e-3`, populations `(0.50, 0.50) → (1.00, 0.00)`), so the
+flow **selects** a sector rather than preserving one. In neither case does it touch the
+Hamiltonian, so it cannot repair a contaminated spectrum — the class is a property of
+`H`, and `H` never evolves. The same module checks the multi-copy identity quoted for
+these circuits and reports a negative: every natural generator produces a first-order
+term the identity does not have, so the identity is recorded as unverified rather than
+assumed.
+
+The invariance step is also **machine-verified**, in
+`lean/RiemannFramework/DynamicalDesymmetrisation.lean`: if `ρ` and `H` commute with an
+involution then so does the double-bracket increment, and so does one Euler step
+(`commute_doubleBracketIncrement`, `commute_euler_step`). Both theorems are `sorry`-free
+and axiom-free apart from `propext`, checked by `#print axioms` in
+`test_the_obligation_theorems_are_proved_not_asserted`.
+
+![Coherence with the involution and sector populations against flow time](output/dynamical_desymmetrisation.png)
+
 [`docs/desymmetrisation.md`](docs/desymmetrisation.md) records the table, the split,
-the warning logic and its false-positive, and the coverage table of the posterior.
+the warning logic and its false-positive, the coverage table of the posterior, and the
+dynamical analogue with its invariants.
 
 ## Can a candidate be screened at all?
 
@@ -885,7 +909,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1085 tests pass** on the current tree. They are not smoke tests: the suite
+**1102 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -911,13 +935,14 @@ silently changed meaning.
 | `test_prime_orbits.py` | 17 | Orbit counting, `h = 1`, and the measured error-term limit |
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
+| `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
 | `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |
-| `test_formal_proof.py` | 16 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open; the obligation theorems carry no `sorryAx` |
+| `test_formal_proof.py` | 18 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open; the obligation theorems carry no `sorryAx` |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
 | `test_falsification.py` | 24 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
 | `test_explicit_formula.py` | 11 | Explicit-formula calculations |
