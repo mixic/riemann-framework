@@ -32,7 +32,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | field | value |
 |:---|:---|
 | **Title** | Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage |
-| **Authors** | Milan Nikolic — Standalone Researcher — `m_nikolic@yahoo.com` — no ORCID given |
+| **Authors** | Milan Nikolic — Independent Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
 | **Comments** | 12 pages, 4 figures, 3 appendices. Code, tests, figures and Lean verification at `[ADD: repository URL]`. |
@@ -111,7 +111,7 @@ nor a LaTeX distribution**, so the PDF is produced by a different route:
 ```bash
 python scripts/build_manuscript_pdf.py \
     --author "Milan Nikolic" \
-    --affiliation "Standalone Researcher" \
+    --affiliation "Independent Researcher" \
     --email "m_nikolic@yahoo.com"
 ```
 

@@ -19,8 +19,8 @@ Usage, from the repository root:
 
     python scripts/build_manuscript_pdf.py \
         --author "Milan Nikolic" \
-        --affiliation "Independent researcher" \
-        --email "name@example.org"
+        --affiliation "Independent Researcher" \
+        --email "m_nikolic@yahoo.com"
 
 Writes `output/desymmetrisation_paper.pdf`.
 
