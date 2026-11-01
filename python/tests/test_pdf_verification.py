@@ -49,8 +49,9 @@ def _load_verifier():
     with `sys.modules.get(cls.__module__)` being `None`.
     """
     spec = importlib.util.spec_from_file_location("verify_pdf_under_test", VERIFIER)
-    module = importlib.util.module_from_spec(spec)
+    assert spec is not None
     assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
@@ -77,7 +78,7 @@ def test_the_reader_recovers_the_title_and_the_author_block():
     """The text layer is readable: a garbled one would fail every content check."""
     verifier = _load_verifier()
     text = verifier.extract_text(PDF)
-    assert len(text.pages) == 12
+    assert len(text.pages) == 14
     assert not text.pages_without_text
     assert "DesymmetrizationofQuantumSpectra" in text.flat
     assert "MilanNikolic" in text.flat

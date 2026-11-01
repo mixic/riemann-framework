@@ -272,7 +272,14 @@ def image_placements(payload: bytes) -> list[tuple[str, float, float, float, flo
                 )
             )
         else:
-            matrix = tuple(float(match.group(i)) for i in range(1, 7))
+            matrix = (
+                float(match.group(1)),
+                float(match.group(2)),
+                float(match.group(3)),
+                float(match.group(4)),
+                float(match.group(5)),
+                float(match.group(6)),
+            )
             last = matrix
             ctm = _compose(matrix, ctm)
     return found
@@ -557,16 +564,19 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
 
 def main() -> int:
     # The manuscript is full of characters a Windows console cannot encode; without this
-    # the report itself crashes on the glyph it is meant to check.
+    # the report itself crashes on the glyph it is meant to check. `reconfigure` exists on
+    # the concrete streams but not on `TextIO`, so it is reached through `getattr`.
     for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover - non-reconfigurable
-            pass
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):  # pragma: no cover
+                pass
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
-    parser.add_argument("--pages", type=int, default=12)
+    parser.add_argument("--pages", type=int, default=14)
     parser.add_argument("--images", type=int, default=4)
     parser.add_argument("--strict", action="store_true",
                         help="also fail on collapsed interval notation in the text layer")

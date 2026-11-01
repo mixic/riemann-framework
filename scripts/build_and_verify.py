@@ -81,12 +81,15 @@ def run(name: str, command: list[str], verbose: bool) -> tuple[bool, str]:
 
 def main() -> int:
     # The verifier prints the manuscript's glyphs; a Windows console cannot encode them
-    # by default, and the child's UTF-8 output would arrive here as mojibake.
+    # by default, and the child's UTF-8 output would arrive here as mojibake. `reconfigure`
+    # exists on the concrete streams but not on `TextIO`, so reach it through `getattr`.
     for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")
-        except (AttributeError, ValueError):  # pragma: no cover
-            pass
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (AttributeError, ValueError, OSError):  # pragma: no cover
+                pass
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--author", action="append", default=[])

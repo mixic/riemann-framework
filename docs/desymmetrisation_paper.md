@@ -72,7 +72,36 @@ The failure is silent. There is no error message. The number `0.42` looks like a
 legitimate measurement. It is wrong, and it is wrong in a specific way: it is exactly
 what a two-sector superposition produces.
 
-### 1.2 The measured table
+### 1.2 The path to this diagnostic
+
+This diagnostic was not designed in the abstract and justified afterwards. It is the
+residue of a larger project, and the failure that produced it is the failure it detects.
+
+The project began with a candidate operator for the Riemann hypothesis. The map
+`σ(s) = 1 − conj(s)` reflects the complex plane about the critical line; its fixed locus
+is exactly `Re(s) = 1/2`; and a Hamiltonian built around this involution was proposed as a
+route to the zeros. That proposal, the dimension-shift hypothesis, was tested against
+criteria it had set for itself and was abandoned. The decisive run found that the sector
+class of a `σ`-symmetric Hamiltonian is inherited from the input blocks, not produced by
+the `σ` structure: GOE sectors at `0.528 … 0.533`, GUE sectors at `0.596 … 0.602`, but a
+full spectrum at `0.420 … 0.425` for either input. The verdict is recorded in the
+repository, in the document that proposed the hypothesis, and it is final.
+
+Two mistakes made on the way are the subject of this paper. The first was statistical: a
+single seed of a 90-point grid once reported "supported", and 300 seeds with error bars
+showed that the value was noise (`0.523 ± 0.069`). The second was structural, and it is
+the one that matters here: the model's universality class was tested on the full spectrum
+of a `σ`-symmetric Hamiltonian, and a GOE model appeared to reach GUE statistics. The
+apparent GUE class was not a property of the model. A Hamiltonian that commutes with an
+involution has a spectrum that is the union of its sector spectra, and that union has a
+mean gap ratio of about `0.42` for either input class. The class was being read from a
+superposition.
+
+Neither error was a bug in one codebase. Both are ways of reading a property from a
+sample that does not carry it. This paper makes the structural one visible, measures when
+the information is and is not recoverable, and states the limits.
+
+### 1.3 The measured table
 
 At 300 seeds per point, `60` levels per sector, the full-spectrum `⟨r⟩` depends on the
 number of unresolved sectors (Fig. 1):
@@ -96,7 +125,7 @@ true rather than suggestive:
 
 ![Fig. 1. Full-spectrum mean adjacent-gap ratio against the number of unresolved independent sectors, at 300 seeds per point and 60 levels per sector. GOE input blocks (circles) and GUE input blocks (squares). Reference values are marked: Poisson 0.386, GOE 0.531, GUE 0.600. The shaded band is the Poisson window [0.36, 0.41]; from three sectors upward the full spectrum lies inside it.](output/desymmetrisation.png)
 
-### 1.3 The contribution
+### 1.4 The contribution
 
 We provide a diagnostic that:
 
@@ -152,6 +181,12 @@ Spacing statistics cannot separate the two, and the warning says so in its own t
 
 The mean `⟨r⟩` cannot be inverted. The sequence of `≈240` gap ratios can be.
 
+The reason is information. The mean collapses about 240 ratios into a single number, and
+the collapse is many-to-one: a three-sector and a six-sector superposition both land near
+`0.39`, so no function of the mean can tell them apart. The sequence keeps the ratios
+themselves, and the way one ratio follows the next carries the sector count that the mean
+discards.
+
 **Model.** A first-order Markov model of the sequence,
 
 ```
@@ -160,13 +195,17 @@ r_{n+1} | r_n ~ f(r_{n+1} | r_n; k),
 
 where `k` is the number of unresolved sectors, restricted to `k = 1, …, 6`, plus a
 Poisson hypothesis standing for "integrable, or more sectors than are distinguishable
-from it". The conditional density is estimated on binned ratios from 200 simulated
-superpositions per hypothesis, with GOE and GUE marginalised at equal weight.
+from it". Concretely, the ratios are placed on a fixed grid of bins, and for each
+hypothesis the conditional frequency `f(r_{n+1} | r_n; k)` is estimated by counting
+transitions between bins across 200 simulated superpositions per hypothesis. The block
+class is marginalised at equal weight, so the posterior answers only the question asked:
+how many sectors, not what class.
 
 **Why first order?** Modelling the ratios as independent is measurably overconfident:
 coverage `0.70` at a nominal `0.90`, because consecutive ratios share a spacing and the
-independent product counts the same information twice. The dependence is in the model,
-and the coverage is measured rather than assumed.
+independent product counts the same information twice. The first-order chain is the
+smallest model that keeps the dependence, and the coverage of the resulting interval is
+measured rather than assumed.
 
 **Output.** A posterior over `{1, 2, 3, 4, 5, 6, ≥6/poisson}` and the shortest contiguous
 interval carrying 95% of its mass. The open label exists so that the estimator is
@@ -393,6 +432,9 @@ property of the Hamiltonian and the Hamiltonian does not evolve.
 
 The rule is simple: desymmetrize before testing the class.
 
+The diagnostic began as a mistake made on a candidate operator; it ends as a tool that
+makes that mistake visible, measurable, and stated.
+
 ## 10. Technical application and outlook
 
 The diagnostic is a software method, and a method is not a device. This section states,
@@ -432,7 +474,26 @@ controller that implements the flow and monitors the coherence `‖[ρ, σ]‖` 
 evolution when the wrong sector is being selected, instead of discovering it after the
 prepared state is wrong.
 
-### 10.4 What is not claimed
+### 10.4 Where the instrument applies
+
+Three settings give the instrument its technical effect.
+
+* **Quantum simulation and many-body systems.** A simulator that is meant to be chaotic
+  but sits in a symmetry-protected sector can be misread as integrable; the flag and the
+  posterior catch the misreading before it is published.
+* **Microwave billiards and cavity measurements.** A cavity whose resonance spectrum is
+  contaminated by a geometric symmetry (a mirror plane, a rotation) has a `⟨r⟩` that sits
+  in the Poisson window; the diagnostic says "resolve the symmetry" instead of
+  "integrable".
+* **Quantum dots and materials spectroscopy.** A measured single-particle spectrum of a
+  dot array or a material sample is a superposition whenever the sample carries a spatial
+  symmetry; the posterior bounds how many sectors are unresolved.
+
+In each case the output is not a new theory. It is a control on an old one: a number that
+would otherwise have been trusted is replaced by a number together with its provenance (a
+resolved sector or an unresolved superposition) and its uncertainty.
+
+### 10.5 What is not claimed
 
 * the algorithm itself (a Bayesian posterior over sector counts);
 * a numerical simulation with no physical input or output;
