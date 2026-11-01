@@ -78,7 +78,7 @@ def test_the_reader_recovers_the_title_and_the_author_block():
     """The text layer is readable: a garbled one would fail every content check."""
     verifier = _load_verifier()
     text = verifier.extract_text(PDF)
-    assert len(text.pages) == 16
+    assert len(text.pages) == 17
     assert not text.pages_without_text
     assert "DesymmetrizationofQuantumSpectra" in text.flat
     assert "MilanNikolic" in text.flat

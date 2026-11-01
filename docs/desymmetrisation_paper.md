@@ -35,13 +35,15 @@ appears Poisson-like may instead be a union of unresolved sectors, and the stand
 gap ratio `⟨r⟩` cannot distinguish the two. We present a diagnostic that verifies the
 symmetries, splits the spectrum into joint sectors, flags a contaminated full spectrum, and
 estimates the unresolved-sector count as a posterior with measured coverage. The mean
-cannot be inverted; the sequence of gap ratios can. A
+cannot resolve the count, because the per-spectrum scatter exceeds the gaps between
+counts; the sequence of gap ratios carries more. A
 first-order Markov model fitted on simulated superpositions yields a posterior over
 `{1, …, 6, ≥6/poisson}`. At a nominal 95% interval, measured coverage is `0.99`, `0.92`,
 `0.91`, `0.96`, `0.98` at `1, 2, 3, 4, 6` sectors and `0.78` for a Poisson spectrum, over
 400 spectra per row. The single-sector case is decisive (`p = 0.97`, interval `1..1`); the
 two-sector case yields a lower bound (`2`) but not a count, and from three sectors upward
-the count is not recoverable, because `3` through `6` are indistinguishable. Two-sector GOE
+the count is not recoverable from adjacent-gap ratios alone, because `3` through `6` are
+indistinguishable to them. Two-sector GOE
 and GUE are indistinguishable in the full spectrum, and that limit is measured rather than
 assumed: the best single-spectrum class accuracy is `0.79` at one sector and `0.53`, which
 is chance, at two, while averaging thousands of spectra sharpens the mean to `0.0006` and
@@ -55,8 +57,8 @@ flow cannot repair a contaminated spectrum.
 
 ### 1.1 Problem statement
 
-Quantum chaos is diagnosed by level-spacing statistics. The mean adjacent-gap ratio
-`⟨r⟩` takes three reference values:
+Quantum chaos is diagnosed by level-spacing statistics [4]. The mean adjacent-gap ratio
+`⟨r⟩` [6, 5] takes three reference values:
 
 | class | `⟨r⟩` | meaning |
 |:---|---:|:---|
@@ -84,8 +86,8 @@ route to the zeros. That proposal, the dimension-shift hypothesis, was tested ag
 criteria it had set for itself and was abandoned. The decisive run found that the sector
 class of a `σ`-symmetric Hamiltonian is inherited from the input blocks, not produced by
 the `σ` structure: GOE sectors at `0.528 … 0.533`, GUE sectors at `0.596 … 0.602`, but a
-full spectrum at `0.420 … 0.425` for either input. The verdict is recorded in the
-repository, in the document that proposed the hypothesis, and it is final.
+full spectrum at `0.420 … 0.425` for either input. The verdict is recorded with the
+abandoned hypothesis and is final.
 
 Two mistakes made on the way are the subject of this paper. The first was statistical: a
 single seed of a 90-point grid once reported "supported", and 300 seeds with error bars
@@ -165,12 +167,12 @@ value `0.500`: the two-sector classes are interchangeable one spectrum at a time
 measurement at one sector, where the classes are `0.530` and `0.599`, gives `0.790`.
 
 The two results are consistent and they are not in tension. In the 4000-spectrum table of
-Section 1.3 the two-sector class gap is `0.0010`, `1.4` standard errors; in the nested
-series of Fig. 2 at 3200 spectra it is `0.0004`, `0.5` standard errors. Neither is a
-measurement of a class difference: both are consistent with zero, and both are one
-thirtieth of the scatter that one spectrum carries. **More spectra sharpen the mean and
-leave the single measurement untouched.** That is why the diagnostic resolves the symmetry
-structurally, by splitting the spectrum into sectors, instead of averaging harder
+the previous section the two-sector class gap is `0.0010`, which is `1.4` standard errors;
+in the nested series of Fig. 2 at 3200 spectra it is `0.0004`, which is `0.5` standard
+errors. Neither is a measurement of a class difference: both are consistent with zero, and
+both are one thirtieth of the scatter that one spectrum carries. **More spectra sharpen the
+mean and leave the single measurement untouched.** That is why the diagnostic resolves the
+symmetry structurally, by splitting the spectrum into sectors, instead of averaging harder
 statistically: the averaging route is bounded by the overlap of the distributions, not by
 the number of spectra, and this paper measures the bound.
 
@@ -192,9 +194,11 @@ We provide a diagnostic that:
    `1, 2, 3, 4, 6` sectors and `0.78` for a Poisson spectrum (Appendix B);
 5. measures the resolution of the statistic it uses: the best single-spectrum class
    accuracy is `0.790` at one sector and `0.526`, that is chance, at two (Section 1.4);
-6. reports the limits: the mean cannot be inverted, the count is not recoverable above
-   two sectors, two-sector GOE and GUE are indistinguishable in the mean as well as in one
-   spectrum, and more spectra do not change that.
+6. reports the limits: the mean cannot resolve the count, the count is not recoverable
+   from adjacent-gap ratios above two sectors, the flag's rate depends on the spectrum
+   size, the posterior degrades on sectors that are not equal and independent, two-sector
+   GOE and GUE are indistinguishable in the mean as well as in one spectrum, and more
+   spectra do not change that.
 
 The phenomenon is standard quantum-chaos practice (Giraud et al. [1]). What is local is
 the table measured at 4000 spectra per point to a standard error of `0.0007`, the entry
@@ -218,9 +222,9 @@ Given a Hamiltonian `H` and a set of involutions `{U₁, …, Uₖ}`:
   sectors are checked against a direct sum built from four known blocks.
 
 The refusal in Step 1 is not a formality. A split routine that skips it returns arrays
-that are not sector spectra, and the error is invisible downstream: the reviewer-supplied
-fixture for this family of utilities measures `‖[H, U]‖/‖H‖ = 1.14 … 1.18` and its split
-discards exactly the mass that makes the blocks non-sectors.
+that are not sector spectra, and the error is invisible downstream: on a fixture whose
+`‖[H, U]‖/‖H‖` is `1.14 … 1.18`, the unchecked split discards exactly the mass that makes
+the blocks non-sectors.
 
 ### 2.2 Contamination detection from a single spectrum
 
@@ -244,7 +248,10 @@ cannot separate the two, and the warning says so in its own text.
 
 ### 2.3 Bayesian estimation of the sector count
 
-The mean `⟨r⟩` cannot be inverted. The sequence of `≈240` gap ratios can be.
+The mean `⟨r⟩` cannot resolve the sector count. The mean is monotone in the count at the
+ensemble level, but the per-spectrum scatter exceeds the gaps between successive counts,
+so a single spectrum's mean does not carry its count. The sequence of `≈240` gap ratios
+carries more.
 
 The reason is information. The mean collapses about 240 ratios into a single number, and
 the collapse is many-to-one: a three-sector and a six-sector superposition both land near
@@ -264,7 +271,10 @@ from it". Concretely, the ratios are placed on a fixed grid of bins, and for eac
 hypothesis the conditional frequency `f(r_{n+1} | r_n; k)` is estimated by counting
 transitions between bins across 200 simulated superpositions per hypothesis. The block
 class is marginalised at equal weight, so the posterior answers only the question asked:
-how many sectors, not what class.
+how many sectors, not what class. The posterior is a plug-in estimate with a uniform
+prior over the seven hypotheses: the transition frequencies are fitted once and then used
+as if they were exact, not marginalised over, which is why its interval coverage is
+measured rather than assumed (§2.4).
 
 **Why first order?** Modelling the ratios as independent is measurably overconfident:
 coverage `0.70` at a nominal `0.90`, because consecutive ratios share a spacing and the
@@ -349,10 +359,12 @@ When the state does not commute with `σ`, the flow drives it into a single sect
 | coherence `‖[ρ, σ]‖` | `1.41` | `3e-3` |
 | populations | `(0.50, 0.50)` | `(1.00, 0.00)` |
 
-The flow selects a sector rather than preserving one. This is a measured behaviour of
-the flow, not a claim in the sources, and it is the opposite direction from the
-invariance row: from an asymmetric start the flow does not break the symmetry, it
-*creates* it.
+The flow selects a sector rather than preserving one. The direction is expected rather
+than surprising, and this section records the measurement, not a discovery: the commutant
+of an involution is closed under products and commutators, so a commuting state cannot
+leave it, and a state with both parity components flows to the ground state, which has
+definite parity. What is measured here is the selection itself. From an asymmetric start
+the flow does not break the symmetry; it settles into a definite sector.
 
 ![Fig. 5. Sector populations under the double-bracket flow for (a) a state that commutes with the involution and (b) one that does not. Panel (a): populations (0.50, 0.50) are preserved to rounding error while the state itself evolves (the initial state is not an eigenstate of H). Panel (b): the coherence falls from 1.41 to 3e-3 and the population is driven to (1.00, 0.00). The flow is isospectral in the state and never acts on the Hamiltonian.](output/desymmetrisation_flow.png)
 
@@ -403,14 +415,76 @@ correct response; assuming the identity and building on it would not be.
 
 | limit | measured | consequence |
 |:---|:---|:---|
-| the mean cannot be inverted | the table is many-to-one and the scatter exceeds the gaps between counts | the posterior must use the sequence, not the mean |
+| the mean cannot resolve the count | the mean is monotone but the scatter exceeds the gaps between counts | the posterior must use the sequence, not the mean |
 | two-sector GOE/GUE indistinguishable | `0.4232` vs `0.4222`, `1.4` standard errors of the two means | a class test on a contaminated spectrum is uninformative |
 | more spectra do not fix the two-sector class test | best single-spectrum balanced accuracy `0.526` at 4000 spectra per class | the diagnostic must split the spectrum, not average it |
-| the count is not recoverable above two | `3…6` indistinguishable | report `≥3`, not a number |
-| false positive at the floor | `37` of `400` GOE, `0` of `400` GUE | the flag is a hint, not a decision |
+| the count is not recoverable from adjacent-gap ratios above two | `3…6` indistinguishable to `⟨r⟩` and to the ratio sequence | report `≥3`, not a number; long-range statistics do better (§5.3) |
+| false positive at the floor | `37` of `400` GOE, `0` of `400` GUE, at `d = 60` | the flag is a hint, not a decision, and its rate depends on the spectrum size (§5.1) |
 | Poisson read as a finite superposition | coverage `0.78`, so a finite count in `0.22` of draws | an integrable spectrum looks contaminated about a fifth of the time |
 | the flow cannot repair contamination | `H` is an input | the class is a property of `H`; `H` does not evolve |
 | the model is a plug-in fit | 200 spectra per hypothesis | the coverage is measured rather than asserted, and under-covers at two and three sectors (`0.92`, `0.91`) |
+
+### 5.1 The flag's rate is a function of the spectrum size
+
+The contamination floor is the fixed `0.48`, which is the one-sector GOE mean minus `1.3`
+per-spectrum standard deviations at `d = 60`. The scatter of a mean over `n` ratios falls
+as `1/√n`, so the same absolute floor over-flags at small sizes and under-flags at large
+ones (measured, 400 spectra per point, GOE):
+
+| levels per sector | one-sector std | flag rate at fixed `0.48` | two-sector superpositions missed | flag rate at a scaled floor |
+|:---|---:|---:|---:|---:|
+| 15 | `0.087` | `0.29` | `0.19` | `0.12` |
+| 60 | `0.039` | `0.11` | `0.04` | `0.11` |
+| 240 | `0.020` | `0.013` | `0.00` | `0.12` |
+| 480 | `0.014` | `0.003` | `0.00` | `0.12` |
+
+The fourth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(n)` with
+`σ(n) = 0.0393·√(60/n)`), and its rate is flat at about `0.12`. A deployed instrument
+should use the scaled floor and report its z-score, not a single threshold; this
+manuscript quotes the fixed floor because it is the one the tables were measured on.
+
+### 5.2 Robustness of the posterior to its own simulator
+
+The posterior is trained on equal-sized, independent, class-balanced sectors at 240
+levels. Real symmetries give unequal sectors, mixed classes and awkward densities, so the
+same posterior is run over the symmetric baseline and three departures (400 spectra each;
+the baseline uses GOE draws, so its mass on the truth differs from the class-marginalised
+coverage of Section 2.4):
+
+| scenario | truth | posterior on the truth | coverage |
+|:---|---:|---:|---:|
+| equal sectors | 3 | `0.30` | `0.90` |
+| unequal sectors (120/80/40) | 3 | `0.26` | `0.90` |
+| mixed class (GOE + GUE) | 2 | `0.69` | `0.95` |
+| awkward density (one sector compressed) | 3 | `0.26` | `0.92` |
+
+The departures degrade the three-sector rows modestly and never improve on the baseline;
+the two-sector mixed-class row stays the strong case. The coverage numbers in Sections
+2.4 and 1.5 are therefore a property of the symmetric simulator, not a promise about a
+real spectrum, and Section 10's device descriptions are stated as an outlook for exactly
+that reason.
+
+### 5.3 The limit is the ratio, not the spectrum
+
+"Not recoverable above two" is a property of the adjacent-gap ratio, not of the spectrum.
+The ratio is a short-range statistic, and a three-or-more-sector superposition and a
+Poisson spectrum have the same adjacent gaps. Long-range statistics do not (measured,
+window length 20, 200 spectra per point):
+
+| spectrum | `⟨r⟩` | number variance `Σ²(20)` | Dyson–Mehta `Δ₃(20)` |
+|:---|---:|---:|---:|
+| 1 sector | `0.530` | `0.98` | `0.22` |
+| 2 sectors | `0.423` | `1.65` | `0.39` |
+| 3 sectors | `0.403` | `2.24` | `0.51` |
+| 6 sectors | `0.392` | `3.76` | `0.74` |
+| Poisson | `0.386` | `12.41` | `1.23` |
+
+`Σ²(20)` reads a Poisson spectrum as `12.4` and a six-sector union as `3.8`, where the
+ratio reads both as `0.39`. Long-range statistics therefore separate Poisson from a union
+of sectors almost perfectly, which is the comparison the ratio fails and the one a
+complete instrument should add. The posterior in this paper uses the ratio sequence
+alone, so its "not counted above two" is a statement about that statistic, and nothing
+stronger.
 
 ## 6. Comparison with explicit desymmetrization
 
@@ -536,9 +610,10 @@ from a union of unresolved sectors, and the failure is silent.
 We provide a diagnostic that verifies the symmetries, splits the spectrum, flags
 contamination, and estimates the sector count as a posterior with a measured coverage.
 The single-sector case is decisive; the two-sector case is bounded below but not counted;
-from three sectors upward the count is not recoverable. Two-sector GOE and GUE are
+from three sectors upward the count is not recoverable from adjacent-gap ratios alone,
+and long-range statistics do what the ratios cannot. Two-sector GOE and GUE are
 indistinguishable, in one spectrum and in the mean of thousands. The false-positive rate
-is stated. The limits are reported rather than hidden.
+is stated, as a function of the spectrum size. The limits are reported rather than hidden.
 
 The measurement that decides how the tool may be used is the resolution, not the
 precision: 4000 spectra per point determine the mean to `0.0007`, and the best
@@ -559,12 +634,9 @@ makes that mistake visible, measurable, and stated.
 
 ## 10. Technical applications and outlook
 
-The diagnostic is a software method, and a method is not a device. This section states,
-as an outlook, how the three measured things in this paper (the split, the posterior, and
-the flow) assemble into a physical instrument. It is a technical description, not a
-patent claim: no application is filed or pending, nothing here asserts patentability, and
-what an office would grant is a matter for a patent attorney and depends on the
-jurisdiction.
+The diagnostic is a software method, and a method is not a device. This section sketches,
+as an outlook only, how the measured pieces assemble into a physical instrument; it makes
+no patent claim.
 
 ### 10.1 A symmetry-aware spectrum analyzer
 
@@ -617,15 +689,14 @@ resolved sector or an unresolved superposition) and its uncertainty.
 
 ### 10.5 Scope of the claims
 
-* the algorithm itself (a Bayesian posterior over sector counts);
+* the algorithm itself (a plug-in posterior over sector counts);
 * a numerical simulation with no physical input or output;
 * the mathematics of Sections 2 through 4.
 
-A granted patent claims a physical embodiment and a technical effect, not these. The
-path from this outlook to a filed application runs through a patent attorney; the cost is
-on the order of several tens of thousands of dollars across the major jurisdictions, and
-the first step is a consultation rather than a filing. This manuscript makes no patent
-claim and no assertion about what any office would grant.
+A granted patent claims a physical embodiment and a technical effect, not these. This
+manuscript makes no patent claim and no assertion about what any office would grant; the
+device descriptions above are an outlook, and the quantum-processor and dot-array cases
+carry no experimental results behind them.
 
 ## Appendix A: The full measured table
 
@@ -681,8 +752,10 @@ value at `d = 60` is `0.5297` with a per-spectrum scatter of `0.0393`: the floor
 standard deviations below that mean, which is precisely why `9.2%` of pure GOE spectra are
 flagged. A floor raised to the reference value would exchange those false positives for
 missed contamination, and the trade is the user's, so the rate is stated rather than
-tuned. The GUE side is quiet because its one-sector value is `0.5993`, nearly two
-standard deviations above the floor.
+tuned. The GUE side is quiet because its one-sector value is `0.5993`, `3.2` standard
+deviations above the floor. The rate is a function of the spectrum size, not a constant of
+the instrument: Section 5.1 reports it across sizes and gives a floor that keeps the same
+z-score as the size changes.
 
 ## A note on this draft
 
@@ -716,8 +789,6 @@ record rather than an embarrassment to be quietly removed.
    084101 (2013).
 6. Oganesyan, V. and Huse, D. A. *Localization of interacting fermions at high
    temperature.* Phys. Rev. B **75**, 155111 (2007).
-7. Davenport, H. and Heilbronn, H. *On the zeros of certain Dirichlet series I, II.*
-   J. London Math. Soc. **11**, 181–185, 307–312 (1936).
 
 ## Disclaimer
 
@@ -727,7 +798,8 @@ statistics toward Poisson, is standard quantum-chaos practice. What is local is 
 measured table, the entry points, the posterior's measured coverage, and the recorded
 limits.
 
-The diagnostic detects contamination. It does not count sectors reliably above two, and
-it does not distinguish GOE from GUE at two sectors. Those limits are stated, not hidden.
+The diagnostic detects contamination. It does not count sectors reliably above two from
+adjacent-gap ratios alone, and it does not distinguish GOE from GUE at two sectors. Those
+limits are stated, not hidden.
 
 The rule is: desymmetrize before testing the class.

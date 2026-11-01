@@ -413,8 +413,10 @@ TEX_SEARCH_DIRS = (
 LATEX_CHARACTERS = {
     "ρ": r"$\rho$",
     "σ": r"$\sigma$",
+    "Σ": r"$\Sigma$",
     "β": r"$\beta$",
     "ε": r"$\varepsilon$",
+    "Δ": r"$\Delta$",
     "⟨": r"$\langle$",
     "⟩": r"$\rangle$",
     "≥": r"$\geq$",
@@ -436,6 +438,7 @@ LATEX_CHARACTERS = {
     "²": r"$^{2}$",
     "₁": r"$_{1}$",
     "₂": r"$_{2}$",
+    "₃": r"$_{3}$",
     "ᵢ": r"$_{i}$",
     "ₖ": r"$_{k}$",
     "ⱼ": r"$_{j}$",
@@ -846,6 +849,12 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
     preamble = "\n".join(
         [
             r"\documentclass[11pt,a4paper]{article}",
+            # `cmap` must load before `fontenc`: it registers the ligature glyphs
+            # (fi, fl, ff) in the `/ToUnicode` map. Without it, and with the wrong order,
+            # "classifier" extracts as "classi er" and "flag" as "ag" -- a text layer
+            # that is not copyable, which is exactly the defect a reviewer sees first.
+            r"\usepackage{cmap}",
+            r"\pdfgentounicode=1",
             r"\usepackage[T1]{fontenc}",
             r"\usepackage[utf8]{inputenc}",
             r"\usepackage[margin=2.1cm]{geometry}",
@@ -853,7 +862,6 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
             r"\usepackage{array}",
             r"\usepackage{booktabs}",
             r"\usepackage{graphicx}",
-            r"\usepackage{cmap}",
             r"\usepackage[hidelinks]{hyperref}",
             r"\setlength{\parindent}{0pt}",
             r"\setlength{\parskip}{0.45em}",

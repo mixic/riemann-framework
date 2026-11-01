@@ -69,6 +69,8 @@ from dataclasses import dataclass, field
 
 from functools import lru_cache
 
+from typing import Any
+
 import numpy as np
 
 from .statistics import mean_r_ratio, r_ratio
@@ -640,6 +642,180 @@ def false_positive_counts(
         if value < SINGLE_SECTOR_FLOOR:
             flagged += 1
     return flagged, seeds
+
+
+# ============================================================
+# Size dependence of the flag, and robustness of the generative assumptions
+# ============================================================
+
+#: The one-sector GOE per-spectrum scatter the fixed floor was calibrated on, at 60
+#: levels per sector. The scatter of a mean over `n` ratios falls as `1 / sqrt(n)`, so a
+#: floor that does not move with the spectrum size over-flags at small sizes and
+#: under-flags at large ones.
+FLOOR_REFERENCE_LEVELS = 60
+FLOOR_REFERENCE_STD = 0.0393
+FLOOR_Z_SCORE = 1.3
+
+
+def one_sector_r_moments(
+    n_levels: int = 60,
+    seeds: int = 400,
+    matrix_class: str = "goe",
+    seed: int = 0,
+) -> tuple[float, float]:
+    """`(mean, std)` of the single-sector `mean r` at `n_levels` levels per sector."""
+    if n_levels < 4:
+        raise ValueError("n_levels must be at least four")
+    if seeds < 8:
+        raise ValueError("seeds must be at least eight")
+    values = np.array(
+        [
+            float(
+                mean_r_ratio(
+                    superposition_spectrum(1, n_levels, matrix_class, seed + index),
+                    unfold=False,
+                )
+            )
+            for index in range(seeds)
+        ]
+    )
+    return float(values.mean()), float(values.std(ddof=1))
+
+
+def size_dependent_floor(n_levels: int, z: float = FLOOR_Z_SCORE) -> float:
+    """The contamination floor at `n_levels` levels per sector.
+
+    `SINGLE_SECTOR_FLOOR = 0.48` is `R_GOE - 1.3 * std` measured at 60 levels. Keeping
+    that absolute value at another size moves the false-positive rate across the whole
+    one-sector distribution, because the scatter falls as `1 / sqrt(n)`. This function
+    keeps the z-score fixed instead, so the flag rate is the same fraction of the
+    one-sector distribution at every size.
+    """
+    if n_levels < 4:
+        raise ValueError("n_levels must be at least four")
+    sigma = FLOOR_REFERENCE_STD * float(np.sqrt(FLOOR_REFERENCE_LEVELS / n_levels))
+    return R_GOE - z * sigma
+
+
+def false_positive_rate_at_size(
+    n_levels: int,
+    seeds: int = 400,
+    matrix_class: str = "goe",
+    floor: float | None = None,
+    seed: int = 10_000,
+) -> float:
+    """The measured flag rate of pure single-sector spectra at `n_levels`.
+
+    With `floor=None` the size-dependent floor is used; pass a number (for example the
+    fixed `0.48`) to reproduce the constant-floor behaviour the paper contrasts against.
+    """
+    if seeds < 8:
+        raise ValueError("seeds must be at least eight")
+    threshold = size_dependent_floor(n_levels) if floor is None else float(floor)
+    flagged = 0
+    for index in range(seeds):
+        value = float(
+            mean_r_ratio(
+                superposition_spectrum(1, n_levels, matrix_class, seed + index),
+                unfold=False,
+            )
+        )
+        if value < threshold:
+            flagged += 1
+    return flagged / seeds
+
+
+@dataclass(frozen=True)
+class RobustnessRow:
+    """One departure from the symmetric simulator, measured through the same posterior."""
+
+    name: str
+    truth: int
+    posterior_probability: float
+    coverage: float
+    draws: int
+
+    def summary(self) -> str:
+        return (
+            f"{self.name:<16} truth {self.truth}: P(true) {self.posterior_probability:.2f}, "
+            f"coverage {self.coverage:.2f} over {self.draws} spectra"
+        )
+
+
+def mixed_sector_spectrum(
+    sector_sizes: tuple[int, ...],
+    matrix_classes: tuple[str, ...],
+    seed: int = 0,
+) -> np.ndarray:
+    """A superposition whose sectors may differ in size, class, or both.
+
+    `superposition_spectrum` builds equal, same-class sectors. This is the general form
+    the robustness table feeds to a posterior that was trained on the symmetric
+    assumption, so the comparison is the point rather than the convenience.
+    """
+    if len(sector_sizes) != len(matrix_classes):
+        raise ValueError("one class per sector")
+    if not sector_sizes:
+        raise ValueError("at least one sector")
+    rng = np.random.default_rng(seed)
+    return np.concatenate(
+        [
+            np.linalg.eigvalsh(_random_block(size, matrix_class, rng))
+            for size, matrix_class in zip(sector_sizes, matrix_classes)
+        ]
+    )
+
+
+def _awkward_density_spectrum(seed: int) -> np.ndarray:
+    """Three equal GOE sectors with the middle one compressed by a factor of two.
+
+    The smooth density is no longer flat, so the polynomial unfolding the model relies on
+    has a harder job than it does on the symmetric simulator.
+    """
+    rng = np.random.default_rng(seed)
+    blocks = [np.linalg.eigvalsh(_random_block(80, "goe", rng)) for _ in range(3)]
+    blocks[1] = blocks[1] * 0.5
+    return np.concatenate(blocks)
+
+
+def robustness_table(
+    draws: int = 200,
+    seed: int = 0,
+) -> list[RobustnessRow]:
+    """The equal-sector baseline and three departures, all through the same posterior.
+
+    The posterior is trained on equal, independent, class-balanced sectors at 240 levels.
+    The departures break exactly one of those assumptions each, and the table records how
+    much the posterior degrades rather than asserting that it holds.
+    """
+    model = default_sector_count_model()
+    scenarios: list[tuple[str, int, Any]] = [
+        ("equal", 3, lambda s: mixed_sector_spectrum((80, 80, 80), ("goe", "goe", "goe"), s)),
+        ("unequal", 3, lambda s: mixed_sector_spectrum((120, 80, 40), ("goe", "goe", "goe"), s)),
+        ("mixed class", 2, lambda s: mixed_sector_spectrum((120, 120), ("goe", "gue"), s)),
+        ("awkward density", 3, _awkward_density_spectrum),
+    ]
+    rows: list[RobustnessRow] = []
+    for name, truth, builder in scenarios:
+        probability = 0.0
+        covered = 0
+        for index in range(draws):
+            estimate = model.estimate(builder(seed + index), 0.95)
+            low, high = estimate.credible_interval
+            covered += _count_index(low) <= _count_index(truth) <= _count_index(high)
+            probability += estimate.posterior.get(truth, 0.0)
+        rows.append(
+            RobustnessRow(
+                name=name,
+                truth=truth,
+                posterior_probability=probability / draws,
+                coverage=covered / draws,
+                draws=draws,
+            )
+        )
+    return rows
+
+
 
 
 # ============================================================

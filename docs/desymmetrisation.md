@@ -274,10 +274,12 @@ tool that makes the mistake hard.
 
 | File | Contents |
 |:---|:---|
-| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, the resolution measurements (`convergence_series`, `mean_gap_separation`), and the failed mean-inverting estimator kept as the demonstration |
+| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, the resolution measurements (`convergence_series`, `mean_gap_separation`), the size-dependent floor, the robustness table, and the failed mean-inverting estimator kept as the demonstration |
 | `python/tests/test_desymmetrisation.py` | 40 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, and the resolution of the statistic |
+| `python/tests/test_diagnostic_robustness.py` | 6 tests: the flag's size dependence, the posterior's robustness to its simulator, and the long-range statistics |
 | `scripts/run_desymmetrisation_demo.py` | the figure, the 4000-seed table, and the coverage rows |
 | `scripts/generate_seed_study_figure.py` | the resolution figure: nested samples, and the two-sector overlap |
+| `scripts/robustness_diagnostics.py` | the size-dependence, robustness and number-variance tables |
 | `python/riemann_framework/dynamical_desymmetrisation.py` | the double-bracket flow, its invariants, and the negative circuit check |
 | `python/tests/test_dynamical_desymmetrisation.py` | 15 tests: isospectrality, the preserved commutant, sector selection, and the unverified identity |
 | `scripts/run_dynamical_desymmetrisation_demo.py` | the trajectory figure and the circuit table |

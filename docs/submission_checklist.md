@@ -40,16 +40,16 @@ not a theorem — and do not claim a result about the Riemann hypothesis.
 ## 2. Abstract length
 
 Measured, not estimated: the abstract in
-[`desymmetrisation_paper.md`](desymmetrisation_paper.md) is **279 words** (`1792`
+[`desymmetrisation_paper.md`](desymmetrisation_paper.md) is **296 words** (`1912`
 characters), and the arXiv-ready replacement written for
 [`arxiv_submission.md`](arxiv_submission.md) is **246 words** (`1549` characters, against
 arXiv's `1920`-character limit).
 
 | venue | limit | current | action |
 |:---|:---|:---|:---|
-| arXiv | ~200 words recommended, 1920 characters hard | 279 | **use the 246-word version** in [`arxiv_submission.md`](arxiv_submission.md) |
-| Physical Review E | ~250 | 279 | slightly **over the guide** — use the 246-word version, or trim the full one |
-| Chaos | ~250 | 279 | slightly **over the guide** — same |
+| arXiv | ~200 words recommended, 1920 characters hard | 296 | **use the 246-word version** in [`arxiv_submission.md`](arxiv_submission.md) |
+| Physical Review E | ~250 | 296 | slightly **over the guide** — use the 246-word version, or trim the full one |
+| Chaos | ~250 | 296 | slightly **over the guide** — same |
 
 ## 3. Figures
 

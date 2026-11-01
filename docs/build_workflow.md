@@ -79,7 +79,7 @@ The converter is deliberately narrow, so that its behaviour is inspectable:
 streams, per-font `/ToUnicode` CMaps) because there is no PDF library on the build
 machine. It asserts, on the PDF as a reader sees it:
 
-* **structure** — 16 pages, A4;
+* **structure** — 17 pages, A4;
 * **figures** — five embedded pictures (distinguishing real images from alpha masks), and
   every placement inside the text block *and* inside the page;
 * **text layer** — non-empty on every page, with the title, the author, the affiliation,
@@ -126,13 +126,46 @@ viewer. The verifier now measures both widths.
 
 Open the PDF once before submitting. That is the one step the pipeline cannot take.
 
+### 7.1 Review reports, and the ones that are the extractor
+
+Review reports about this PDF have repeatedly described defects that the file does not
+contain: duplicated headings, a section number inside a sentence, misspelled paths, a
+page of numbers where a figure should be. Each one so far has been an artefact of the
+reader's text extractor, which inserts spaces between glyph runs (`Hamilton ian`,
+`sect or`, `est imate`), drops a character now and then, and concatenates a heading with
+the paragraph that follows it, so the page appears to print the heading twice. The
+extractor used here does the same thing, which is why every text assertion in
+`verify_pdf.py` runs on whitespace-free, NFKC-normalised text.
+
+One reported text-layer problem was real. The `fi`/`fl`/`ff` ligatures were absent from
+the PDF's `/ToUnicode` map because `cmap` loaded after `fontenc`, so `classifier`
+extracted as `classi er` and `flag` as `ag`. Loading `cmap` before `fontenc` and setting
+`\pdfgentounicode=1` fixes it, and the verifier now fails if any of the ligature-bearing
+words (`classifier`, `flag`, `effect`, `difference`, `fidelity`, `reflects`) does not
+extract.
+
+`scripts/fix_remaining_v2.py` checks a set of reported defects against the source and
+against the built PDF, repairs only the ones that are real, and prints the evidence for
+the ones that are not:
+
+```bash
+python scripts/fix_remaining_v2.py --check   # report only, non-zero if one is real
+python scripts/fix_remaining_v2.py           # repair what is real
+```
+
+It is safe to run twice: a repair only fires when its check fails, and the
+duplicate-heading repair counts before it deletes, so a heading that occurs once is never
+touched. `--dump-text` prints whole pages for the same reason a forensic dump exists at
+all; an earlier version printed the first 2000 characters, which hid a heading that sat
+past the cut and made a present appendix look missing.
+
 ## 8. The commands, without the orchestrator
 
 ```bash
 python scripts/build_manuscript_pdf.py \
     --author "Milan Nikolic" --affiliation "Independent Researcher" \
     --email "m_nikolic@yahoo.com"          # writes output/desymmetrisation_paper.pdf
-python scripts/verify_pdf.py                # 27 checks, non-zero exit on failure
+python scripts/verify_pdf.py                # 28 checks, non-zero exit on failure
 python scripts/verify_pdf.py --dump-text    # what the text layer actually says
 cd python && python -m pytest tests/test_pdf_verification.py \
     tests/test_manuscript_figures.py -q    # the guards, in the suite

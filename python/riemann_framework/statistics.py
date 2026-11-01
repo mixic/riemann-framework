@@ -110,6 +110,87 @@ def mean_r_ratio(eigenvalues, unfold=True):
 
 
 # ============================================================
+# Long-range (spectral rigidity) statistics
+# ============================================================
+
+def _unfolded_levels(eigenvalues, unfold):
+    """Levels with mean spacing 1, for the rigidity statistics.
+
+    `unfold_spectrum` already returns mean-spacing-1 positions (the fitted
+    staircase). The extra rescale is a no-op there but does the right thing for a
+    raw spectrum when `unfold=False`.
+    """
+    levels = np.sort(np.asarray(eigenvalues, dtype=float))
+    if unfold:
+        levels = unfold_spectrum(levels)
+    count = levels.size
+    if count < 3 or levels[-1] <= levels[0]:
+        return np.array([])
+    return (levels - levels[0]) * (count - 1) / (levels[-1] - levels[0])
+
+
+def number_variance(eigenvalues, window_length, unfold=True):
+    """The number variance Sigma^2(L) over windows of length L.
+
+    On an unfolded spectrum the number of levels in a window of length L has
+    expectation L. Its variance is the standard long-range rigidity statistic:
+
+    * a Poisson process has Sigma^2(L) = L exactly;
+    * the rigid ensembles have Sigma^2(L) ~ ln L, far below L.
+
+    A superposition of several independent rigid sectors keeps the short-range
+    Poisson look of the adjacent-gap ratio but stays rigid at long range, which
+    is why this statistic separates the two where the r-ratio cannot.
+    """
+    levels = _unfolded_levels(eigenvalues, unfold)
+    if levels.size == 0:
+        return float("nan")
+    length = float(window_length)
+    span = float(levels[-1] - levels[0])
+    if length <= 0.0 or length >= span:
+        return float("nan")
+    starts = np.arange(levels[0], levels[-1] - length, 0.5)
+    if starts.size == 0:
+        return float("nan")
+    counts = np.array(
+        [np.count_nonzero((levels >= start) & (levels < start + length)) for start in starts]
+    )
+    return float(np.var(counts, ddof=1))
+
+
+def dyson_mehta_statistic(eigenvalues, window_length, unfold=True):
+    """The Dyson-Mehta rigidity statistic Delta_3(L) over windows of length L.
+
+    In each window the unfolded staircase is fitted by a straight line and the
+    mean squared deviation is averaged over all window positions. A Poisson
+    process gives Delta_3(L) = L/15; the rigid ensembles give Delta_3 ~ ln L.
+    """
+    levels = _unfolded_levels(eigenvalues, unfold)
+    if levels.size == 0:
+        return float("nan")
+    length = float(window_length)
+    span = float(levels[-1] - levels[0])
+    if length <= 0.0 or length >= span:
+        return float("nan")
+    starts = np.arange(levels[0], levels[-1] - length, 0.5)
+    if starts.size == 0:
+        return float("nan")
+    total = 0.0
+    windows = 0
+    for start in starts:
+        window = levels[(levels >= start) & (levels < start + length)] - start
+        if window.size < 2:
+            continue
+        staircase = np.arange(1, window.size + 1, dtype=float)
+        slope, intercept = np.polyfit(window, staircase, 1)
+        total += float(np.mean((staircase - (slope * window + intercept)) ** 2))
+        windows += 1
+    if windows == 0:
+        return float("nan")
+    return total / windows
+
+
+# ============================================================
 # Reference distributions
 # ============================================================
 

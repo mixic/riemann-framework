@@ -549,6 +549,18 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
                   "renders" if found else f"not in the text layer ({why})")
         )
 
+    # The fi/fl/ff ligatures were dropped from the text layer by a `cmap`/`fontenc`
+    # ordering bug: "classifier" extracted as "classi er" and "flag" as "ag". The fix is
+    # to load `cmap` before `fontenc` and set `\pdfgentounicode=1`; this check pins it.
+    ligature_words = ("classifier", "flag", "effect", "difference", "fidelity", "reflects")
+    checks.append(
+        Check(
+            "ligatures extract",
+            all(_flat(word) in text.flat for word in ligature_words),
+            "fi, fl and ff ligatures survive extraction",
+        )
+    )
+
     checks.append(
         Check(
             "figures captioned",
@@ -583,7 +595,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
-    parser.add_argument("--pages", type=int, default=16)
+    parser.add_argument("--pages", type=int, default=17)
     parser.add_argument("--images", type=int, default=5)
     parser.add_argument("--strict", action="store_true",
                         help="also fail on collapsed interval notation in the text layer")
@@ -600,9 +612,13 @@ def main() -> int:
 
     text = extract_text(args.pdf)
     if args.dump_text:
+        # Whole pages, not a prefix. An earlier version printed the first 2000
+        # characters, which is more than a page at this density by luck and less than a
+        # page in practice: a heading that sat past the cut looked like a missing
+        # heading, and a forensic dump that hides text is worse than none.
         for index, page in enumerate(text.pages, start=1):
-            print(f"--- page {index} ---")
-            print(page[:2000])
+            print(f"--- page {index} ({len(page)} characters) ---")
+            print(page)
         print(f"--- fonts: {', '.join(text.fonts)}")
 
     print(f"verifying {args.pdf.relative_to(PROJECT_ROOT)}")

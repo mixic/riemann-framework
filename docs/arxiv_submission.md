@@ -35,7 +35,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | **Authors** | Milan Nikolic — Independent Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
-| **Comments** | 16 pages, 5 figures, 3 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
+| **Comments** | 17 pages, 5 figures, 3 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
 | **Journal-ref** | none |
 | **DOI** | none |
 | **License** | `[CHECK]` arXiv non-exclusive distribution licence (default), or CC BY 4.0. The **code** is GPL-3.0 and stays GPL-3.0; the paper is not, and does not need to be, GPL. |
@@ -132,14 +132,14 @@ path is supported and tested, but it is the fallback.
 
 `scripts/verify_pdf.py` reads the PDF back — extracting the text layer per font, with a
 small PDF reader written for this purpose, because there is no PDF library here — and
-asserts 27 things. The current build passes all of them:
+asserts 28 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
-[PASS] page count: 16 pages (expected 16)
+[PASS] page count: 17 pages (expected 17)
 [PASS] page size: A4
 [PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
-[PASS] text layer: 16 pages, 29859 characters
+[PASS] text layer: 17 pages, 33300 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
@@ -154,7 +154,8 @@ $ python scripts/verify_pdf.py
 [PASS] present: 'Figure 1:' … 'Figure 5:': present
 [PASS] present: 'github.com/mixic/riemann-framework': present
 [PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..2 / 3..≥6: render
-PASS: all 27 checks passed
+[PASS] ligatures extract: fi, fl and ff ligatures survive extraction
+PASS: all 28 checks passed
 ```
 
 The `absent` check on the licence text reads the *boilerplate*, not the licence name:
@@ -177,7 +178,7 @@ effective width with the text block *and* its natural width with the page.
 
 | property | value |
 |:---|:---|
-| pages | `16`, A4, numbered (LaTeX default) |
+| pages | `17`, A4, numbered (LaTeX default) |
 | figures | `5`, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
 | fonts | Computer Modern (CMR10, CMR8, CMR7, CMMI10/8/7, CMSY10, MSBM10), all embedded |
 | text layer | complete and searchable (`/ToUnicode` per font) |
@@ -212,7 +213,7 @@ not submission), and `--backend chrome` forces the fallback.
 
 - [ ] repository URL resolved and public (the comments field and the data statement cite it)
 - [x] PDF generated from the current Markdown, figures embedded, `verify_pdf.py` passing
-      27/27 — but **open it once** and check the page breaks by eye, which is the one thing
+      28/28 — but **open it once** and check the page breaks by eye, which is the one thing
       a mechanical check cannot do
 - [ ] abstract pasted as plain text (246 words), not the long one
 - [ ] categories set; MSC added only if the `math-ph` cross-list is kept
