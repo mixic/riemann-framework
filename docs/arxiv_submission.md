@@ -132,10 +132,10 @@ asserts 25 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
-[PASS] page count: 11 pages (expected 11)
+[PASS] page count: 12 pages (expected 12)
 [PASS] page size: A4
 [PASS] embedded figures: 4 pictures (8 image objects, 4 masks; expected 4)
-[PASS] text layer: 11 pages, 16581 characters
+[PASS] text layer: 12 pages, 19007 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 4 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
@@ -168,7 +168,7 @@ effective width with the text block *and* its natural width with the page.
 
 | property | value |
 |:---|:---|
-| pages | `11`, A4, numbered (LaTeX default) |
+| pages | `12`, A4, numbered (LaTeX default) |
 | figures | `4`, one per section, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
 | fonts | Computer Modern (CMR10, CMR8, CMR7, CMMI10/8/7, CMSY10, MSBM10), all embedded |
 | text layer | complete and searchable (`/ToUnicode` per font) |

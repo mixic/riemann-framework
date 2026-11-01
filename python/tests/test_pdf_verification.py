@@ -64,6 +64,8 @@ def test_the_committed_pdf_passes_its_own_checks():
         cwd=PROJECT_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=300,
     )
     assert result.returncode == 0, result.stdout + result.stderr
@@ -75,7 +77,7 @@ def test_the_reader_recovers_the_title_and_the_author_block():
     """The text layer is readable: a garbled one would fail every content check."""
     verifier = _load_verifier()
     text = verifier.extract_text(PDF)
-    assert len(text.pages) == 11
+    assert len(text.pages) == 12
     assert not text.pages_without_text
     assert "DesymmetrizationofQuantumSpectra" in text.flat
     assert "MilanNikolic" in text.flat

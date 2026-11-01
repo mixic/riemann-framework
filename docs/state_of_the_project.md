@@ -344,8 +344,8 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
 | `sorry`-free Lean modules | 4 of 9 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
-| tests passing | 1107 | `python/tests/` |
-| documents | 36 | `docs/` |
+| tests passing | 1117 | `python/tests/` |
+| documents | 38 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
 | manuscripts | 2 | [`desymmetrisation_paper.md`](desymmetrisation_paper.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) |
@@ -358,6 +358,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | [`central_hypothesis.md`](central_hypothesis.md) | the DSH as proposed, and its abandonment in the same document (§10) |
 | [`m5_verdict.md`](m5_verdict.md) | the decisive test, with the defects and the numbers |
 | [`desymmetrisation.md`](desymmetrisation.md), [`desymmetrisation_paper.md`](desymmetrisation_paper.md) | the diagnostic, and its manuscript |
+| [`build_workflow.md`](build_workflow.md) | how the manuscript becomes a verified PDF, and the two failures that shaped the checks |
 | [`submission_checklist.md`](submission_checklist.md), [`cover_letter.md`](cover_letter.md) | submission materials, unsent |
 | [`dh_filter.md`](dh_filter.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) | the screening filter, and its methods note |
 | [`hilbert_polya.md`](hilbert_polya.md), [`operator_candidates.md`](operator_candidates.md), [`pt_symmetric_hilbert_polya.md`](pt_symmetric_hilbert_polya.md) | the operator attempts and their measured gaps |
@@ -430,6 +431,30 @@ It did produce:
 
 That is what research looks like when the central hypothesis fails.
 
+### 12.1 The artifacts, and the pipeline that makes them
+
+The two manuscripts are not the only artifacts. Each one is the output of a script, and
+each script is checked by something that has failed before:
+
+| artifact | produced by | checked by |
+|:---|:---|:---|
+| `output/desymmetrisation_paper.pdf` | `scripts/build_manuscript_pdf.py` (Markdown → LaTeX → `pdflatex`) | `scripts/verify_pdf.py`, 25 checks |
+| the four figures in `output/` | `scripts/generate_desymmetrisation_figures.py` | `tests/test_desymmetrisation_figures.py` |
+| the manuscript's figure references | the Markdown | `tests/test_manuscript_figures.py` |
+| this document's counts | the tree | `tests/test_documentation_sync.py` |
+
+The whole workflow — including the two failures that produced its checks (browser
+furniture on every page; a figure whose natural width exceeded the page) — is written up
+in [`build_workflow.md`](build_workflow.md). One command runs it:
+
+```bash
+python scripts/build_and_verify.py
+```
+
+That is the last thing worth saying about the repository as an *instrument*: the claims
+are only as good as their reproduction, and the reproduction is a script with a failing
+case behind every check in it.
+
 The Riemann hypothesis remains open. The next attempt will be more careful because of what
 is recorded here.
 
@@ -437,8 +462,9 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1107 passed`; `lake build` → 9 modules
+**Last verified:** `python -m pytest tests/ -q` → `1117 passed`; `lake build` → 9 modules
 compile, the 4 `sorry`-free modules remain `sorry`-free;
+`python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.
 
 **Manuscripts:** [`desymmetrisation_paper.md`](desymmetrisation_paper.md) (draft, not

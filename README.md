@@ -59,6 +59,16 @@ page 6 to a wall of axis numbers. The build now rewrites each PNG's declared res
 its natural width equals the printed width, which leaves a scale of 1.0 and renders the
 same way everywhere.
 
+One command runs the build and the verification, and stops at the first failure:
+
+```bash
+python scripts/build_and_verify.py --author "Milan Nikolic"
+```
+
+[`docs/build_workflow.md`](docs/build_workflow.md) documents the pipeline stage by stage,
+the failure behind every check, and what no script can check (whether the pages look
+right — that one is yours).
+
 ## Status
 
 | Component | Status |
@@ -87,7 +97,7 @@ same way everywhere.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1113 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1117 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -957,7 +967,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1113 tests pass** on the current tree. They are not smoke tests: the suite
+**1117 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -984,6 +994,7 @@ silently changed meaning.
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
 | `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
+| `test_manuscript_figures.py` | 4 | The manuscript has exactly four figure references, no duplicates, all files present, captions numbered |
 | `test_pdf_verification.py` | 6 | The committed PDF passes `verify_pdf.py`; the reader recovers the title, keeps fonts apart, and separates a figure's natural size from its placed size; the header pattern matches browser furniture |
 | `test_desymmetrisation_figures.py` | 5 | The manuscript's figures regenerate, and their numbers match Appendix B and Appendix C within noise |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |

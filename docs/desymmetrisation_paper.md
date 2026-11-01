@@ -18,12 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage
 
-### Methods manuscript — draft for submission
+### Methods manuscript: draft for submission
 
 **Status.** Draft complete and reproducible in this repository; not submitted anywhere,
 no venue assigned, no peer review. The licence header above is kept for repository
 consistency and should be stripped for submission. Corrections made to the previous
-draft are listed in ["A note on this draft"](#a-note-on-this-draft) — the numbers in the
+draft are listed in ["A note on this draft"](#a-note-on-this-draft), the numbers in the
 tables are the measured ones, and where the draft had a figure or a deviation wrong, this
 version says what the measurement is.
 
@@ -48,7 +48,7 @@ The diagnostic is calibrated on a measured table, its false-positive rate is sta
 of `40` pure single-sector GOE spectra fall below the flag), and its limits are reported
 rather than hidden. The companion dynamical analysis shows that the double-bracket flow
 preserves sector populations when the state commutes with the involution, but selects a
-sector when it does not — so the flow cannot repair a contaminated spectrum, because the
+sector when it does not, so the flow cannot repair a contaminated spectrum, because the
 class is a property of the Hamiltonian and the Hamiltonian does not evolve.
 
 ## 1. Introduction
@@ -117,13 +117,13 @@ recorded limits.
 
 Given a Hamiltonian `H` and a set of involutions `{U₁, …, Uₖ}`:
 
-* **Step 1 — verify.** Check `[H, Uᵢ] = 0` for every `i`, and `[Uᵢ, Uⱼ] = 0` for every
+* **Step 1: verify.** Check `[H, Uᵢ] = 0` for every `i`, and `[Uᵢ, Uⱼ] = 0` for every
   pair. If a commutator is nonzero the split is invalid, and the diagnostic refuses to
   proceed rather than returning a plausible-looking decomposition.
-* **Step 2 — diagonalize the involution group.** The involutions generate `(ℤ₂)ᵏ`;
+* **Step 2: diagonalize the involution group.** The involutions generate `(ℤ₂)ᵏ`;
   diagonalize each `Uᵢ` and group the simultaneous eigenspaces.
-* **Step 3 — split.** Project `H` onto each joint eigenspace and diagonalize the block.
-* **Step 4 — validate.** For the `σ` case the sectors are `spec(A + C)` and `spec(A − C)`;
+* **Step 3: split.** Project `H` onto each joint eigenspace and diagonalize the block.
+* **Step 4: validate.** For the `σ` case the sectors are `spec(A + C)` and `spec(A − C)`;
   that identity is checked against the blocks, not assumed. For a `ℤ₂ × ℤ₂` the four
   sectors are checked against a direct sum built from four known blocks.
 
@@ -136,10 +136,10 @@ discards exactly the mass that makes the blocks non-sectors.
 
 Two entry points cover a caller that has only a spectrum:
 
-* `contamination_warning(H, U)` — when a candidate involution is known. It verifies the
+* `contamination_warning(H, U)`: when a candidate involution is known. It verifies the
   commutation, splits, and compares the full spectrum with the resolved sectors. This is
   the reliable half: the comparison is within one Hamiltonian and needs no calibration.
-* `detect_hidden_symmetry(eigenvalues)` — when no involution is known. It computes the
+* `detect_hidden_symmetry(eigenvalues)`: when no involution is known. It computes the
   full-spectrum `⟨r⟩` and flags a value below the single-sector floor.
 
 The flag is not a classifier (Fig. 2). `4` of `40` pure single-sector GOE spectra also
@@ -281,7 +281,7 @@ We tested it against the three natural generators (`exp(i√ε(H₁ − H₂))`,
 swap inserted, and the Trotter split of the two phases) by fitting
 `ρ(ε) = ρ + √ε A + ε B + …` from three scales. In every case:
 
-* the first-order term is **not** zero — it is `A = i[H, ρ₁]`, which the identity does
+* the first-order term is **not** zero: it is `A = i[H, ρ₁]`, which the identity does
   not have;
 * the second-order term is **not** `±[[ρ₁, H], ρ₁]`.
 
@@ -388,10 +388,61 @@ than hidden.
 
 The companion dynamical analysis shows that the double-bracket flow preserves sector
 populations when the state commutes with the involution, but selects a sector when it
-does not — so the flow cannot repair a contaminated spectrum, because the class is a
+does not, so the flow cannot repair a contaminated spectrum, because the class is a
 property of the Hamiltonian and the Hamiltonian does not evolve.
 
 The rule is simple: desymmetrize before testing the class.
+
+## 10. Technical application and outlook
+
+The diagnostic is a software method, and a method is not a device. This section states,
+as an outlook, how the three measured things in this paper (the split, the posterior, and
+the flow) assemble into a physical instrument. It is a technical description, not a
+patent claim: no application is filed or pending, nothing here asserts patentability, and
+what an office would grant is a matter for a patent attorney and depends on the
+jurisdiction.
+
+### 10.1 A symmetry-aware spectrum analyzer
+
+| component | technical function | what it uses here |
+|:---|:---|:---|
+| signal acquisition | measure the energy spectrum of a sample, for instance a quantum dot array, a microwave cavity, or a material | the input spectrum |
+| symmetry verification | test whether the spectrum commutes with a candidate involution, such as a spatial symmetry of the sample | `desymmetrise(H, involutions)` |
+| sector splitting | project into joint eigenspaces once the symmetry is verified | the `spec(A ± C)` identity and the `Z₂ × Z₂` split |
+| posterior engine | estimate the number of unresolved sectors from the gap-ratio sequence | `sector_count_posterior` |
+| output | emit a contamination flag, or a posterior over the sector count | the `severe` / `mild` / `none` warning |
+
+The problem the instrument solves is the failure mode of this whole manuscript. An
+analyzer that reports one number, `⟨r⟩`, can label a chaotic system integrable when a
+symmetry is unresolved. The instrument replaces the number with a verdict and a posterior
+whose coverage is measured rather than assumed.
+
+### 10.2 A quantum-processor calibration system
+
+A processor, for instance a superconducting qubit array, can sit in a symmetry-protected
+regime whose spectrum looks integrable, and control pulses calibrated against that
+spectrum are wrong. The device reads the spectrum, applies the diagnostic, and, on a
+contaminated result, drives a symmetry-breaking perturbation to resolve the sectors
+before re-measuring. The technical effect is control fidelity; the algorithm is the means.
+
+### 10.3 A double-bracket flow controller
+
+The flow `dρ/dβ = [[ρ, H], ρ]` preserves or selects a sector, as measured in §3. A
+controller that implements the flow and monitors the coherence `‖[ρ, σ]‖` can stop the
+evolution when the wrong sector is being selected, instead of discovering it after the
+prepared state is wrong.
+
+### 10.4 What is not claimed
+
+* the algorithm itself (a Bayesian posterior over sector counts);
+* a numerical simulation with no physical input or output;
+* the mathematics of Sections 2 through 4.
+
+A granted patent claims a physical embodiment and a technical effect, not these. The
+path from this outlook to a filed application runs through a patent attorney; the cost is
+on the order of several tens of thousands of dollars across the major jurisdictions, and
+the first step is a consultation rather than a filing. This manuscript makes no patent
+claim and no assertion about what any office would grant.
 
 ## Appendix A: The full measured table
 
@@ -454,7 +505,7 @@ record rather than an embarrassment to be quietly removed.
 | the environment was given as Python `3.12`, NumPy `≥1.26`, SciPy `≥1.11` | measured: Python `3.14.7`, NumPy `2.5.3`, matplotlib `3.11.2`; SciPy is not used by these modules |
 | the commands were `cd python` then `python scripts/…` | the scripts live at the repository root, so the figures are generated from the root and the tests are run from `python/` |
 | the coverage table omitted the five-sector row | it is included (`1.00`), because the figure shows it and a table that hides a row the figure displays is worse than a longer table |
-| `p(true)` for `3, 4, 6` was left as `—` | the measured values are `0.24, 0.17, 0.20` — all low, which is the point of those rows |
+| `p(true)` for `3, 4, 6` was left blank | the measured values are `0.24, 0.17, 0.20`, all low, which is the point of those rows |
 
 ## References
 
@@ -476,8 +527,8 @@ record rather than an embarrassment to be quietly removed.
 ## Disclaimer
 
 This manuscript describes a diagnostic instrument, not a result about the Riemann
-hypothesis. The phenomenon it addresses — that unresolved symmetries bias spacing
-statistics toward Poisson — is standard quantum-chaos practice. What is local is the
+hypothesis. The phenomenon it addresses, that unresolved symmetries bias spacing
+statistics toward Poisson, is standard quantum-chaos practice. What is local is the
 measured table, the entry points, the posterior's measured coverage, and the recorded
 limits.
 
