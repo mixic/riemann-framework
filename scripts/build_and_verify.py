@@ -132,6 +132,18 @@ def main() -> int:
             print()
             print("FAILED at the verification. The PDF exists but is not submittable.")
             print("The failing checks are listed above; fix the source and re-run.")
+            print()
+            # Forensic step, in the same run: re-read the PDF and print the text layer
+            # of every page. A content check that fails ("a page dominated by digits",
+            # a caption missing) is diagnosable only by seeing what the page actually
+            # says, and the failure is exactly when that dump is worth its length.
+            print("Forensic dump: the text layer of every page, so that a page which")
+            print("failed a content check can be read directly.")
+            run(
+                "forensic dump",
+                [sys.executable, str(VERIFY), "--pdf", str(pdf), "--dump-text"],
+                args.verbose,
+            )
             return 1
 
     print()
