@@ -482,9 +482,12 @@ window length 20, 200 spectra per point):
 `Σ²(20)` reads a Poisson spectrum as `12.4` and a six-sector union as `3.8`, where the
 ratio reads both as `0.39`. Long-range statistics therefore separate Poisson from a union
 of sectors almost perfectly, which is the comparison the ratio fails and the one a
-complete instrument should add. The posterior in this paper uses the ratio sequence
-alone, so its "not counted above two" is a statement about that statistic, and nothing
-stronger.
+complete instrument should add. The posterior is the instrument when the symmetry is
+unknown and only the gap ratios are available; the number variance and the Dyson–Mehta
+statistic are the instruments when a bare spectrum must be read as Poisson or as a union
+of rigid sectors. A complete diagnostic reports both, because the two statistics fail in
+different places. The posterior in this paper uses the ratio sequence alone, so its "not
+counted above two" is a statement about that statistic and nothing stronger.
 
 ## 6. Comparison with explicit desymmetrization
 
