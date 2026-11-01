@@ -41,9 +41,15 @@ metadata file is filled in — title, the 196-word listing abstract, categories,
 copy-paste field table, the author block — with the MSC codes and the licence marked for
 the author to choose.
 
-The PDF is generated from the Markdown by `scripts/build_manuscript_pdf.py` (Markdown →
-HTML → headless Chrome; there is no LaTeX on the build machine), with the four figures
-embedded and the licence header and draft note stripped. It has no page numbers.
+The PDF is typeset by `scripts/build_manuscript_pdf.py`: Markdown → LaTeX → `pdflatex`
+(the fallback, when no TeX engine is present, is Markdown → HTML → headless Chrome), with
+the four figures embedded, numbered pages, and the licence header and draft note stripped.
+`scripts/verify_pdf.py` reads the PDF back and asserts 23 properties of it — page count and
+size, the four figures, the text layer, the author block, the four captions, the glyphs of
+the abstract, and the absence of a browser header, a `file:///` footer, the licence and the
+draft note. That check exists because an earlier build failed it: the Chrome PDF carried a
+date header and a file-path footer on every page, which a byte-level inspection of page
+count and images had missed.
 
 ## Status
 
@@ -73,7 +79,7 @@ embedded and the licence header and draft note stripped. It has no page numbers.
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1107 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1111 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -943,7 +949,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1107 tests pass** on the current tree. They are not smoke tests: the suite
+**1111 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -970,6 +976,7 @@ silently changed meaning.
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
 | `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
+| `test_pdf_verification.py` | 4 | The committed PDF passes `verify_pdf.py`; the reader recovers the title and keeps fonts apart; the header pattern matches browser furniture |
 | `test_desymmetrisation_figures.py` | 5 | The manuscript's figures regenerate, and their numbers match Appendix B and Appendix C within noise |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |

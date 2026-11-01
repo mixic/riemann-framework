@@ -89,24 +89,24 @@ is not clearly worth typing, drop it: a wrong MSC code is worse than no second c
 ## 4. What must change in the posted version
 
 The repository copy keeps the GPL header and the draft note for consistency with every
-other document here. The posted version must not carry them.
+other document here. The build strips both for the PDF; the Markdown keeps them.
 
-- [ ] remove the GPL licence header (it belongs to the **code**, and the code is not part
-      of the upload);
-- [ ] remove §"A note on this draft", or move it to supplementary material;
+- [x] the GPL licence header is stripped by the build (it belongs to the **code**, and the
+      code is not part of the upload);
+- [x] §"A note on this draft" is stripped by the build (`--keep-draft-note` restores it for
+      a review copy);
+- [x] the author block is set: Milan Nikolic, Independent Researcher, `m_nikolic@yahoo.com`;
 - [ ] decide on §4 (the multi-copy identity). My view, unchanged: move it to an appendix.
       As a section it reads as a claim about the cited paper; the honest content is that
       three generators one can build here disagree with the quoted form and the fourth
       was never read;
 - [ ] check the figures in greyscale (§3 of the checklist) — Figs. 2 and 4 distinguish
       classes by colour *and* marker style, so they should survive, but this has not been
-      looked at;
-- [ ] set the author block for real.
+      looked at.
 
 ## 5. The PDF, and how it is produced
 
-arXiv accepts PDF, or LaTeX source it compiles itself. **This machine has neither `pandoc`
-nor a LaTeX distribution**, so the PDF is produced by a different route:
+MiKTeX is installed, so the default backend is now **LaTeX**, which is what arXiv wants:
 
 ```bash
 python scripts/build_manuscript_pdf.py \
@@ -115,35 +115,61 @@ python scripts/build_manuscript_pdf.py \
     --email "m_nikolic@yahoo.com"
 ```
 
-The pipeline is Markdown → HTML (a converter that understands exactly the subset the
-manuscript uses) → headless Chrome → PDF. The figures are embedded as base64, so the PDF
-is self-contained. Output: `output/desymmetrisation_paper.pdf`.
+The script translates the Markdown to LaTeX (`article`, 11pt, A4, `booktabs` tables,
+`graphicx` figures, `hyperref`, `cmap`) and runs `pdflatex` twice. Every non-ASCII
+character in the manuscript is mapped to a LaTeX form by an explicit table, and a
+character the table does not cover **aborts the build** rather than dropping a glyph.
+Output: `output/desymmetrisation_paper.pdf`; the `.tex` is deleted unless `--keep-tex`.
 
-What was verified mechanically on the current build:
+Without a TeX engine the script falls back to Markdown → HTML → headless Chrome. That
+path is supported and tested, but it is the fallback.
 
-| check | result |
+### 5.1 What the build verifies
+
+`scripts/verify_pdf.py` reads the PDF back — extracting the text layer per font, with a
+small PDF reader written for this purpose, because there is no PDF library here — and
+asserts 23 things. The current build passes all of them:
+
+```
+$ python scripts/verify_pdf.py
+[PASS] page count: 11 pages (expected 11)
+[PASS] page size: A4
+[PASS] embedded figures: 4 pictures (8 image objects, 4 masks; expected 4)
+[PASS] text layer: 11 pages, 16582 characters
+[PASS] no browser header: no date/time stamp
+[PASS] absent: 'GNU General Public License': absent
+[PASS] absent: 'A note on this draft': absent
+[PASS] absent: 'Status.': absent
+[PASS] absent: 'file:///': absent
+[PASS] present: 'Desymmetrization of Quantum Spectra': present
+[PASS] present: 'Milan Nikolic': present
+[PASS] present: 'Independent Researcher': present
+[PASS] present: 'm_nikolic@yahoo.com': present
+[PASS] present: 'Fig. 1.' … 'Fig. 4.': present
+[PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..5 / 3..6: render
+PASS: all 23 checks passed
+```
+
+The check exists because the previous build **failed it**: the Chrome PDF carried a
+date/time header (`11/1/26, 9:34AM`) and a `file:///` footer on every page. The flag in
+the script was `--print-to-pdf-no-header`, which Chrome 120+ silently ignores; the
+current flag is `--no-pdf-header-footer`. The Chrome path now passes as well. The
+LaTeX build has no such furniture by construction.
+
+### 5.2 Properties of the current PDF
+
+| property | value |
 |:---|:---|
-| page count | `11` |
-| page size | A4 (`594.96 × 841.92` pt) |
-| embedded images | `4`, one per figure |
-| fonts embedded | Georgia (text), Georgia Italic/Bold, Consolas (code), Cambria Math (the `σ`, `⟨r⟩`, `≥` glyphs) |
-| text layer | `/ToUnicode` maps present, so the PDF is searchable and copyable |
-| licence header, draft banner, "A note on this draft" | absent |
+| pages | `11`, A4, numbered (LaTeX default) |
+| figures | `4`, one per section, captioned |
+| fonts | Computer Modern (CMR10, CMR8, CMMI10/8, CMSY10, MSBM10), all embedded |
+| text layer | complete and searchable (`/ToUnicode` per font) |
+| PDF/A | **not** compliant; arXiv accepts non-PDF/A, a venue that requires it needs a Ghostscript pass or a PDF/A class |
+| layout | one overfull box of `6.3pt` in the figure-list table; no other overfull or underfull warnings, no float drift (each figure sits within a page of its reference) |
 
-What is **not** in it, and the author should decide on:
-
-- **No page numbers.** Chrome's print-to-PDF does not support CSS margin boxes, and adding
-  the browser's own header would print the `file:///` path. If the venue needs numbered
-  pages, the PDF has to be re-made with a LaTeX or Word toolchain.
-- No line numbers and no journal style class: it is a plain A4 single-column preprint.
-
-Re-running the command regenerates the PDF from the current Markdown; `--keep-draft-note`
-keeps the corrections section (useful for a review copy, not for a submission).
-
-`[CHECK]` — the manuscript uses Unicode (`⟨r⟩`, `σ`, `→`) inside tables. Chrome falls back
-to Cambria Math for those glyphs, which renders correctly but is a visible font change
-inside running text. A LaTeX build with `unicode-math` would unify it, if that matters to
-the venue.
+Re-running the command regenerates the PDF from the current Markdown; `--keep-tex`
+leaves the `.tex` behind, `--keep-draft-note` keeps the corrections section (review copy,
+not submission), and `--backend chrome` forces the fallback.
 
 ## 6. Pre-flight
 

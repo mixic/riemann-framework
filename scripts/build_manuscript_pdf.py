@@ -46,6 +46,7 @@ from __future__ import annotations
 import argparse
 import base64
 import html
+import os
 import re
 import shutil
 import subprocess
@@ -366,6 +367,10 @@ def print_to_pdf(browser: str, html_path: Path, pdf_path: Path) -> None:
         f"--user-data-dir={profile}",
         "--virtual-time-budget=15000",
         f"--print-to-pdf={pdf_path}",
+        # `--print-to-pdf-no-header` is deprecated and silently ignored by Chrome 120+,
+        # which then prints a date/title header and a file:/// footer on every page.
+        # Both flags are passed: the current one is honoured, the old one is harmless.
+        "--no-pdf-header-footer",
         "--print-to-pdf-no-header",
         html_path.resolve().as_uri(),
     ]
@@ -382,7 +387,475 @@ def print_to_pdf(browser: str, html_path: Path, pdf_path: Path) -> None:
 def page_count(pdf_path: Path) -> int:
     """Count `/Type /Page` objects without a PDF library."""
     data = pdf_path.read_bytes()
-    return len(re.findall(rb"/Type\s*/Page[^s]", data))
+    return len(re.findall(rb"/Type\s*/Page\b(?!s)", data))
+
+
+# ============================================================
+# Backend 1: LaTeX (used when a TeX engine is available)
+# ============================================================
+
+#: TeX engines, most preferred first. MiKTeX keeps its binaries off PATH by default.
+TEX_ENGINES = ("pdflatex", "xelatex", "lualatex")
+
+TEX_SEARCH_DIRS = (
+    Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "MiKTeX" / "miktex" / "bin" / "x64",
+    Path(r"C:\Program Files\MiKTeX\miktex\bin\x64"),
+    Path(r"C:\Program Files\MiKTeX 2.9\miktex\bin\x64"),
+    Path("/usr/bin"),
+    Path("/usr/local/bin"),
+    Path("/Library/TeX/texbin"),
+)
+
+#: Every non-ASCII character in the manuscript, mapped to LaTeX. The build aborts on a
+#: character that is not here: a dropped glyph is worse than a failed build.
+LATEX_CHARACTERS = {
+    "ρ": r"$\rho$",
+    "σ": r"$\sigma$",
+    "β": r"$\beta$",
+    "ε": r"$\varepsilon$",
+    "⟨": r"$\langle$",
+    "⟩": r"$\rangle$",
+    "≥": r"$\geq$",
+    "≤": r"$\leq$",
+    "≈": r"$\approx$",
+    "≡": r"$\equiv$",
+    "≠": r"$\neq$",
+    "±": r"$\pm$",
+    "×": r"$\times$",
+    "·": r"$\cdot$",
+    "−": r"$-$",
+    "⊗": r"$\otimes$",
+    "†": r"$\dagger$",
+    "‖": r"$\|$",
+    "√": r"$\surd$",
+    "ℤ": r"$\mathbb{Z}$",
+    "ℂ": r"$\mathbb{C}$",
+    "○": r"$\circ$",
+    "²": r"$^{2}$",
+    "₁": r"$_{1}$",
+    "₂": r"$_{2}$",
+    "ᵢ": r"$_{i}$",
+    "ₖ": r"$_{k}$",
+    "ⱼ": r"$_{j}$",
+    "ᵏ": r"$^{k}$",
+    "—": r"---",
+    "–": r"--",
+    "…": r"\ldots{}",
+    "§": r"\S{}",
+    "“": r"``",
+    "”": r"''",
+    "‘": r"`",
+    "’": r"'",
+}
+
+#: Multi-character patterns replaced before the character table, because the character
+#: table would produce something correct but badly spaced.
+LATEX_PATTERNS = (
+    (r"⟨r⟩", r"$\langle r\rangle$"),
+    (r"ℤ₂ × ℤ₂", r"$\mathbb{Z}_{2} \times \mathbb{Z}_{2}$"),
+    (r"(ℤ₂)ᵏ", r"$(\mathbb{Z}_{2})^{k}$"),
+    (r"ℤ₂", r"$\mathbb{Z}_{2}$"),
+    (r"√ε", r"$\sqrt{\varepsilon}$"),
+    (r"√2", r"$\sqrt{2}$"),
+    (r"‖[H, U]‖/‖H‖", r"$\|[H,U]\|/\|H\|$"),
+    (r"‖[H,σ]‖/‖H‖", r"$\|[H,\sigma]\|/\|H\|$"),
+    (r"‖[ρ, σ]‖", r"$\|[\rho,\sigma]\|$"),
+    (r"‖[ρ, H]‖", r"$\|[\rho,H]\|$"),
+    (r"Hρ²", r"$H\rho^{2}$"),
+    (r"ρ²H", r"$\rho^{2}H$"),
+)
+
+
+def latex_escape(text: str) -> str:
+    """Escape the characters that are special in LaTeX text mode."""
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(replacements.get(character, character) for character in text)
+
+
+def latex_symbols(text: str) -> str:
+    """Translate the manuscript's Unicode into LaTeX, after escaping."""
+    for pattern, replacement in LATEX_PATTERNS:
+        text = text.replace(pattern, replacement)
+    out: list[str] = []
+    for character in text:
+        if ord(character) < 128:
+            out.append(character)
+        elif character in LATEX_CHARACTERS:
+            out.append(LATEX_CHARACTERS[character])
+        else:
+            raise ValueError(
+                f"no LaTeX mapping for U+{ord(character):04X} ({character!r}); "
+                "add it to LATEX_CHARACTERS"
+            )
+    return "".join(out)
+
+
+def latex_inline(text: str) -> str:
+    """Escape, translate symbols, then apply code spans, emphasis and links."""
+    placeholders: list[str] = []
+
+    def stash_code(match: re.Match[str]) -> str:
+        body = latex_symbols(latex_escape(match.group(1)))
+        # A long path or identifier cannot break at a slash in `\texttt`, and runs into
+        # the margin; `\allowbreak` gives TeX a permitted break with no hyphen.
+        if len(body) > 22 and ("/" in body or r"\_" in body):
+            body = body.replace("/", r"/\allowbreak{}").replace(
+                r"\_", r"\_\allowbreak{}"
+            )
+        placeholders.append(r"\texttt{" + body + "}")
+        return f"\x00{len(placeholders) - 1}\x00"
+
+    text = re.sub(r"`([^`]+)`", stash_code, text)
+    text = latex_symbols(latex_escape(text))
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\\textbf{\1}", text)
+    text = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"\\emph{\1}", text)
+
+    def link(match: re.Match[str]) -> str:
+        label, target = match.group(1), match.group(2)
+        if target.endswith(".md") or target.startswith("#"):
+            return label
+        return r"\href{" + target + "}{" + label + "}"
+
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link, text)
+    for index, fragment in enumerate(placeholders):
+        text = text.replace(f"\x00{index}\x00", fragment)
+    return text
+
+
+def latex_table(lines: list[str]) -> str:
+    """A booktabs table. Numeric columns are right-aligned; text-heavy tables get
+    paragraph columns so long cells wrap instead of running into the margin."""
+    header = [cell.strip() for cell in lines[0].strip().strip("|").split("|")]
+    align = [cell.strip() for cell in lines[1].strip().strip("|").split("|")]
+    rows = [
+        [cell.strip() for cell in line.strip().strip("|").split("|")]
+        for line in lines[2:]
+    ]
+
+    def spec_of(index: int) -> str:
+        spec = align[index] if index < len(align) else ":---"
+        left, right = spec.startswith(":"), spec.endswith(":")
+        if left and right:
+            return "c"
+        if right:
+            return "r"
+        return "l"
+
+    columns = [spec_of(index) for index in range(len(header))]
+    widths = []
+    for index in range(len(header)):
+        cells = [header[index]] + [row[index] for row in rows if index < len(row)]
+        widths.append(max(len(cell.replace("`", "")) for cell in cells))
+
+    # A table whose text totals less than this fits at natural width.
+    if sum(widths) > 55:
+        total = 0.96 * 470.0  # points, roughly \linewidth at 11pt with 2.1cm margins
+        usable = [width for width in widths]
+        scale = total / sum(usable)
+        column_spec = "".join(
+            f">{{\\raggedright\\arraybackslash}}p{{{max(6.0, width * scale):.1f}pt}}"
+            if spec == "l"
+            else spec
+            for spec, width in zip(columns, usable)
+        )
+    else:
+        column_spec = "".join(columns)
+
+    body = [
+        r"\begin{tabular}{" + column_spec + "}",
+        r"\toprule",
+        " & ".join(latex_inline(cell) for cell in header) + r" \\",
+        r"\midrule",
+    ]
+    for row in rows:
+        body.append(" & ".join(latex_inline(cell) for cell in row) + r" \\")
+    body += [r"\bottomrule", r"\end{tabular}"]
+    return "\n".join(
+        [
+            r"\begin{table}[htbp]",
+            r"\centering\small",
+            r"\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{%",
+            "\n".join(body),
+            r"}",
+            r"\end{table}",
+        ]
+    )
+
+
+def latex_figure(path: str, caption: str) -> str:
+    image_path = (PROJECT_ROOT / path).resolve()
+    if not image_path.exists():
+        raise FileNotFoundError(f"figure not found: {path}")
+    return "\n".join(
+        [
+            r"\begin{figure}[htbp]",
+            r"\centering",
+            r"\includegraphics[width=\linewidth]{"
+            + str(image_path).replace("\\", "/")
+            + "}",
+            r"\caption{" + latex_inline(caption) + "}",
+            r"\end{figure}",
+        ]
+    )
+
+
+def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None,
+                      email: str | None, date: str | None) -> str:
+    title_match = re.search(r"^# (.+)$", markdown, flags=re.MULTILINE)
+    if not title_match:
+        raise ValueError("the manuscript has no level-1 title")
+    title = title_match.group(1).strip()
+    body = markdown.replace(title_match.group(0), "", 1)
+
+    lines = body.splitlines()
+    out: list[str] = []
+    index = 0
+    paragraph: list[str] = []
+    abstract_mode = False
+
+    def flush() -> None:
+        if paragraph:
+            out.append(latex_inline(" ".join(paragraph).strip()) + "\n")
+            paragraph.clear()
+
+    while index < len(lines):
+        line = lines[index]
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            flush()
+            block: list[str] = []
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith("```"):
+                block.append(lines[index])
+                index += 1
+            index += 1
+            raw = "\n".join(block)
+            if all(ord(character) < 128 for character in raw):
+                # Pure ASCII: verbatim keeps the spacing and backslashes literal.
+                out.append(
+                    "{\\small\\begin{verbatim}\n" + raw + "\n\\end{verbatim}}\n"
+                )
+            else:
+                # A block with symbols (a display formula, in this manuscript): translate
+                # it so the glyphs survive, and keep it visually distinct.
+                translated = "\n".join(
+                    latex_symbols(latex_escape(item)) for item in block
+                )
+                out.append("\\par\\noindent{\\ttfamily " + translated + "}\\par\n")
+            continue
+
+        if stripped.startswith("!["):
+            flush()
+            match = re.match(r"!\[(.*)\]\((.*)\)\s*$", stripped)
+            if not match:
+                raise ValueError(f"malformed image line: {stripped[:80]}")
+            out.append(latex_figure(match.group(2), match.group(1)) + "\n")
+            index += 1
+            continue
+
+        if stripped.startswith("#"):
+            flush()
+            level = len(stripped) - len(stripped.lstrip("#"))
+            heading = stripped[level:].strip()
+            if level == 2 and heading.lower() == "abstract":
+                abstract_mode = True
+                out.append("\\begin{abstract}\n")
+                index += 1
+                continue
+            if abstract_mode:
+                out.append("\\end{abstract}\n")
+                abstract_mode = False
+            numbered = re.match(r"^(\d+(?:\.\d+)*)\.?\s+(.*)$", heading)
+            label = numbered.group(2) if numbered else heading
+            starred = label.lower().startswith(("appendix", "references"))
+            if level == 2:
+                command = "section*" if starred else "section"
+            elif level == 3:
+                command = "subsection"
+            else:
+                command = "subsubsection"
+            out.append("\\" + command + "{" + latex_inline(label) + "}\n")
+            index += 1
+            continue
+
+        if stripped == "---":
+            flush()
+            out.append("\\medskip\\noindent\\rule{\\linewidth}{0.4pt}\\medskip\n")
+            index += 1
+            continue
+
+        if stripped.startswith("|") and index + 1 < len(lines) and re.match(
+            r"^\|[\s:|-]+\|$", lines[index + 1].strip()
+        ):
+            flush()
+            block = []
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                block.append(lines[index])
+                index += 1
+            out.append(latex_table(block) + "\n")
+            continue
+
+        if stripped.startswith(">"):
+            flush()
+            quoted = []
+            while index < len(lines) and lines[index].strip().startswith(">"):
+                quoted.append(lines[index].strip().lstrip(">").strip())
+                index += 1
+            out.append(
+                "\\begin{quote}\\itshape "
+                + latex_inline(" ".join(quoted))
+                + "\\end{quote}\n"
+            )
+            index += 1
+            continue
+
+        list_match = re.match(r"^(\s*)([-*]|\d+\.)\s+", line)
+        if list_match:
+            flush()
+            ordered = bool(re.match(r"^\s*\d+\.", line))
+            environment = "enumerate" if ordered else "itemize"
+            items: list[str] = []
+            while index < len(lines):
+                match = re.match(r"^(\s*)([-*]|\d+\.)\s+(.*)$", lines[index])
+                if not match:
+                    if lines[index].strip() and lines[index].startswith("  ") and items:
+                        items[-1] += " " + lines[index].strip()
+                        index += 1
+                        continue
+                    break
+                items.append(match.group(3).strip())
+                index += 1
+            out.append(
+                "\\begin{" + environment + "}\n"
+                + "\n".join("\\item " + latex_inline(item) for item in items)
+                + "\n\\end{" + environment + "}\n"
+            )
+            continue
+
+        if not stripped:
+            flush()
+            index += 1
+            continue
+
+        paragraph.append(stripped)
+        index += 1
+
+    flush()
+    if abstract_mode:
+        out.append("\\end{abstract}\n")
+
+    author_lines = [latex_escape(authors[0])]
+    if affiliation:
+        author_lines.append(r"\\[0.3em]{\small " + latex_escape(affiliation) + "}")
+    if email:
+        author_lines.append(r"\\{\small " + latex_escape(email) + "}")
+
+    preamble = "\n".join(
+        [
+            r"\documentclass[11pt,a4paper]{article}",
+            r"\usepackage[T1]{fontenc}",
+            r"\usepackage[utf8]{inputenc}",
+            r"\usepackage[margin=2.1cm]{geometry}",
+            r"\usepackage{amsmath,amssymb}",
+            r"\usepackage{array}",
+            r"\usepackage{booktabs}",
+            r"\usepackage{graphicx}",
+            r"\usepackage{cmap}",
+            r"\usepackage[hidelinks]{hyperref}",
+            r"\setlength{\parindent}{0pt}",
+            r"\setlength{\parskip}{0.45em}",
+            r"\setlength{\emergencystretch}{2em}",
+            # Long paths and identifiers in `\texttt` cannot break and would run into
+            # the margin; a slightly smaller monospace keeps them inside it.
+            r"\renewcommand{\texttt}[1]{{\small\ttfamily #1}}",
+            r"\title{" + latex_inline(title) + "}",
+            r"\author{" + "".join(author_lines) + "}",
+            r"\date{" + (latex_escape(date) if date else "") + "}",
+            r"\begin{document}",
+            r"\maketitle",
+        ]
+    )
+    return preamble + "\n" + "\n".join(out) + "\n\\end{document}\n"
+
+
+def find_tex(engine: str | None) -> tuple[str, Path] | None:
+    """Locate a TeX engine, on PATH or in the usual MiKTeX/TeX Live directories."""
+    candidates = [engine] if engine else list(TEX_ENGINES)
+    for name in candidates:
+        if name and shutil.which(name):
+            return name, Path(shutil.which(name))  # type: ignore[arg-type]
+    for directory in TEX_SEARCH_DIRS:
+        for name in candidates:
+            if not name:
+                continue
+            candidate = directory / (name + (".exe" if os.name == "nt" else ""))
+            if candidate.exists():
+                return name, candidate
+    return None
+
+
+def compile_latex(engine_path: Path, tex_path: Path, output_dir: Path) -> None:
+    """Run the engine twice (the second pass settles the reference bookmarks)."""
+    environment = dict(os.environ)
+    for attempt in (1, 2):
+        result = subprocess.run(
+            [
+                str(engine_path),
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                "-output-directory=" + str(output_dir),
+                str(tex_path),
+            ],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=900,
+            env=environment,
+        )
+        if result.returncode != 0:
+            log = tex_path.with_suffix(".log")
+            tail = log.read_text(errors="replace")[-4000:] if log.exists() else ""
+            raise RuntimeError(
+                f"{engine_path.name} failed on pass {attempt}:\n"
+                + (tail or result.stdout[-3000:] + result.stderr[-2000:])
+            )
+
+
+def build_latex(markdown: str, authors: list[str], affiliation: str | None,
+                email: str | None, date: str | None, output: Path,
+                engine: str | None, keep_tex: bool) -> None:
+    found = find_tex(engine)
+    if found is None:
+        raise FileNotFoundError(
+            "no TeX engine found (pdflatex, xelatex, lualatex); "
+            "pass --engine or use --backend chrome"
+        )
+    name, engine_path = found
+    latex_text = markdown_to_latex(markdown, authors, affiliation, email, date)
+    tex_path = output.with_suffix(".tex")
+    tex_path.write_text(latex_text, encoding="utf-8")
+    print(f"engine:  {name}")
+    print(f"tex:     {tex_path.relative_to(PROJECT_ROOT)} "
+          f"({len(latex_text.splitlines())} lines)")
+    compile_latex(engine_path, tex_path, output.parent)
+    if not output.exists():
+        raise RuntimeError("LaTeX reported success but no PDF was written")
+    for suffix in (".aux", ".log", ".out", ".toc"):
+        tex_path.with_suffix(suffix).unlink(missing_ok=True)
+    if not keep_tex:
+        tex_path.unlink(missing_ok=True)
 
 
 def main() -> None:
@@ -394,6 +867,10 @@ def main() -> None:
     parser.add_argument("--email", default=None)
     parser.add_argument("--date", default=None)
     parser.add_argument("--browser", default=None)
+    parser.add_argument("--engine", default=None,
+                        help="TeX engine to use (default: pdflatex, else xelatex)")
+    parser.add_argument("--backend", choices=("auto", "latex", "chrome"), default="auto")
+    parser.add_argument("--keep-tex", action="store_true")
     parser.add_argument("--keep-draft-note", action="store_true")
     parser.add_argument(
         "--html-only",
@@ -402,26 +879,39 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    # Relative paths are resolved against the current directory, not assumed to be
+    # absolute: `--output output/x.pdf` is the natural way to call this.
+    args.source = args.source.resolve()
+    args.output = args.output.resolve()
+
     markdown = args.source.read_text(encoding="utf-8")
     markdown = strip_front_matter(markdown)
     if not args.keep_draft_note:
         markdown = strip_draft_note(markdown)
 
     authors = args.author or ["[author]"]
-    html_text = build_html(markdown, authors, args.affiliation, args.email, args.date)
-
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    html_path = args.output.with_suffix(".html")
-    html_path.write_text(html_text, encoding="utf-8")
-    print(f"html:    {html_path.relative_to(PROJECT_ROOT)} "
-          f"({html_path.stat().st_size // 1024} kB, figures embedded)")
-    if args.html_only:
-        return
 
-    browser = find_browser(args.browser)
-    print(f"browser: {browser}")
-    print_to_pdf(browser, html_path, args.output)
-    html_path.unlink()
+    backend = args.backend
+    if backend == "auto":
+        backend = "latex" if find_tex(args.engine) is not None else "chrome"
+    print(f"backend: {backend}")
+
+    if backend == "latex":
+        build_latex(markdown, authors, args.affiliation, args.email, args.date,
+                    args.output, args.engine, args.keep_tex)
+    else:
+        html_text = build_html(markdown, authors, args.affiliation, args.email, args.date)
+        html_path = args.output.with_suffix(".html")
+        html_path.write_text(html_text, encoding="utf-8")
+        print(f"html:    {html_path.relative_to(PROJECT_ROOT)} "
+              f"({html_path.stat().st_size // 1024} kB, figures embedded)")
+        if args.html_only:
+            return
+        browser = find_browser(args.browser)
+        print(f"browser: {browser}")
+        print_to_pdf(browser, html_path, args.output)
+        html_path.unlink()
 
     size = args.output.stat().st_size
     print(f"pdf:     {args.output.relative_to(PROJECT_ROOT)} "

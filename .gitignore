@@ -25,8 +25,14 @@ build/
 output/*.png
 # The typeset manuscript is a build artefact but a delivered one: keep it.
 !output/desymmetrisation_paper.pdf
-# Scratch from the PDF build (intermediate HTML, headless-browser profiles).
+# Scratch from the PDF build (intermediate HTML, LaTeX aux files, browser profiles).
 output/*.html
+output/*.tex
+output/*.aux
+output/*.log
+output/*.out
+output/*.toc
+output/.texmf*/
 output/.pdf-profile/
 output/.shot-profile/
 !output/.gitkeep
