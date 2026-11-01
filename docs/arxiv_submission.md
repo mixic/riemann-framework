@@ -35,7 +35,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | **Authors** | Milan Nikolic — Independent Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
-| **Comments** | 17 pages, 5 figures, 3 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
+| **Comments** | 17 pages, 5 figures, 4 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
 | **Journal-ref** | none |
 | **DOI** | none |
 | **License** | `[CHECK]` arXiv non-exclusive distribution licence (default), or CC BY 4.0. The **code** is GPL-3.0 and stays GPL-3.0; the paper is not, and does not need to be, GPL. |
@@ -139,7 +139,7 @@ $ python scripts/verify_pdf.py
 [PASS] page count: 17 pages (expected 17)
 [PASS] page size: A4
 [PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
-[PASS] text layer: 17 pages, 33300 characters
+[PASS] text layer: 17 pages, 33288 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits

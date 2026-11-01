@@ -77,7 +77,7 @@ what a two-sector superposition produces.
 ### 1.2 Origin of the diagnostic
 
 This diagnostic was not designed in the abstract and justified afterwards. It is the
-residue of a larger project, and the failure that produced it is the failure it detects.
+product of a larger project, and the failure that produced it is the failure it detects.
 
 The project began with a candidate operator for the Riemann hypothesis. The map
 `σ(s) = 1 − conj(s)` reflects the complex plane about the critical line; its fixed locus
@@ -89,8 +89,8 @@ the `σ` structure: GOE sectors at `0.528 … 0.533`, GUE sectors at `0.596 … 
 full spectrum at `0.420 … 0.425` for either input. The verdict is recorded with the
 abandoned hypothesis and is final.
 
-Two mistakes made on the way are the subject of this paper. The first was statistical: a
-single seed of a 90-point grid once reported "supported", and 300 seeds with error bars
+Two errors made during that work are the subject of this paper. The first was statistical: a
+single seed of a 90-point grid reported "supported", and 300 seeds with error bars
 showed that the value was noise (`0.523 ± 0.069`). The second was structural, and it is
 the one that matters here: the model's universality class was tested on the full spectrum
 of a `σ`-symmetric Hamiltonian, and a GOE model appeared to reach GUE statistics. The
@@ -391,14 +391,14 @@ Both are `sorry`-free and depend only on `propext`, checked by `#print axioms`.
 
 ## 4. Non-reproduction of a quoted multi-copy identity
 
-The literature's description of the multi-copy imaginary-time circuits quotes an identity
-for the first-order term:
+A description of the multi-copy imaginary-time circuits quotes an identity for the
+first-order term (the description has no citable source):
 
 ```
 Tr₂(u ρ₁ ⊗ ρ₂ u†) = ρ₁ − ε[[ρ₁, H], ρ₁] + O(ε^{3/2}).
 ```
 
-We tested it against the three natural generators (`exp(i√ε(H₁ − H₂))`, the same with a
+The identity is tested against the three natural generators (`exp(i√ε(H₁ − H₂))`, the same with a
 swap inserted, and the Trotter split of the two phases) by fitting
 `ρ(ε) = ρ + √ε A + ε B + …` from three scales. In every case:
 
@@ -406,8 +406,8 @@ swap inserted, and the Trotter split of the two phases) by fitting
   not have;
 * the second-order term is **not** `±[[ρ₁, H], ρ₁]`.
 
-The identity is therefore recorded as **unverified from the description available**, not
-as confirmed and not as refuted: the generator that makes the first-order term vanish is
+The identity is therefore recorded as **unverified**, not as confirmed and not as
+refuted: the generator that makes the first-order term vanish is
 a property of the circuit, and the circuit was not read. Recording the discrepancy is the
 correct response; assuming the identity and building on it would not be.
 
@@ -438,7 +438,7 @@ ones (measured, 400 spectra per point, GOE):
 | 240 | `0.020` | `0.013` | `0.00` | `0.12` |
 | 480 | `0.014` | `0.003` | `0.00` | `0.12` |
 
-The fourth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(n)` with
+The fifth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(n)` with
 `σ(n) = 0.0393·√(60/n)`), and its rate is flat at about `0.12`. A deployed instrument
 should use the scaled floor and report its z-score, not a single threshold; this
 manuscript quotes the fixed floor because it is the one the tables were measured on.
@@ -461,7 +461,7 @@ coverage of Section 2.4):
 The departures degrade the three-sector rows modestly and never improve on the baseline;
 the two-sector mixed-class row stays the strong case. The coverage numbers in Sections
 2.4 and 1.5 are therefore a property of the symmetric simulator, not a promise about a
-real spectrum, and Section 10's device descriptions are stated as an outlook for exactly
+real spectrum, and Appendix D's device descriptions are stated as an outlook for exactly
 that reason.
 
 ### 5.3 The limit is the ratio, not the spectrum
@@ -629,74 +629,8 @@ property of the Hamiltonian and the Hamiltonian does not evolve.
 
 The rule is simple: desymmetrize before testing the class.
 
-The diagnostic began as a mistake made on a candidate operator; it ends as a tool that
+The diagnostic began as an error made on a candidate operator; it ends as a tool that
 makes that mistake visible, measurable, and stated.
-
-## 10. Technical applications and outlook
-
-The diagnostic is a software method, and a method is not a device. This section sketches,
-as an outlook only, how the measured pieces assemble into a physical instrument; it makes
-no patent claim.
-
-### 10.1 A symmetry-aware spectrum analyzer
-
-| component | technical function | what it uses here |
-|:---|:---|:---|
-| signal acquisition | measure the energy spectrum of a sample, for instance a quantum dot array, a microwave cavity, or a material | the input spectrum |
-| symmetry verification | test whether the spectrum commutes with a candidate involution, such as a spatial symmetry of the sample | `desymmetrise(H, involutions)` |
-| sector splitting | project into joint eigenspaces once the symmetry is verified | the `spec(A ± C)` identity and the `Z₂ × Z₂` split |
-| posterior engine | estimate the number of unresolved sectors from the gap-ratio sequence | `sector_count_posterior` |
-| output | emit a contamination flag, or a posterior over the sector count | the `severe` / `mild` / `none` warning |
-
-The problem the instrument solves is the failure mode of this whole manuscript. An
-analyzer that reports one number, `⟨r⟩`, can label a chaotic system integrable when a
-symmetry is unresolved. The instrument replaces the number with a verdict and a posterior
-whose coverage is measured rather than assumed.
-
-### 10.2 A quantum-processor calibration system
-
-A processor, for instance a superconducting qubit array, can sit in a symmetry-protected
-regime whose spectrum looks integrable, and control pulses calibrated against that
-spectrum are wrong. The device reads the spectrum, applies the diagnostic, and, on a
-contaminated result, drives a symmetry-breaking perturbation to resolve the sectors
-before re-measuring. The technical effect is control fidelity; the algorithm is the means.
-
-### 10.3 A double-bracket flow controller
-
-The flow `dρ/dβ = [[ρ, H], ρ]` preserves or selects a sector, as measured in §3. A
-controller that implements the flow and monitors the coherence `‖[ρ, σ]‖` can stop the
-evolution when the wrong sector is being selected, instead of discovering it after the
-prepared state is wrong.
-
-### 10.4 Application domains
-
-Three settings give the instrument its technical effect.
-
-* **Quantum simulation and many-body systems.** A simulator that is meant to be chaotic
-  but sits in a symmetry-protected sector can be misread as integrable; the flag and the
-  posterior catch the misreading before it is published.
-* **Microwave billiards and cavity measurements.** A cavity whose resonance spectrum is
-  contaminated by a geometric symmetry (a mirror plane, a rotation) has a `⟨r⟩` that sits
-  in the Poisson window; the diagnostic says "resolve the symmetry" instead of
-  "integrable".
-* **Quantum dots and materials spectroscopy.** A measured single-particle spectrum of a
-  dot array or a material sample is a superposition whenever the sample carries a spatial
-  symmetry; the posterior bounds how many sectors are unresolved.
-
-In each case the output is not a new theory. It is a control on an old one: a number that
-would otherwise have been trusted is replaced by a number together with its provenance (a
-resolved sector or an unresolved superposition) and its uncertainty.
-
-### 10.5 Scope of the claims
-
-* the algorithm itself (a plug-in posterior over sector counts);
-* a numerical simulation with no physical input or output;
-* the mathematics of Sections 2 through 4.
-
-A granted patent claims a physical embodiment and a technical effect, not these. This
-manuscript makes no patent claim and no assertion about what any office would grant; the
-device descriptions above are an outlook, and the quantum-processor and dot-array cases
-carry no experimental results behind them.
 
 ## Appendix A: The full measured table
 
@@ -756,6 +690,74 @@ tuned. The GUE side is quiet because its one-sector value is `0.5993`, `3.2` sta
 deviations above the floor. The rate is a function of the spectrum size, not a constant of
 the instrument: Section 5.1 reports it across sizes and gives a floor that keeps the same
 z-score as the size changes.
+
+## Appendix D: Technical applications and outlook
+
+The diagnostic is a software method, and a method is not a device. This appendix sketches,
+as an outlook only, how the measured pieces assemble into a physical instrument; it makes
+no patent claim.
+
+### D.1 A symmetry-aware spectrum analyzer
+
+| component | technical function | what it uses here |
+|:---|:---|:---|
+| signal acquisition | measure the energy spectrum of a sample, for instance a quantum dot array, a microwave cavity, or a material | the input spectrum |
+| symmetry verification | test whether the spectrum commutes with a candidate involution, such as a spatial symmetry of the sample | `desymmetrise(H, involutions)` |
+| sector splitting | project into joint eigenspaces once the symmetry is verified | the `spec(A ± C)` identity and the `Z₂ × Z₂` split |
+| posterior engine | estimate the number of unresolved sectors from the gap-ratio sequence | `sector_count_posterior` |
+| output | emit a contamination flag, or a posterior over the sector count | the `severe` / `mild` / `none` warning |
+
+The problem the instrument solves is the failure mode of this whole manuscript. An
+analyzer that reports one number, `⟨r⟩`, can label a chaotic system integrable when a
+symmetry is unresolved. The instrument replaces the number with a verdict and a posterior
+whose coverage is measured rather than assumed.
+
+### D.2 A quantum-processor calibration system
+
+A processor, for instance a superconducting qubit array, can sit in a symmetry-protected
+regime whose spectrum looks integrable, and control pulses calibrated against that
+spectrum are wrong. The device reads the spectrum, applies the diagnostic, and, on a
+contaminated result, drives a symmetry-breaking perturbation to resolve the sectors
+before re-measuring. The technical effect is control fidelity; the algorithm is the means.
+
+### D.3 A double-bracket flow controller
+
+The flow `dρ/dβ = [[ρ, H], ρ]` preserves or selects a sector, as measured in §3. A
+controller that implements the flow and monitors the coherence `‖[ρ, σ]‖` can stop the
+evolution when the wrong sector is being selected, instead of discovering it after the
+prepared state is wrong.
+
+### D.4 Application domains
+
+Three settings give the instrument its technical effect.
+
+* **Quantum simulation and many-body systems.** A simulator that is meant to be chaotic
+  but sits in a symmetry-protected sector can be misread as integrable; the flag and the
+  posterior catch the misreading before it is published.
+* **Microwave billiards and cavity measurements.** A cavity whose resonance spectrum is
+  contaminated by a geometric symmetry (a mirror plane, a rotation) has a `⟨r⟩` that sits
+  in the Poisson window; the diagnostic says "resolve the symmetry" instead of
+  "integrable".
+* **Quantum dots and materials spectroscopy.** A measured single-particle spectrum of a
+  dot array or a material sample is a superposition whenever the sample carries a spatial
+  symmetry; the posterior bounds how many sectors are unresolved.
+
+In each case the output is not a new theory. It is a control on an old one: a number that
+would otherwise have been trusted is replaced by a number together with its provenance (a
+resolved sector or an unresolved superposition) and its uncertainty.
+
+### D.5 Scope of the claims
+
+What the manuscript does **not** claim:
+
+* the algorithm itself (a plug-in posterior over sector counts);
+* a numerical simulation with no physical input or output;
+* the mathematics of Sections 2 through 4.
+
+A granted patent claims a physical embodiment and a technical effect, not these. This
+manuscript makes no patent claim and no assertion about what any office would grant; the
+device descriptions above are an outlook, and the quantum-processor and dot-array cases
+carry no experimental results behind them.
 
 ## A note on this draft
 
