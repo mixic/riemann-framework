@@ -104,3 +104,44 @@ def test_the_header_pattern_matches_browser_furniture():
     assert verifier.HEADER_DATE.search("1/1/26, 8:13 AM")
     assert not verifier.HEADER_DATE.search("no date or time stamp here")
     assert not verifier.HEADER_DATE_FLAT.search("Figure 4 of the manuscript")
+
+
+def test_the_placement_reader_separates_natural_from_effective_size():
+    """Driven with the byte pattern that produced the page-6 failure.
+
+    A 1500-pixel figure at 150 dpi is 720pt wide; `width=\\linewidth` wraps it in a
+    0.66 scale, so the effective width is right and the natural width is not. A viewer
+    that ignores the outer matrix draws 720pt on a 595pt page.
+    """
+    verifier = _load_verifier()
+    snippet = (
+        b"q 0.66142 0 0 0.66142 0 0 cm q 720 0 0 432 0 0 cm /Im3 Do Q Q"
+    )
+    placed = verifier.image_placements(snippet)
+    assert len(placed) == 1
+    name, inner, effective, _, _ = placed[0]
+    assert name == "Im3"
+    assert inner == pytest.approx(720.0)
+    assert effective == pytest.approx(476.2, abs=0.5)
+    assert inner > verifier.PAGE_WIDTH, "the natural width must be recognisable as too wide"
+    assert effective <= verifier.TEXT_WIDTH + 1.0
+
+
+@requires_pdf
+def test_the_figures_are_placed_inside_the_text_block():
+    """The committed build: effective width fits the block, natural width fits the page."""
+    verifier = _load_verifier()
+    data = PDF.read_bytes()
+    objects = verifier._objects(data)
+    placements = []
+    for number, body in objects.items():
+        if not verifier.re.search(rb"/Type\s*/Page\b(?!s)", body):
+            continue
+        payload = b""
+        for reference in verifier._refs(body, b"Contents"):
+            payload += verifier._stream(objects.get(reference, b"")) or b""
+        placements.extend(verifier.image_placements(payload))
+    assert len(placements) == 4
+    for name, inner, effective, _, _ in placements:
+        assert effective <= verifier.TEXT_WIDTH + 1.0, name
+        assert inner <= verifier.PAGE_WIDTH + 1.0, name

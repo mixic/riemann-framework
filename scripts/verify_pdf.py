@@ -51,6 +51,8 @@ DEFAULT_PDF = PROJECT_ROOT / "output" / "desymmetrisation_paper.pdf"
 #: A4 in PDF points, with a little slack for rounding.
 A4 = (594.96, 841.92)
 A4_TOLERANCE = 1.5
+PAGE_WIDTH = 595.276
+TEXT_WIDTH = 595.276 - 2 * (2.1 / 2.54 * 72)  # the LaTeX text block, 476.2pt
 
 #: Strings the submission copy must not contain.
 FORBIDDEN = {
@@ -231,6 +233,68 @@ def _string_literal(payload: bytes) -> bytes:
     return bytes(out)
 
 
+def _strip_strings(payload: bytes) -> bytes:
+    """Remove the contents of PDF strings, so operators inside text are not scanned."""
+    return re.sub(rb"\((?:[^()\\]|\\.)*\)|<[0-9A-Fa-f\s]+>", b" ", payload)
+
+
+def image_placements(payload: bytes) -> list[tuple[str, float, float, float, float]]:
+    """`(name, inner_width, effective_width, inner_height, effective_height)` per image.
+
+    pdfTeX draws an included figure as `q <scale> cm q <natural> cm /ImN Do Q Q`. The
+    effective width is the product; the inner width is what a viewer would draw if it
+    ignored the outer matrix. Both matter: a page 6 figure whose natural width exceeded
+    the page width rendered as a cropped wall of axis numbers in exactly such a viewer.
+    """
+    stack: list[tuple[float, float, float, float, float, float]] = []
+    ctm = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    last = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+    found: list[tuple[str, float, float, float, float]] = []
+    pattern = re.compile(
+        rb"q\b|Q\b|([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+) cm"
+        rb"|/([A-Za-z0-9]+) Do"
+    )
+    for match in pattern.finditer(_strip_strings(payload)):
+        token = match.group(0)
+        if token == b"q":
+            stack.append(ctm)
+        elif token == b"Q":
+            ctm = stack.pop() if stack else (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+        elif match.group(7) is not None:
+            name = match.group(7).decode()
+            found.append(
+                (
+                    name,
+                    abs(last[0]),
+                    abs(ctm[0]),
+                    abs(last[3]),
+                    abs(ctm[3]),
+                )
+            )
+        else:
+            matrix = tuple(float(match.group(i)) for i in range(1, 7))
+            last = matrix
+            ctm = _compose(matrix, ctm)
+    return found
+
+
+def _compose(
+    left: tuple[float, float, float, float, float, float],
+    right: tuple[float, float, float, float, float, float],
+) -> tuple[float, float, float, float, float, float]:
+    """`left` applied after `right`, in PDF's `a b c d e f` convention."""
+    a1, b1, c1, d1, e1, f1 = left
+    a2, b2, c2, d2, e2, f2 = right
+    return (
+        a1 * a2 + c1 * b2,
+        b1 * a2 + d1 * b2,
+        a1 * c2 + c1 * d2,
+        b1 * c2 + d1 * d2,
+        a1 * e2 + c1 * f2 + e1,
+        b1 * e2 + d1 * f2 + f1,
+    )
+
+#: One text-showing operand: a `(...)` literal or a `<...>` hex string.
 SHOW_PATTERN = re.compile(rb"\((?:[^()\\]|\\.|\((?:[^()\\]|\\.)*\))*\)|<[0-9A-Fa-f\s]+>")
 
 #: A font selection (`/F3 9.96 Tf`) or a text-showing operation, in stream order.
@@ -355,6 +419,7 @@ class Check:
 def check(pdf: Path, expected_pages: int, expected_images: int,
           strict: bool) -> list[Check]:
     data = pdf.read_bytes()
+    objects = _objects(data)
     checks: list[Check] = []
 
     page_objects = re.findall(rb"/Type\s*/Page\b(?!s)", data)
@@ -407,6 +472,46 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
     checks.append(
         Check("no browser header", not date_hits,
               "no date/time stamp" if not date_hits else f"found {date_hits[:4]}")
+    )
+
+    # Figures must be placed inside the text block *and* have a natural size that a viewer
+    # ignoring the outer transform would still draw inside the page. The second half is
+    # what failed once: a 1500-pixel figure at 150 dpi is 720pt wide, and with the outer
+    # scale ignored it was drawn cropped, filling page 6 with axis numbers.
+    placements: list[tuple[str, float, float, float, float]] = []
+    for number, body in objects.items():
+        if not re.search(rb"/Type\s*/Page\b(?!s)", body):
+            continue
+        payload = b""
+        for reference in _refs(body, b"Contents"):
+            payload += _stream(objects.get(reference, b"")) or b""
+        placements.extend(image_placements(payload))
+
+    too_wide = [
+        (name, effective, inner)
+        for name, inner, effective, _, _ in placements
+        if effective > TEXT_WIDTH + 1.0 or inner > PAGE_WIDTH + 1.0
+    ]
+    checks.append(
+        Check(
+            "figures fit the page",
+            not too_wide,
+            f"{len(placements)} placements within the text block and the page"
+            if not too_wide
+            else "too wide (name, effective, natural): " + str(too_wide),
+        )
+    )
+
+    # A page whose text is mostly digits is the symptom of a broken build -- the axis
+    # numbers of a mis-scaled figure, or a table rendered as a stream of values.
+    floods = []
+    for index, page in enumerate(text.pages, start=1):
+        visible = [character for character in page if not character.isspace()]
+        if len(visible) > 400 and sum(c.isdigit() for c in visible) / len(visible) > 0.5:
+            floods.append(index)
+    checks.append(
+        Check("no page of numbers", not floods,
+              "no page is dominated by digits" if not floods else f"pages {floods}")
     )
 
     for needle, why in FORBIDDEN.items():

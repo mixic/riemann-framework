@@ -49,9 +49,11 @@ import html
 import os
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -593,16 +595,80 @@ def latex_table(lines: list[str]) -> str:
     )
 
 
+#: Printed width of a figure, in points: the A4 text block at 11pt with 2.1cm margins.
+FIGURE_WIDTH_PT = 595.276 - 2 * (2.1 / 2.54 * 72)
+
+#: Where the re-scaled copies of the figures are written for the LaTeX run.
+FIGURE_CACHE = PROJECT_ROOT / "output" / "_figures"
+
+
+def _png_size(data: bytes) -> tuple[int, int]:
+    """Pixel dimensions from the IHDR chunk."""
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise ValueError("not a PNG")
+    width, height = struct.unpack(">II", data[16:24])
+    return int(width), int(height)
+
+
+def _png_with_resolution(data: bytes, dpi: float) -> bytes:
+    """A PNG whose declared resolution makes its natural size `width / dpi` inches.
+
+    pdfTeX sizes an included image by its declared resolution, so a 1500-pixel figure
+    saved at 150 dpi is 10 inches wide, and `\\includegraphics[width=\\linewidth]` writes
+    a *nested* scale: `q 0.66 cm q 720 cm Do Q Q`. A viewer that ignores the outer matrix
+    then draws the figure at its natural 720pt, wider than the page, cropped -- which is
+    how page 6 came to look like a wall of axis numbers. Declaring the resolution that
+    makes the natural width equal the printed width leaves a scale of 1.0, so the page
+    renders the same way in any viewer.
+    """
+    chunks: list[bytes] = []
+    position = 8
+    seen_ihdr = False
+    while position < len(data):
+        length = struct.unpack(">I", data[position:position + 4])[0]
+        tag = data[position + 4:position + 8]
+        payload = data[position + 8:position + 8 + length]
+        position += 12 + length
+        if tag == b"IHDR":
+            chunks.append(tag + payload)
+            seen_ihdr = True
+            ppu = int(round(dpi / 0.0254))
+            chunks.append(b"pHYs" + struct.pack(">IIB", ppu, ppu, 1))
+            continue
+        if tag in (b"pHYs", b"IEND"):
+            if tag == b"IEND":
+                chunks.append(tag + payload)
+            continue
+        chunks.append(tag + payload)
+    if not seen_ihdr:
+        raise ValueError("PNG without an IHDR chunk")
+    out = bytearray(b"\x89PNG\r\n\x1a\n")
+    for chunk in chunks:
+        tag = chunk[:4]
+        payload = chunk[4:]
+        out += struct.pack(">I", len(payload)) + tag + payload
+        out += struct.pack(">I", zlib.crc32(tag + payload) & 0xFFFFFFFF)
+    return bytes(out)
+
+
 def latex_figure(path: str, caption: str) -> str:
     image_path = (PROJECT_ROOT / path).resolve()
     if not image_path.exists():
         raise FileNotFoundError(f"figure not found: {path}")
+    data = image_path.read_bytes()
+    pixels, _ = _png_size(data)
+    dpi = pixels * 72.0 / FIGURE_WIDTH_PT
+    FIGURE_CACHE.mkdir(parents=True, exist_ok=True)
+    cached = FIGURE_CACHE / image_path.name
+    cached.write_bytes(_png_with_resolution(data, dpi))
     return "\n".join(
         [
             r"\begin{figure}[htbp]",
             r"\centering",
+            # `width` is kept so the layout cannot depend on the declared resolution;
+            # with the rewritten pHYs it resolves to a scale of 1.0.
             r"\includegraphics[width=\linewidth]{"
-            + str(image_path).replace("\\", "/")
+            + str(cached).replace("\\", "/")
             + "}",
             r"\caption{" + latex_inline(caption) + "}",
             r"\end{figure}",
@@ -856,6 +922,7 @@ def build_latex(markdown: str, authors: list[str], affiliation: str | None,
         tex_path.with_suffix(suffix).unlink(missing_ok=True)
     if not keep_tex:
         tex_path.unlink(missing_ok=True)
+    shutil.rmtree(FIGURE_CACHE, ignore_errors=True)
 
 
 def main() -> None:

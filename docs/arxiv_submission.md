@@ -128,15 +128,17 @@ path is supported and tested, but it is the fallback.
 
 `scripts/verify_pdf.py` reads the PDF back — extracting the text layer per font, with a
 small PDF reader written for this purpose, because there is no PDF library here — and
-asserts 23 things. The current build passes all of them:
+asserts 25 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
 [PASS] page count: 11 pages (expected 11)
 [PASS] page size: A4
 [PASS] embedded figures: 4 pictures (8 image objects, 4 masks; expected 4)
-[PASS] text layer: 11 pages, 16582 characters
+[PASS] text layer: 11 pages, 16581 characters
 [PASS] no browser header: no date/time stamp
+[PASS] figures fit the page: 4 placements within the text block and the page
+[PASS] no page of numbers: no page is dominated by digits
 [PASS] absent: 'GNU General Public License': absent
 [PASS] absent: 'A note on this draft': absent
 [PASS] absent: 'Status.': absent
@@ -147,25 +149,51 @@ $ python scripts/verify_pdf.py
 [PASS] present: 'm_nikolic@yahoo.com': present
 [PASS] present: 'Fig. 1.' … 'Fig. 4.': present
 [PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..5 / 3..6: render
-PASS: all 23 checks passed
+PASS: all 25 checks passed
 ```
 
-The check exists because the previous build **failed it**: the Chrome PDF carried a
-date/time header (`11/1/26, 9:34AM`) and a `file:///` footer on every page. The flag in
-the script was `--print-to-pdf-no-header`, which Chrome 120+ silently ignores; the
-current flag is `--no-pdf-header-footer`. The Chrome path now passes as well. The
-LaTeX build has no such furniture by construction.
+Two of those checks exist because builds **failed** them:
+
+* the Chrome PDF carried a date/time header (`11/1/26, 9:34AM`) and a `file:///` footer on
+  every page — `--print-to-pdf-no-header` is silently ignored by Chrome 120+, and the
+  current flag is `--no-pdf-header-footer`;
+* the first LaTeX PDF placed each figure with a nested scale, so a viewer ignoring the
+  outer matrix drew the coverage figure at 720pt on a 595pt page and page 6 became a wall
+  of axis numbers (§5.3).
+
+Both are now measured rather than assumed: `figures fit the page` compares each figure's
+effective width with the text block *and* its natural width with the page.
 
 ### 5.2 Properties of the current PDF
 
 | property | value |
 |:---|:---|
 | pages | `11`, A4, numbered (LaTeX default) |
-| figures | `4`, one per section, captioned |
-| fonts | Computer Modern (CMR10, CMR8, CMMI10/8, CMSY10, MSBM10), all embedded |
+| figures | `4`, one per section, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
+| fonts | Computer Modern (CMR10, CMR8, CMR7, CMMI10/8/7, CMSY10, MSBM10), all embedded |
 | text layer | complete and searchable (`/ToUnicode` per font) |
 | PDF/A | **not** compliant; arXiv accepts non-PDF/A, a venue that requires it needs a Ghostscript pass or a PDF/A class |
 | layout | one overfull box of `6.3pt` in the figure-list table; no other overfull or underfull warnings, no float drift (each figure sits within a page of its reference) |
+
+### 5.3 The figure-scaling defect that page 6 exposed
+
+The first LaTeX build embedded the figures with a *nested* scale. A 1500-pixel PNG declared
+at 150 dpi has a natural width of 720pt; `width=\linewidth` does not change that natural
+size, it wraps it in a `0.66` scale group, so the page contains
+
+```
+q 0.66 cm  q 720 cm  /Im3 Do  Q Q
+```
+
+The effective width is correct (476pt, the text block). But a viewer that does not carry
+the outer matrix draws the image at 720pt on a 595pt page, cropped to its lower-left
+corner — for the coverage figure, the y-axis alone, at 28pt: *a page of numbers in steps
+of 0.2*. That is the failure a reader reported.
+
+The fix is in `latex_figure`: each PNG's `pHYs` chunk is rewritten so its declared
+resolution puts the natural width at exactly the text width. The outer scale becomes
+`1.001`, so both readings of the page agree. `verify_pdf.py` now measures both and fails
+if either exceeds the page.
 
 Re-running the command regenerates the PDF from the current Markdown; `--keep-tex`
 leaves the `.tex` behind, `--keep-draft-note` keeps the corrections section (review copy,
@@ -174,14 +202,15 @@ not submission), and `--backend chrome` forces the fallback.
 ## 6. Pre-flight
 
 - [ ] repository URL resolved and public (the comments field and the data statement cite it)
-- [x] PDF generated from the current Markdown, figures embedded (mechanically checked: 11
-      pages, 4 images, A4, text layer present) — but **open it once** and check the page
-      breaks by eye, which is the one thing a mechanical check cannot do
+- [x] PDF generated from the current Markdown, figures embedded, `verify_pdf.py` passing
+      25/25 — but **open it once** and check the page breaks by eye, which is the one thing
+      a mechanical check cannot do
 - [ ] abstract pasted as plain text (196 words), not the long one
 - [ ] categories set; MSC added only if the `math-ph` cross-list is kept
 - [ ] licence selected, and the code's GPL-3.0 licence stated in the paper's data section
 - [ ] endorsement arranged if this is a first submission `[CHECK]`
-- [ ] the paper's §"A note on this draft" and GPL header absent from the PDF
+- [x] the paper's §"A note on this draft" and GPL header absent from the PDF (the build
+      strips both)
 
 ## 7. After it is live
 
