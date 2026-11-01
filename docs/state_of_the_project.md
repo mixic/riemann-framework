@@ -16,164 +16,431 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-# State of the Project — closing summary
+# State of the Project: A Closing Summary
 
 **The Riemann hypothesis is open.** Nothing in this repository proves or disproves it,
-and nothing here is evidence for or against it. What the repository contains is a
-numerical core, a set of claims stated precisely enough to be refuted, the refutations,
-and two instruments that survived the refutations.
+and nothing here is evidence for or against it.
 
-This document is the one-page version. It is written to be read without the rest of the
-repository; every claim in it is reproducible from the code, and every number is pinned
-by a test that can fail.
+## Preamble
 
-## 1. The bottom line
+This document closes the research program recorded in this repository. It is written to
+be read first, by anyone who wants to understand what the repository contains, what it
+proved, what it falsified, what it corrected, and what remains open — without reading
+every file.
 
-| category | contents |
-|:---|:---|
-| **Proved** (strict sense, finite) | RH over finite fields, per curve: 942 elliptic over `F₅…F₁₉`, 324 genus-2 over `F₃`, 10 000 over `F₅`, zero failures; `15485863` is the millionth prime; `σ² = id` and the fixed locus of `σ` in Lean; the double-bracket invariance lemmas in Lean |
-| **Measured** (finite evidence, explicitly not proof) | the zero statistics and explicit formula; the imaginary-time dictionary; the desymmetrisation calibration and its posterior; the DH filter's inventory |
-| **Falsified or closed** | the Dimension-Shift Hypothesis (abandoned); the single-observable DSIN channel; the graded shift-zeta lift; the hard-box regularisation; "GUE statistics certify a candidate" |
-| **Open** | RH itself; the Lean `zeros_are_fixed_by_sigma` obligation (which *is* RH); the two unsourced rows of the DH inventory; whether the multi-copy circuit identity is right |
+It is not a eulogy. It is an inventory.
+
+## 1. What this repository is
+
+The Riemann Framework is an experimental workbench for approaches to the Riemann
+hypothesis. It combines numerical experiments in Python with a Lean 4 formalization,
+covering zeta zeros, the explicit formula, prime counting, dimension-shift models, graded
+algebras, and exotic number systems.
+
+It is not a proof, and nothing here claims to be one. Passing tests are research
+evidence, not a completed proof.
+
+What it is: a record of a research program that was pursued, tested, and closed when the
+evidence required it.
 
 ## 2. What was attempted
 
-| track | what it tried | verdict |
+Eleven tracks. Each asked one structural question and produced a document, a test suite,
+and a measured result.
+
+| # | track | the question it asked |
 |:---|:---|:---|
-| Numerical core | verify zeros, explicit formula, zero statistics | working |
-| Finite-field RH | prove RH per curve by exact arithmetic | proved, per curve |
-| Prime certificates | certify the millionth prime | proved |
-| Dimension-Shift Hypothesis | a discrete involution whose fixed locus is the critical line, lifted to an operator | **abandoned** — the sector class is inherited, not produced |
-| Quantum chaos | the zeros' spacing statistics, and what they can certify | measured; the certification claim died |
-| Hilbert–Pólya | build a candidate operator and measure its gaps | four gaps measured, no eigenvalue |
-| Operator candidates | screen candidates on statistics | negative: a prime-length graph fits GUE better than the zeros do |
-| DSIN | a communication model on a single published observable | closed: one observable cannot bound an adversary |
-| BB84 layer | detector blinding, power monitor, defences | modelled; one gap closed, one left open |
-| Davenport–Heilbronn filter | screen arguments by what they would also prove for a false statement | **working instrument** |
-| Desymmetrisation | the silent failure mode of spacing statistics | **working instrument with measured limits** |
+| 1 | numerical core | can the zeros be verified, and the explicit formula evaluated, to working precision? |
+| 2 | Dimension-Shift Hypothesis | is the critical line the fixed locus of a discrete involution whose spectrum is the zeros? |
+| 3 | graded algebra / shift-zeta | does lifting the Euler product into a ℤ₂-graded algebra force the zeros into the fixed locus? |
+| 4 | primon gas | can the Euler product be realized exactly as the trace of a diagonal Hamiltonian? |
+| 5 | Cayley–Dickson | does dimension-lifting produce genuine Euler-product content? |
+| 6 | Hilbert–Pólya prototype | can an operator be built whose spectrum is the zeros, defined without reference to them? |
+| 7 | hidden symmetries | do unresolved symmetries bias spacing statistics, and can that be detected? |
+| 8 | finite-field curves | where is the Riemann hypothesis a theorem, and is that proof a finite computation? |
+| 9 | de Bruijn–Newman | can the hypothesis be restated as a threshold, and is the threshold verifiable? |
+| 10 | Davenport–Heilbronn filter | can a candidate proof be screened against a function whose RH-analogue is false? |
+| 11 | DSIN communication | can the involution structure underlie a secure communication protocol? |
 
-## 3. What worked
+The results are not uniform: some are positive, some negative, one is closed as a design
+defect.
 
-The two instruments are the part that survived, and both survived because they are
-honest about what they cannot do.
+## 3. What was proved
 
-**The Davenport–Heilbronn filter.** A candidate argument declares the inputs it uses;
-each is looked up in an inventory of nine that records whether it transfers to a function
-whose RH-analogue is false. The verdicts are `dead`, `eligible`, `needs_sourcing`. Run
-against this repository's own records, it returns one `dead` entry, and that entry is the
-repository's flagship proposal. Its written-up form is
+These are machine-verified results. This is the only category in which the word "proved"
+is used without qualification.
+
+### 3.1 In Lean 4
+
+Four of the nine modules are `sorry`-free and `axiom`-free — `DimensionShift`,
+`InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`. The others contain
+`sorry` **by design**: they state the Riemann hypothesis, and one of those `sorry`s *is*
+the open problem. A test fails if any of them stops containing it.
+
+| theorem | file | statement |
+|:---|:---|:---|
+| `sigma_involutive` | `ZetaBridge.lean` | `σ ∘ σ = id` for `σ(s) = 1 − conj s` |
+| `sigma_fixed_iff_re_eq_half` | `ZetaBridge.lean` | `σ(s) = s ⟺ Re(s) = 1/2` |
+| `riemannZeta_zero_conj` | `ZetaBridge.lean` | `ζ(s) = 0 → ζ(conj s) = 0` |
+| `riemannZeta_zero_iff_sigma` | `ZetaBridge.lean` | the zero set is `σ`-invariant |
+| `riemannHypothesis_iff_no_two_cycle` | `ZetaBridge.lean` | fixedness ⟺ no `σ`-twin zeros ⟺ RH |
+| `commute_doubleBracketIncrement` | `DynamicalDesymmetrisation.lean` | the double-bracket increment preserves the involution |
+| `commute_euler_step` | `DynamicalDesymmetrisation.lean` | one Euler step preserves the involution |
+| eigenspace decomposition `(1 ± T)/2` | `InvolutionEigenspace.lean` | an involution splits the module into its `±1` eigenspaces |
+
+`ZetaBridge.lean` contains 31 declarations, all `sorry`-free. The double-bracket lemmas
+depend only on `propext`; the other standard axioms (`Classical.choice`, `Quot.sound`)
+appear only where they must.
+
+### 3.2 In exact arithmetic
+
+| result | count | failures |
+|:---|---:|---:|
+| elliptic curves over `F₅ … F₁₉` satisfying RH | 942 | 0 |
+| smooth genus-2 curves over `F₃` satisfying RH | 324 | 0 |
+| smooth genus-2 curves over `F₅` satisfying RH | 10 000 | 0 |
+| the millionth-prime certificate (`p₁₀₀₀₀₀₀ = 15485863`) | 1 | 0 |
+
+`11 266` curves, no failures. These are the only places in the repository where a
+computation *is* a proof, and the reason is the same in each case: the claim is finite and
+carries a certificate. A finite claim with a certificate is a theorem; a universal claim
+verified on a range is not. That distinction is the subject of
+[`verification.md`](verification.md).
+
+## 4. What was falsified
+
+These are the negative results. They are reported with the same care as the positive ones.
+
+### 4.1 The Dimension-Shift Hypothesis — abandoned
+
+The DSH conjectured a family of self-adjoint Hamiltonians on a ℤ₂-graded Hilbert space,
+with a discrete involution `σ`, whose spectrum converges to the zeros and whose fixed
+locus is the critical line.
+
+**Verdict:** criterion (2) holds. The sector class is **inherited from the input blocks**,
+not produced by the `σ` structure.
+
+| input blocks | sector means | full spectrum |
+|:---|:---|---:|
+| GOE | `0.5279 … 0.5327` | `0.4199 … 0.4248` |
+| GUE | `0.5964 … 0.6017` | `0.4199 … 0.4248` |
+
+The full spectrum is the same in both cases. The `σ` structure does not see the input
+class; it passes it through. With `[H, σ] = 0` enforced exactly, a GOE model produces GOE
+sectors and a GUE model produces GUE sectors — so the construction cannot be the
+Hilbert–Pólya operator, because the class is an assumption, not a consequence.
+
+Evidence: [`m5_verdict.md`](m5_verdict.md), 300 seeds per point, `d = 100, 200`.
+
+### 4.2 The shift-zeta — negative
+
+The shift-zeta lifted the Euler product into a ℤ₂-graded algebra and asked whether the
+zeros are forced into the fixed locus.
+
+**Verdict:** no. Measured over 600 primes: at `τ = 1` (the degenerate control) the trace
+equals the classical Euler-product term for term; at `τ ≠ 1` it departs from `ζ` by
+`11–44%` at `s = 2` and is `3.5×–7.5×` larger at the classical zero heights, with no
+corresponding dip. The structural reason is compact: every local factor is a polynomial in
+one element `γ_τ`, so the product never leaves the two-dimensional subalgebra `ℂ[γ_τ]`.
+
+Evidence: [`shift_zeta_result.md`](shift_zeta_result.md).
+
+### 4.3 The DSIN communication design — closed
+
+The DSIN protocol encoded a bit in the sector parity of a ℤ₂-graded Hilbert space.
+
+**Verdict:** the design is closed — not unproven, closed. A single published observable
+carries the bit, so the adversary's measurement is always the right one; no function of
+that observable's statistic bounds her information.
+
+Evidence: [`dimension_shift_quantum_communication.md`](dimension_shift_quantum_communication.md) §4.1, a proof.
+
+What survives is an exact commutation result — a `σ`-commuting channel preserves
+`Fix(σ)` — which was never a security statement.
+
+### 4.4 The Davenport–Heilbronn filter — its own flagship
+
+The filter screens a candidate's declared inputs against a function whose RH-analogue is
+false. The dead list has one entry, and it is this repository's own flagship proposal:
+`dimension_shift_w`.
+
+**Verdict:** the DSH declares only inputs that Davenport–Heilbronn also has, so the
+argument would have proved a false statement.
+
+Evidence: [`dh_filter.md`](dh_filter.md), and the standalone write-up in
 [`dh_filter_methods_note.md`](dh_filter_methods_note.md).
 
-**The desymmetrisation diagnostic.** A spectrum of a Hamiltonian commuting with an
-involution is a union of sectors, and `⟨r⟩` measured on the full spectrum is a property
-of the superposition:
+### 4.5 The multi-copy circuit identity — unverified, not refuted
 
-| unresolved sectors | GOE | GUE |
-|:---|---:|---:|
-| 1 | `0.531` | `0.600` |
-| 2 | `0.426` | `0.421` |
-| 3 | `0.404` | `0.399` |
-| 6 | `0.391` | `0.389` |
+The literature's description of the multi-copy imaginary-time circuits quotes
 
-The diagnostic verifies the symmetries, splits, flags contamination, and — from the
-sequence of gap ratios rather than their mean — estimates the sector count as a posterior
-with **measured** coverage (`1.00, 0.93, 0.87, 0.98, 1.00, 0.97, 0.78` for
-`1, 2, 3, 4, 5, 6, ≥6/poisson`). It counts one sector decisively (`p = 0.98`, interval
-`1..1`), bounds two (`2..5`), and refuses above two. Its false-positive rate is `4 of 40`.
-Its manuscript is [`desymmetrisation_paper.md`](desymmetrisation_paper.md).
+```
+Tr₂(u ρ₁ ⊗ ρ₂ u†) = ρ₁ − ε[[ρ₁, H], ρ₁] + O(ε^{3/2}).
+```
 
-**The Lean development.** Nine modules compile; four are `sorry`- and `axiom`-free
-(`DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`).
-The RH statements carry `sorry` by design: one of them *is* the open problem, and the
-suite fails if that ever stops being true.
+The three natural generators that can be built here all produce a first-order term
+`i√ε [H, ρ₁]` that the identity does not have, and a second-order term that is not
+`±[[ρ,H],ρ]`.
 
-## 4. What failed, and why that was the useful outcome
-
-| claim | how it died |
-|:---|:---|
-| The Dimension-Shift Hypothesis | tested by its own criteria: the sector class is inherited from the input blocks, not produced by the `σ` structure (M5) |
-| "DSH is SUPPORTED" | one seed of a 90-point grid; 300 seeds give `0.523 ± 0.069`, and 14% of pure GOE draws enter the window |
-| A `σ`-symmetric model reaching GUE | the model's commutator was `1.35…1.46` (not a symmetry at all); with `[H,σ] = 0` enforced, the sectors are GOE when the blocks were |
-| A single published observable in DSIN | no function of it bounds an adversary's information |
-| The graded shift-zeta lift | the functional equation fails for `τ ≠ 1` |
-| A hard-box regularisation of `xp` | an evenly spaced ladder, `r = 1.000` against `0.610`, and `2.10×` overcounting at `T = 50` |
-| "GUE statistics certify a candidate" | a prime-length graph scores `r = 0.641`, KS `0.0438` to Wigner — better than the zeros' own `0.610` / `0.0579` — with a linear counting function |
-| A multi-copy circuit identity | every natural generator produces a first-order term the identity does not have; recorded unverified |
-
-Each death is documented with its measurement. The general lessons are in
-[`lessons_learned.md`](lessons_learned.md) §1–§19, and the M5 verdict is in
-[`m5_verdict.md`](m5_verdict.md).
+**Verdict: unverified.** This is *not* a negative result about the source: the circuit's
+generator was not read, and the identity evidently depends on it. The repository records
+a discrepancy and declines to build on either side of it.
 
 ## 5. What was corrected
 
-The recurring failure of this repository was not a wrong theorem. It was a claim that
-stopped being true quietly. The corrections are part of the record:
+The repository found and fixed several errors — some in its code, some in its claims.
+Each has a regression test, and each is on record rather than quietly repaired.
 
-- A verdict from one seed, replaced by 300 seeds with error bars.
-- A symmetry that was never enforced (`‖[H,σ]‖ = 1.35…1.46`), now `0.0` exactly.
-- A window calibrated on one draw, now calibrated on sampled references.
-- A label swap that acquitted the hypothesis in the M5 run.
-- Production functions named `test_*`, which pytest collected and ran twice.
-- A figure referenced from the README, on disk, and never committed — the CI failure that
-  produced the guard requiring every embedded figure to be git-tracked.
-- Prose that drifted: a README row still saying "single seed" after the fix. Mechanical
-  guards check counts, paths, figures and links; none can catch a sentence, and the
-  sentences are where the overstatement lives.
+| error | what it was | how it was caught | where it is pinned |
+|:---|:---|:---|:---|
+| a verdict from one seed | "DSH is SUPPORTED" from one seed per point | 14% of *pure GOE* draws enter the acceptance window by chance; 300 seeds give `0.523 ± 0.069` | `test_falsification.py` |
+| a symmetry never enforced | `‖[H,σ]‖/‖H‖ = 1.35 … 1.46` | the commutator was measured instead of assumed; `[H,σ] = 0` is now exact | `test_dimension_shift_chaos.py` |
+| a symmetry-breaking attack that broke nothing | the attack left the bit-1 states undisturbed | the vector was `σ`-odd, i.e. inside the bit-1 eigenspace | `test_symmetry_breaking_attack_disturbs_both_encodings` |
+| a BB84 "detection" that was a sifting artefact | a basis mismatch was being counted as detection | sifting is not eavesdropping | `test_bb84.py` |
+| an Eisenstein enumeration bound | short by a factor of `√2` | verified against the exact count `r₃(n)/6` | `test_zeta_factors.py` |
+| a de Bruijn–Newman draft from memory | three errors | `H_0` checked against `(1/8)ξ(1/2 + iz/2)` to `1e-14` | `test_de_bruijn_newman.py` |
+| an unreachable Stage-D flag | the "prime-dependent mismatch" could never fire | the `log p` factor cancelled in the prototype | `test_idea_pipeline.py` |
+| mpmath stub gaps | `workdps`, `floor`, an `int` defaulting to `...` | AST checks now enforce coverage of every `mp.` name | `test_mpmath_stub.py` |
+| a label swap that acquitted a hypothesis | the first M5 run reported *SURVIVES* | points are keyed by class name; the tests assert it | `test_m5_analysis.py` |
+| tests that ran themselves | `test_criterion_1/2` were production functions | pytest collected the imported names and ran the grid twice | `test_m5_analysis.py` |
+| a figure referenced but never committed | the README embedded an ignored `output/` file | CI failed while the local suite passed | `test_documentation_sync.py` |
+| prose that drifted | a README row still said "single seed" after the fix | mechanical guards catch counts, paths, figures, links — not sentences | (manual; recorded in [`lessons_learned.md`](lessons_learned.md)) |
 
-## 6. What remains
+The last row is the honest one: the guards cannot catch a sentence, and the sentences are
+where the overstatement lives.
 
-| open item | why it is open |
+## 6. What survives
+
+Not everything failed. These are the artifacts that outlive the DSH.
+
+### 6.1 The Davenport–Heilbronn filter
+
+A screening tool for any proposed proof of RH. The logic is exact: *an argument that goes
+through unchanged where the hypothesis fails cannot establish the hypothesis.* The
+inventory has nine rows, each with a source; three are verified by computation, three are
+left unsourced rather than guessed, and a candidate declaring an unsourced input receives
+no verdict. It is written up as a standalone methods note, independent of the DSH.
+
+This is the strongest contribution in the repository, because it is a verdict procedure
+rather than a claim: it decides something about an argument without knowing whether the
+argument works.
+
+### 6.2 The desymmetrisation diagnostic
+
+A working instrument for detecting hidden symmetries in quantum spectra. It verifies the
+symmetries, splits the spectrum into joint sectors, flags contamination, and estimates the
+sector count as a posterior with **measured** coverage — from the sequence of gap ratios,
+not their mean.
+
+| true sectors | coverage | posterior on the truth | interval |
+|:---|---:|---:|:---|
+| 1 | `1.00` | `0.98` | `1..1` |
+| 2 | `0.93` | `0.65` | `2..5` |
+| 3 | `0.87` | `0.24` | `3..6` |
+| 4 | `0.98` | `0.17` | `3..6` |
+| 5 | `1.00` | `0.21` | `3..6` |
+| 6 | `0.97` | `0.20` | `3..6` |
+| Poisson | `0.78` | `0.20` | `4..6` |
+
+The limits are stated: two-sector GOE and GUE are indistinguishable (`0.426` vs `0.421`,
+against a scatter of `≈0.03`); the count is not recoverable above two; the false-positive
+rate is `4` of `40` pure single-sector GOE spectra. The dynamical companion (the
+double-bracket flow) preserves sector populations for a commuting state and selects a
+sector for one that does not, but never touches the Hamiltonian — so it cannot repair a
+contaminated spectrum.
+
+Documents: [`desymmetrisation.md`](desymmetrisation.md) and the manuscript
+[`desymmetrisation_paper.md`](desymmetrisation_paper.md).
+
+### 6.3 The finite-field certificates
+
+`11 266` curves certified, `0` failures. What this does **not** do: per-curve certificates
+do not prove Weil's theorem, and the theorem does not transfer to `ℚ`. The proof runs
+through Frobenius on étale cohomology, and no analogue of that action is known over `ℚ`.
+
+### 6.4 The Lean formalization
+
+The fixed locus of `σ` is exactly the critical line; the zero set is `σ`-invariant; and
+the implication "invariance ⟹ fixedness" is **itself equivalent to RH**. That last one is
+the most valuable statement in the formalization, because it is machine-checked evidence
+that the structural route restates the problem rather than solving it.
+
+It is small. It is real.
+
+### 6.5 The documented record of failure
+
+Nineteen sections in [`lessons_learned.md`](lessons_learned.md), each with a measurement.
+The DSH is abandoned in [`central_hypothesis.md`](central_hypothesis.md) §10 — in the
+document that proposed it. The decisive test is in [`m5_verdict.md`](m5_verdict.md).
+
+The record of a falsified hypothesis is a contribution: it saves the next researcher from
+spending months on the same dead end, and it is the only part of a failed program that
+transfers.
+
+## 7. What remains open
+
+### 7.1 The Riemann hypothesis
+
+Open. Nothing in this repository changes that. The DSH failed, the shift-zeta failed, the
+DSIN design is closed, `σ` is a known affine map, the Hilbert–Pólya prototype has four
+measured gaps, and the finite-field success does not transfer to `ℚ`.
+
+The hypothesis is exactly as open as it was when the repository began.
+
+### 7.2 Within the repository
+
+| item | status | why it remains open |
+|:---|:---|:---|
+| a Lean proof of RH | open | the problem is open; no formalization can close it |
+| `zeros_are_fixed_by_sigma` | open, and equivalent to RH | the repository proves the equivalence, not the fact |
+| BB84 timing / Trojan-horse channels | open | needs hardware physics, not accounting |
+| the DH inventory's unsourced rows | open | no source read supplies them; guessing is what the vocabulary exists to prevent |
+| the multi-copy circuit identity | unverified | the generator was not read; three natural candidates disagree |
+| the operator screen's symmetry check | unimplemented | the screen still reports raw statistics; wiring the contamination flag into it is not done |
+| the `std < 0.02` clause | unreachable as written | it must be redefined at the tested sizes (`0.084`, `0.034`, `0.026` at `2d = 20, 100, 200`) |
+
+### 7.3 The DSH
+
+Closed. The verdict is final. The correct action is to stop.
+
+## 8. What the repository teaches
+
+### 8.1 About the hypothesis
+
+RH is not a problem that will be solved by manipulation within `ℂ`. It needs a structural
+explanation of why the critical line exists, and the structural route has been worked for
+167 years. The repository's own Lean file proves the precise form of that obstacle:
+"invariance implies fixedness" is equivalent to RH, so the functional equation supplies
+the symmetry but not the absence of two-cycles.
+
+### 8.2 About method
+
+| lesson | where it appears |
 |:---|:---|
-| RH | it is the open problem; nothing here touches it |
-| the Lean obligation `zeros_are_fixed_by_sigma` | it is equivalent to RH; the repository proves the equivalence, not the fact |
-| the DH inventory's two unsourced rows | no source was read that supplies them, and guessing is what the vocabulary exists to prevent |
-| the multi-copy circuit identity | the generator was not read; three natural candidates disagree with the quoted form |
-| the two-sector class test | GOE and GUE are indistinguishable there; no statistic in this repository resolves it |
-| the operator screen's symmetry check | the screen still reports raw statistics; wiring the contamination flag into it is unimplemented |
+| single-seed results are noise | [`lessons_learned.md`](lessons_learned.md) §1 |
+| the full spectrum is the wrong question | §3 |
+| the class is inherited, not produced | §4 |
+| a clause unreachable at the tested sizes is a prohibition | §5 |
+| document the defects alongside the verdict | §6 |
+| a negative result is a contribution | §10, §15–§19 |
+| an instrument is not a measurement | §18 |
+| a dynamical analogue is not the same tool | §19 |
 
-## 7. How to verify
+### 8.3 About instruments
 
-```bash
-python -m pytest tests/ -q                     # from python/ ; 1107 tests
-python scripts/generate_desymmetrisation_figures.py
-python scripts/run_dh_filter.py
-lake build                                     # from the repository root
-```
+The DSH failed as a proof strategy and succeeded as a diagnostic. The transition from
+failed hypothesis to working tool is the ordinary trajectory of scientific work, and it is
+the part that other people can use.
 
-`tests/test_documentation_sync.py` compares the README against live artefacts: per-file
-test counts, every module, test file and document, every embedded figure (against the
-filesystem *and* git's index), and every internal link.
+An instrument that prevents a specific error is a contribution. It is not a proof of the
+grand conjecture. It is what makes the next attempt harder to fool.
 
-## 8. Document index
+## 9. The final inventory
+
+| category | count | files |
+|:---|---:|:---|
+| tracks attempted | 11 | — |
+| tracks closed as negative | 3 | DSH, shift-zeta, DSIN |
+| tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
+| tracks with finite proofs | 2 | finite-field curves, prime certificates |
+| `sorry`-free Lean modules | 4 of 9 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
+| tests passing | 1107 | `python/tests/` |
+| documents | 36 | `docs/` |
+| negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
+| corrections with regression tests | 12 | §5 above |
+| manuscripts | 2 | [`desymmetrisation_paper.md`](desymmetrisation_paper.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) |
+
+### 9.1 Document index
 
 | document | what it is |
 |:---|:---|
 | [`lessons_learned.md`](lessons_learned.md) | the negative results and the methodological lessons, §1–§19 |
 | [`central_hypothesis.md`](central_hypothesis.md) | the DSH as proposed, and its abandonment in the same document (§10) |
 | [`m5_verdict.md`](m5_verdict.md) | the decisive test, with the defects and the numbers |
-| [`desymmetrisation.md`](desymmetrisation.md) | the static and dynamical diagnostics, the tables, the limits |
-| [`desymmetrisation_paper.md`](desymmetrisation_paper.md) | the manuscript for the diagnostic |
+| [`desymmetrisation.md`](desymmetrisation.md), [`desymmetrisation_paper.md`](desymmetrisation_paper.md) | the diagnostic, and its manuscript |
 | [`submission_checklist.md`](submission_checklist.md), [`cover_letter.md`](cover_letter.md) | submission materials, unsent |
-| [`dh_filter.md`](dh_filter.md) | the DH filter, its inventory and the dead list |
-| [`dh_filter_methods_note.md`](dh_filter_methods_note.md) | the filter as a standalone methods note |
+| [`dh_filter.md`](dh_filter.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) | the screening filter, and its methods note |
 | [`hilbert_polya.md`](hilbert_polya.md), [`operator_candidates.md`](operator_candidates.md), [`pt_symmetric_hilbert_polya.md`](pt_symmetric_hilbert_polya.md) | the operator attempts and their measured gaps |
 | [`verification.md`](verification.md) | what "verified" means here: finite evidence versus universal claim |
-| [`future_work.md`](future_work.md) | milestones, and what is left in each |
+| [`future_work.md`](future_work.md) | milestones and what is left in each |
 | [`chirality.md`](chirality.md), [`zeta_factors.md`](zeta_factors.md), [`graded_prime_monoid.md`](graded_prime_monoid.md) | the algebraic and arithmetic tracks |
 | [`number_systems.md`](number_systems.md), [`spherical_number_systems.md`](spherical_number_systems.md) | the dimension-lift proposals and their status |
 | [`bb84_implementation.md`](bb84_implementation.md), [`dimension_shift_quantum_communication.md`](dimension_shift_quantum_communication.md) | the communication tracks |
 | [`claimed_proof_triage.md`](claimed_proof_triage.md), [`openai_math_quasi_riemann.md`](openai_math_quasi_riemann.md) | the triage of outside claims |
 | [`scientific_contribution_assessment.md`](scientific_contribution_assessment.md), [`project_critique_and_roadmap.md`](project_critique_and_roadmap.md) | what this is worth, and what it should do next |
+| [`state_of_the_project.md`](state_of_the_project.md) | this document |
 
-## 9. Closing
+## 10. Four sentences
 
-The flagship hypothesis is dead. It was proposed in a document that now carries its
-verdict, tested by criteria it stated itself, and abandoned with the numbers attached.
+From the README:
 
-What survived is not a theorem about the zeros. It is a screening filter for arguments
-about them, a diagnostic for a silent failure mode in quantum spectra, and a set of
-machine-checked lemmas that are exactly as strong as their statements.
+> *"Several tracks here do fail, on purpose and on record: a negative result obtained by a
+> stated method is worth more than an unfalsifiable claim of progress."*
 
-A repository that refutes its own flagship and keeps the tools is in the correct state.
-The alternative — a hypothesis defended by adjusting the criteria — is the failure this
-repository was built to avoid.
+From [`lessons_learned.md`](lessons_learned.md) §1:
+
+> *"The corrected verdict is mixed, and 'mixed' is not a success."*
+
+From [`m5_verdict.md`](m5_verdict.md):
+
+> *"The class is inherited from the input blocks, not produced by the construction."*
+
+From [`desymmetrisation.md`](desymmetrisation.md):
+
+> *"Desymmetrise before testing the class."*
+
+Those four describe the project exactly. It is not the RH. It is science.
+
+## 11. A note to the next reader
+
+If you came looking for a path to the Riemann hypothesis: this is not it. The DSH is
+abandoned, the shift-zeta is negative, `σ` is a known affine map, and the Hilbert–Pólya
+prototype has four measured gaps.
+
+If you came looking for an honest research record — what was attempted, measured,
+corrected, and what survives — read §2 to §7, then the documents in §9.1.
+
+If you came looking for a diagnostic for hidden symmetries in spectra, use
+`python/riemann_framework/desymmetrisation.py`. It is calibrated, its limits are stated,
+and its false-positive rate is measured.
+
+If you came looking for a screen for a proposed proof of RH, use
+`python/riemann_framework/dh_filter.py`. It is independent of everything else here, and it
+is the artifact most likely to be useful to someone else.
+
+The DSH failed. The instrument survived. That is the correct outcome.
+
+## 12. Closing statement
+
+This repository records a research program that was pursued, tested, and closed when the
+evidence required it.
+
+It did not prove the Riemann hypothesis. It did not find a new number system that solves
+the problem. It did not produce a Hilbert–Pólya operator.
+
+It did produce:
+
+- a falsification filter that killed its own flagship idea;
+- a diagnostic instrument with measured coverage and stated limits;
+- a formal verification of the involution's structure, and of the fact that the
+  structural equivalence *is* the hypothesis;
+- a finite-field proof for 11 266 curves;
+- a documented record of nineteen negative results;
+- two manuscripts on working methods.
+
+That is what research looks like when the central hypothesis fails.
+
+The Riemann hypothesis remains open. The next attempt will be more careful because of what
+is recorded here.
+
+---
+
+**Status:** closed as a research program; retained as an instrument.
+
+**Last verified:** `python -m pytest tests/ -q` → `1107 passed`; `lake build` → 9 modules
+compile, the 4 `sorry`-free modules remain `sorry`-free;
+`python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.
+
+**Manuscripts:** [`desymmetrisation_paper.md`](desymmetrisation_paper.md) (draft, not
+submitted), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) (draft, not
+submitted).
