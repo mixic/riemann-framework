@@ -32,7 +32,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | field | value |
 |:---|:---|
 | **Title** | Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage |
-| **Authors** | Milan Nikolic `[ADD: affiliation]` `[ADD: email]` `[ADD: ORCID if any]` `[CHECK: the name form you publish under]` |
+| **Authors** | Milan Nikolic — Standalone Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
 | **Comments** | 12 pages, 4 figures, 3 appendices. Code, tests, figures and Lean verification at `[ADD: repository URL]`. |
@@ -103,28 +103,54 @@ other document here. The posted version must not carry them.
       looked at;
 - [ ] set the author block for real.
 
-## 5. Producing the PDF
+## 5. The PDF, and how it is produced
 
 arXiv accepts PDF, or LaTeX source it compiles itself. **This machine has neither `pandoc`
-nor a LaTeX distribution**, so the conversion was not performed here and no PDF exists in
-the repository.
-
-When a toolchain is available:
+nor a LaTeX distribution**, so the PDF is produced by a different route:
 
 ```bash
-pandoc docs/desymmetrisation_paper.md -o submission/paper.tex \
-  --standalone --pdf-engine=xelatex -V geometry:margin=1in -V fontsize=11pt
+python scripts/build_manuscript_pdf.py \
+    --author "Milan Nikolic" \
+    --affiliation "Standalone Researcher" \
+    --email "m_nikolic@yahoo.com"
 ```
 
-`[CHECK]` — the manuscript uses Unicode (`⟨r⟩`, `σ`, `→`) inside tables, which needs
-`xelatex` with a font that has the glyphs (e.g. `-V mainfont="DejaVu Serif"`), or a
-LaTeX preamble with `unicode-math`. The alternative is to export from a Markdown editor
-that renders these correctly and submit the PDF only.
+The pipeline is Markdown → HTML (a converter that understands exactly the subset the
+manuscript uses) → headless Chrome → PDF. The figures are embedded as base64, so the PDF
+is self-contained. Output: `output/desymmetrisation_paper.pdf`.
+
+What was verified mechanically on the current build:
+
+| check | result |
+|:---|:---|
+| page count | `11` |
+| page size | A4 (`594.96 × 841.92` pt) |
+| embedded images | `4`, one per figure |
+| fonts embedded | Georgia (text), Georgia Italic/Bold, Consolas (code), Cambria Math (the `σ`, `⟨r⟩`, `≥` glyphs) |
+| text layer | `/ToUnicode` maps present, so the PDF is searchable and copyable |
+| licence header, draft banner, "A note on this draft" | absent |
+
+What is **not** in it, and the author should decide on:
+
+- **No page numbers.** Chrome's print-to-PDF does not support CSS margin boxes, and adding
+  the browser's own header would print the `file:///` path. If the venue needs numbered
+  pages, the PDF has to be re-made with a LaTeX or Word toolchain.
+- No line numbers and no journal style class: it is a plain A4 single-column preprint.
+
+Re-running the command regenerates the PDF from the current Markdown; `--keep-draft-note`
+keeps the corrections section (useful for a review copy, not for a submission).
+
+`[CHECK]` — the manuscript uses Unicode (`⟨r⟩`, `σ`, `→`) inside tables. Chrome falls back
+to Cambria Math for those glyphs, which renders correctly but is a visible font change
+inside running text. A LaTeX build with `unicode-math` would unify it, if that matters to
+the venue.
 
 ## 6. Pre-flight
 
 - [ ] repository URL resolved and public (the comments field and the data statement cite it)
-- [ ] PDF opens, figures embedded, no missing glyphs
+- [x] PDF generated from the current Markdown, figures embedded (mechanically checked: 11
+      pages, 4 images, A4, text layer present) — but **open it once** and check the page
+      breaks by eye, which is the one thing a mechanical check cannot do
 - [ ] abstract pasted as plain text (196 words), not the long one
 - [ ] categories set; MSC added only if the `math-ph` cross-list is kept
 - [ ] licence selected, and the code's GPL-3.0 licence stated in the paper's data section

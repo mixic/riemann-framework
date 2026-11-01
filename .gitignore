@@ -23,6 +23,12 @@ build/
 
 # Output (Grafiken)
 output/*.png
+# The typeset manuscript is a build artefact but a delivered one: keep it.
+!output/desymmetrisation_paper.pdf
+# Scratch from the PDF build (intermediate HTML, headless-browser profiles).
+output/*.html
+output/.pdf-profile/
+output/.shot-profile/
 !output/.gitkeep
 !output/riemann_zeros_complex.png
 !output/riemann_explicit_formula.png

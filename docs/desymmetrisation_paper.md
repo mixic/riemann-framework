@@ -75,7 +75,7 @@ what a two-sector superposition produces.
 ### 1.2 The measured table
 
 At 300 seeds per point, `60` levels per sector, the full-spectrum `⟨r⟩` depends on the
-number of unresolved sectors:
+number of unresolved sectors (Fig. 1):
 
 | unresolved sectors | GOE blocks | GUE blocks |
 |:---|---:|---:|
@@ -93,6 +93,8 @@ true rather than suggestive:
 - **At two sectors the class is erased.** `0.426` against `0.421` is a gap of `0.005`,
   against a per-spectrum scatter of `≈0.03` for each class. A class test on a two-sector
   full spectrum is uninformative, not merely noisy.
+
+![Fig. 1. Full-spectrum mean adjacent-gap ratio against the number of unresolved independent sectors, at 300 seeds per point and 60 levels per sector. GOE input blocks (circles) and GUE input blocks (squares). Reference values are marked: Poisson 0.386, GOE 0.531, GUE 0.600. The shaded band is the Poisson window [0.36, 0.41]; from three sectors upward the full spectrum lies inside it.](output/desymmetrisation.png)
 
 ### 1.3 The contribution
 
@@ -140,9 +142,11 @@ Two entry points cover a caller that has only a spectrum:
 * `detect_hidden_symmetry(eigenvalues)` — when no involution is known. It computes the
   full-spectrum `⟨r⟩` and flags a value below the single-sector floor.
 
-The flag is not a classifier. `4` of `40` pure single-sector GOE spectra also fall below
-the floor (Appendix C). A low `⟨r⟩` is also what an integrable system produces. Spacing
-statistics cannot separate the two, and the warning says so in its own text.
+The flag is not a classifier (Fig. 2). `4` of `40` pure single-sector GOE spectra also
+fall below the floor (Appendix C). A low `⟨r⟩` is also what an integrable system produces.
+Spacing statistics cannot separate the two, and the warning says so in its own text.
+
+![Fig. 2. Distribution of the full-spectrum mean gap ratio for four sector counts and both block classes, one dot per simulated spectrum (300 per point), with the per-point mean marked. The Poisson window is shaded and the contamination floor (0.46) is drawn. At two sectors the GOE and GUE clouds coincide, so a class test on the full spectrum is uninformative rather than noisy.](output/desymmetrisation_warning.png)
 
 ### 2.3 The posterior
 
@@ -171,7 +175,7 @@ sectors from an integrable spectrum.
 
 ### 2.4 The measured coverage
 
-At a nominal 95% interval, over 60 spectra per row:
+At a nominal 95% interval, over 60 spectra per row (Fig. 3):
 
 | true sectors | coverage | posterior on the truth | typical interval |
 |:---|---:|---:|:---|
@@ -196,6 +200,8 @@ Reading the table:
 * **Poisson is the hard row.** An integrable spectrum is read as a `4–6`-sector
   superposition about a fifth of the time, because that is what it looks like. Coverage
   `0.78` is the honest number for that row.
+
+![Fig. 3. Measured coverage of the sector-count posterior at a nominal 95% interval, 60 spectra per row, against the nominal level (dashed). The open-ended label is the hard row: an integrable spectrum is reported as a finite superposition with probability 0.80, so that bar is also the false-positive rate of the posterior.](output/desymmetrisation_coverage.png)
 
 ## 3. The dynamical counterpart
 
@@ -238,6 +244,8 @@ The flow selects a sector rather than preserving one. This is a measured behavio
 the flow, not a claim in the sources, and it is the opposite direction from the
 invariance row: from an asymmetric start the flow does not break the symmetry, it
 *creates* it.
+
+![Fig. 4. Sector populations under the double-bracket flow for (a) a state that commutes with the involution and (b) one that does not. Panel (a): populations (0.50, 0.50) are preserved to rounding error while the state itself evolves (the initial state is not an eigenstate of H). Panel (b): the coherence falls from 1.41 to 3e-3 and the population is driven to (1.00, 0.00). The flow is isospectral in the state and never acts on the Hamiltonian.](output/desymmetrisation_flow.png)
 
 ### 3.4 The limit
 

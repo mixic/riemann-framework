@@ -32,14 +32,18 @@ remains open, and an index of every document here.
 
 | manuscript | status | materials |
 |:---|:---|:---|
-| [Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage](docs/desymmetrisation_paper.md) | draft complete, reproducible; **not submitted** | [submission checklist](docs/submission_checklist.md), [cover letter](docs/cover_letter.md), [arXiv metadata](docs/arxiv_submission.md) (prepared, no identifier) |
+| [Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage](docs/desymmetrisation_paper.md) | draft complete, reproducible; **not submitted** | [**PDF**](output/desymmetrisation_paper.pdf) · [submission checklist](docs/submission_checklist.md) · [cover letter](docs/cover_letter.md) · [arXiv metadata](docs/arxiv_submission.md) |
 | [The Davenport–Heilbronn filter as a standalone methods note](docs/dh_filter_methods_note.md) | draft complete; **not submitted** | §9 of the note lists what remains |
 
 Neither has a venue, a DOI or a referee report. The figures, tables and Lean checks are
 reproducible from the repository; the submission steps are the author's. The arXiv
-metadata file is filled in as far as an author-independent pass can go — title, the
-196-word abstract, categories, comments, a copy-paste field table — with the author
-block, the MSC codes and the licence marked for the author to set.
+metadata file is filled in — title, the 196-word listing abstract, categories, comments, a
+copy-paste field table, the author block — with the MSC codes and the licence marked for
+the author to choose.
+
+The PDF is generated from the Markdown by `scripts/build_manuscript_pdf.py` (Markdown →
+HTML → headless Chrome; there is no LaTeX on the build machine), with the four figures
+embedded and the licence header and draft note stripped. It has no page numbers.
 
 ## Status
 
