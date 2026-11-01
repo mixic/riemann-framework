@@ -67,12 +67,14 @@ from riemann_framework.desymmetrisation import (  # noqa: E402
 )
 
 SECTOR_COUNTS = (1, 2, 3, 4, 6)
-SEEDS = 300
+
+#: Spectra per point. The manuscript's Section 1.3 table is this run.
+SEEDS = 4000
 
 
 def main() -> None:
     rows = calibration_table(SECTOR_COUNTS, dimension=60, seeds=SEEDS)
-    table = calibration_table((1, 2, 3, 4), dimension=60, seeds=SEEDS)
+    table = [row for row in rows if row.n_sectors <= 4]
 
     figure, axis = plt.subplots(figsize=(10, 6), constrained_layout=True)
     axis.axhspan(*TWO_SECTOR_BAND, color="orange", alpha=0.10,
@@ -154,9 +156,9 @@ def main() -> None:
     print("  -> the mean alone saturates and is not recoverable; the warning is a")
     print("     flag, not a classifier.")
     print()
-    print("The count as a posterior, measured (nominal 95% interval, 60 spectra):")
+    print("The count as a posterior, measured (nominal 95% interval, 400 spectra):")
     model = default_sector_count_model()
-    for row in model.coverage(draws=60, truths=COUNT_LABELS):
+    for row in model.coverage(draws=400, truths=COUNT_LABELS):
         print("  " + row.summary())
     print("  -> one sector is measured; two is a set, not a point; three and above")
     print("     comes back as '>=3' with 3..6 indistinguishable, which is the")

@@ -36,29 +36,33 @@ appeared to reach GUE statistics.
 
 ## The table
 
-Measured at 300 seeds per point, `d = 60` per sector, quoting the reviewer's numbers
+Measured at 4000 seeds per point, `d = 60` per sector, quoting the reviewer's numbers
 alongside the ones this repository reproduces:
 
 | unresolved independent sectors | GOE blocks | GUE blocks |
 |:---|---:|---:|
-| 1 | `0.531` (reviewer `0.52`) | `0.600` (reviewer `0.59`) |
-| 2 | `0.426` (reviewer `0.43`) | `0.421` (reviewer `0.42`) |
-| 3 | `0.404` | `0.399` |
+| 1 | `0.530` (reviewer `0.52`) | `0.599` (reviewer `0.59`) |
+| 2 | `0.423` (reviewer `0.43`) | `0.422` (reviewer `0.42`) |
+| 3 | `0.404` | `0.400` |
 | 4 | `0.396` | `0.393` |
 | 6 | `0.391` | `0.389` |
 | Poisson | `0.386` | `0.386` |
 
-The one-sector GOE value is `0.531` at `d = 60` and `0.519` at `d = 100`; the
+The one-sector GOE value is `0.530` at `d = 60` and `0.519` at `d = 100`; the
 reviewer's `0.52` is the larger-`d` value. The finite-size dependence is why the
 one-sector floor below is set at `0.48` rather than at the reference value.
+
+At 4000 spectra per point the standard error of each entry is at most `0.0006`, so the
+three decimal places are real information; the per-spectrum scatter at the same points is
+`0.017` to `0.039` (Appendix A of the manuscript), fifty to sixty times larger.
 
 ![Mean r against the number of unresolved sectors, for GOE and GUE blocks](output/desymmetrisation.png)
 
 ## The two limits of the mean
 
 **The mean detects but does not count.** The map from `⟨r⟩` to the number of sectors is
-many-to-one, and the single-spectrum scatter (`≈0.03`) is comparable to the gaps
-between successive sector counts (`0.426 → 0.404 → 0.396`). `estimate_sector_count`
+many-to-one, and the single-spectrum scatter (`0.021` to `0.031`) is comparable to the gaps
+between successive sector counts (`0.423 → 0.404 → 0.396`). `estimate_sector_count`
 inverts the table and is included to *demonstrate* the failure: for a true `N = 4` it
 returns values spread over `2 … 4`, and below the three-sector level it saturates at
 the largest tabulated count instead of reporting "cannot tell". The reviewer's
@@ -66,9 +70,12 @@ attempt returned `12` for a true `4`; the magnitude is a property of the estimat
 the instability is a property of the data. The next section recovers what a mean cannot
 by using the whole sequence; the limit itself does not move.
 
-**At two sectors the class information is erased.** GOE gives `0.426` and GUE `0.421`
-— a difference smaller than either standard deviation. A class test run on a
-two-sector full spectrum is not noisy, it is uninformative. The rule this module
+**At two sectors the class information is erased.** GOE gives `0.4232` and GUE `0.4222`
+— a difference of `0.001`, which is `1.4` standard errors of the two means and one
+thirtieth of the per-spectrum scatter. A class test run on a
+two-sector full spectrum is not noisy, it is uninformative, and more spectra do not
+change that: the best single-threshold balanced accuracy on one spectrum is `0.526` at
+two sectors against `0.790` at one. The rule this module
 enforces:
 
 > **Desymmetrise before testing the class.**
@@ -91,37 +98,44 @@ their average. `sector_count_posterior` fits the sequence directly:
 
 | true count | posterior on the truth | interval covers | interval is a point |
 |:---|---:|---:|---:|
-| 1 | `0.98` | `1.00` | `0.95` |
-| 2 | `0.65` | `0.93` | `0.28` |
-| 3 | `0.24` | `0.87` | `0.00` |
-| 4 | `0.17` | `0.98` | `0.00` |
-| 6 | `0.20` | `0.97` | `0.00` |
-| Poisson | `0.20` | `0.78` | `0.00` |
+| 1 | `0.97` | `0.99` | `0.94` |
+| 2 | `0.66` | `0.92` | `0.37` |
+| 3 | `0.24` | `0.91` | `0.00` |
+| 4 | `0.19` | `0.96` | `0.00` |
+| 5 | `0.22` | `0.99` | `0.00` |
+| 6 | `0.22` | `0.98` | `0.00` |
+| Poisson | `0.24` | `0.78` | `0.00` |
 
-Measured over 60 simulated spectra per row (`SectorCountModel.coverage`), 240 levels,
-with the seeds pinned in the demo script.
+Measured over 400 simulated spectra per row (`SectorCountModel.coverage`), 240 levels,
+with the seeds pinned in the model. At 400 draws a coverage of `0.92` is measured to
+about `0.014` either way, so the two- and three-sector rows really are below `0.95`
+rather than noisy.
 
 The rows are three different claims, and the difference matters:
 
-- **one sector is measured.** `0.98` on the truth, interval `1..1` in 95% of draws, and
-  the posterior on `1` stays below `0.02` for every other truth — including a Poisson
-  spectrum. This is a measurement, not a warning;
-- **two sectors is a set.** `0.65` on the truth, with the interval typically `2..5`.
-  The point estimate is right about two thirds of the time and the interval almost
-  never collapses to `2..2`. "Two" is defensible; "exactly two" is not;
+- **one sector is measured.** `0.97` on the truth, interval `1..1` in 376 of 400 draws,
+  and the posterior on `1` stays below `0.001` for every other truth — including a
+  Poisson spectrum. This is a measurement, not a warning;
+- **two sectors is bounded below, not counted.** `0.66` on the truth, and the interval's
+  lower end is `2` in 92% of draws, so "at least two" is defensible. The upper end is
+  not: it collapses to `2..2` in 37% of draws and stretches to the open label in the
+  rest, because a two-sector superposition and a three-sector one are frequently the same
+  number. "Exactly two" is not defensible;
 - **three or more is not counted.** The interval's lower bound rises with the truth
-  (`P(lower ≥ 3)` is `0.65`, `0.80`, `0.83`, `0.88` at `3, 4, 5, 6` sectors) and the
-  open label carries `0.63` at six. The estimator returns `≥3`, which is the original
-  negative result — now with an interval instead of a shrug.
+  (`P(lower ≥ 3)` is `0.60`, `0.80`, `0.85`, `0.90` at `3, 4, 5, 6` sectors) and the
+  open label carries `0.21` of the posterior at six sectors. The estimator returns `≥3`,
+  which is the original negative result — now with an interval instead of a shrug.
 
 The weakest row is the Poisson one, and it deserves saying plainly: an integrable
-spectrum is read as a `4–6`-sector superposition in about a fifth of the draws, because
-that is what it resembles. The open label exists so the estimator is *allowed* to say
-"not a finite superposition", not because it can tell the two apart.
+spectrum is covered by its own label in `0.78` of draws, so in `0.22` of them the
+posterior reports a finite superposition, because that is what it resembles. The open
+label exists so the estimator is *allowed* to say "not a finite superposition", not
+because it can tell the two apart.
 
 Two limits on the calibration itself. The model is a plug-in fit from 200 spectra, so
 its own uncertainty is not integrated out — one reason the measured coverage is printed
-next to the nominal level (`0.87` at three sectors, `1.00` at one) rather than assumed.
+next to the nominal level (`0.92` at two sectors, `0.91` at three, `0.99` at one) rather
+than assumed.
 And the model is tied to the spectrum size it was fitted for; `SectorCountModel.fit`
 takes `total_levels` so that a mismatched model is a caller's decision, not a default.
 
@@ -192,8 +206,9 @@ each sector — is the only one that works, and it requires knowing the symmetri
 
 Because the absolute-band flags overlap at finite size (a single GOE sector can draw
 `0.49`; a two-sector GUE superposition can draw `0.46`), the utility is a **flag to
-investigate**, not a classifier. Measured at `d = 60`, seeds `0 … 39`: `4` of `40` pure
-single-sector GOE spectra fall below the `0.48` floor and are flagged, and `0` of `40`
+investigate**, not a classifier. Measured at `d = 60`, seeds `0 … 399`: `37` of `400` pure
+single-sector GOE spectra fall below the `0.48` floor and are flagged (`9.2%`, 95%
+interval `6.6%` to `12.6%`), and `0` of `400`
 GUE spectra are. A `severe` flag therefore means *do not call this Poisson yet* — not
 *this is a superposition*. The reliable half is the comparison against resolved
 sectors, which is exactly what the tool exists to make easy.
@@ -259,9 +274,10 @@ tool that makes the mistake hard.
 
 | File | Contents |
 |:---|:---|
-| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, and the failed mean-inverting estimator kept as the demonstration |
-| `python/tests/test_desymmetrisation.py` | 37 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, and the posterior's measured accuracy and coverage |
-| `scripts/run_desymmetrisation_demo.py` | the figure, the table, and the coverage rows |
+| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, the resolution measurements (`convergence_series`, `mean_gap_separation`), and the failed mean-inverting estimator kept as the demonstration |
+| `python/tests/test_desymmetrisation.py` | 40 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, and the resolution of the statistic |
+| `scripts/run_desymmetrisation_demo.py` | the figure, the 4000-seed table, and the coverage rows |
+| `scripts/generate_seed_study_figure.py` | the resolution figure: nested samples, and the two-sector overlap |
 | `python/riemann_framework/dynamical_desymmetrisation.py` | the double-bracket flow, its invariants, and the negative circuit check |
 | `python/tests/test_dynamical_desymmetrisation.py` | 15 tests: isospectrality, the preserved commutant, sector selection, and the unverified identity |
 | `scripts/run_dynamical_desymmetrisation_demo.py` | the trajectory figure and the circuit table |

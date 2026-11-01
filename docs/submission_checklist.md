@@ -40,15 +40,16 @@ not a theorem — and do not claim a result about the Riemann hypothesis.
 ## 2. Abstract length
 
 Measured, not estimated: the abstract in
-[`desymmetrisation_paper.md`](desymmetrisation_paper.md) is **291 words**, and the
-arXiv-ready replacement written for [`arxiv_submission.md`](arxiv_submission.md) is
-**196 words** (`1239` characters, against arXiv's `1920`-character limit).
+[`desymmetrisation_paper.md`](desymmetrisation_paper.md) is **279 words** (`1792`
+characters), and the arXiv-ready replacement written for
+[`arxiv_submission.md`](arxiv_submission.md) is **246 words** (`1549` characters, against
+arXiv's `1920`-character limit).
 
 | venue | limit | current | action |
 |:---|:---|:---|:---|
-| arXiv | ~200 words recommended, 1920 characters hard | 291 | **use the 196-word version** in [`arxiv_submission.md`](arxiv_submission.md) |
-| Physical Review E | ~250 | 291 | **over the guide** — use the 196-word version, or trim the full one |
-| Chaos | ~250 | 291 | **over the guide** — same |
+| arXiv | ~200 words recommended, 1920 characters hard | 279 | **use the 246-word version** in [`arxiv_submission.md`](arxiv_submission.md) |
+| Physical Review E | ~250 | 279 | slightly **over the guide** — use the 246-word version, or trim the full one |
+| Chaos | ~250 | 279 | slightly **over the guide** — same |
 
 ## 3. Figures
 
@@ -60,13 +61,15 @@ python scripts/generate_desymmetrisation_figures.py
 
 | figure | file | content | status |
 |:---|:---|:---|:---|
-| Fig. 1 | `output/desymmetrisation.png` | `⟨r⟩` vs unresolved sectors, 300 seeds | generated |
-| Fig. 2 | `output/desymmetrisation_warning.png` | per-spectrum scatter, four sector counts, both classes | generated |
-| Fig. 3 | `output/desymmetrisation_coverage.png` | measured coverage vs nominal 95% | generated |
-| Fig. 4 | `output/desymmetrisation_flow.png` | sector populations, commuting vs cross-sector start | generated |
+| Fig. 1 | `output/desymmetrisation.png` | `⟨r⟩` vs unresolved sectors, 4000 seeds | generated |
+| Fig. 2 | `output/desymmetrisation_seeds.png` | resolution: nested samples, and the two-sector overlap | generated |
+| Fig. 3 | `output/desymmetrisation_warning.png` | per-spectrum scatter, four sector counts, both classes | generated |
+| Fig. 4 | `output/desymmetrisation_coverage.png` | measured coverage vs nominal 95% | generated |
+| Fig. 5 | `output/desymmetrisation_flow.png` | sector populations, commuting vs cross-sector start | generated |
 
-Fig. 1 is produced by `scripts/run_desymmetrisation_demo.py`; Figs. 2–4 by
-`scripts/generate_desymmetrisation_figures.py`. Every number plotted is computed at draw
+Fig. 1 is produced by `scripts/run_desymmetrisation_demo.py`; Figs. 3–5 by
+`scripts/generate_desymmetrisation_figures.py`; Fig. 2 by
+`scripts/generate_seed_study_figure.py`. Every number plotted is computed at draw
 time.
 
 Journal requirements:
@@ -120,7 +123,7 @@ invites exactly the confusion the paper exists to prevent.
 Manuscript:
 
 - [ ] abstract trimmed for the arXiv listing
-- [ ] all four figures checked visually, including greyscale
+- [ ] all five figures checked visually, including greyscale
 - [ ] data availability statement included
 - [ ] code licence stated
 - [ ] references formatted per venue

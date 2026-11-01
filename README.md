@@ -97,7 +97,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1117 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1121 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -387,21 +387,29 @@ against four known blocks for a `Z₂ × Z₂`), and warns. Entry points for a c
 has only a spectrum: `contamination_warning(H, U)` when a candidate involution is known
 (it refuses to split a matrix with `[H, U] ≠ 0`), `detect_hidden_symmetry` when none is,
 and `sector_count_posterior`, which turns the shrug into a measurement with a stated
-resolution. The flag alone is not a classifier — `4` of `40` pure single-sector GOE
-spectra also fall below the floor.
+resolution. The flag alone is not a classifier — `37` of `400` pure single-sector GOE
+spectra also fall below the floor, and `0` of `400` GUE spectra do.
 
 **The count, with an error bar.** The mean cannot be inverted, but the sequence of
 `≈240` gap ratios can: a first-order Markov model of the sequence, fitted on simulated
-superpositions, gives a posterior over `{1,…,6, ≥6/poisson}`. Measured over 60 spectra
-per row at a nominal 95% interval, the posterior puts `0.98` on one sector (interval
-`1..1`, correct 95% of the time), `0.65` on two (interval typically `2..5` — "two" is
-defensible, "exactly two" is not), and from three upward reports `≥3` with `3…6`
-indistinguishable. Interval coverage is measured, not assumed: `1.00`, `0.93`, `0.87`,
-`0.98`, `0.97` at `1, 2, 3, 4, 6` sectors, `0.78` for a Poisson spectrum — an integrable
-spectrum is read as a `4–6`-sector superposition about a fifth of the time, because that
-is what it looks like. Modelling the `r`-ratios as independent was measurably
+superpositions, gives a posterior over `{1,…,6, ≥6/poisson}`. Measured over 400 spectra
+per row at a nominal 95% interval, the posterior puts `0.97` on one sector (interval
+`1..1` in 376 of 400 draws), `0.66` on two (the interval's lower end is `2` in 92% of
+draws, but its upper end ranges from `2` to the open label, so "at least two" is
+defensible and "exactly two" is not), and from three upward reports `≥3` with `3…6`
+indistinguishable. Interval coverage is measured, not assumed: `0.99`, `0.92`, `0.91`,
+`0.96`, `0.98` at `1, 2, 3, 4, 6` sectors, `0.78` for a Poisson spectrum — an integrable
+spectrum is read as a finite superposition in `0.22` of draws, because that is what it
+looks like. Modelling the `r`-ratios as independent was measurably
 overconfident (`0.70` coverage at a nominal `0.90`), which is why the dependence between
 consecutive ratios is in the model.
+
+**The resolution, measured.** More spectra sharpen the mean and do not sharpen one
+spectrum. On nested samples of `25` to `3200` two-sector spectra the 95% error of the mean
+falls from `0.0143` to `0.0012` while the per-spectrum scatter stays at `0.033`, and the
+best single-threshold class accuracy on one spectrum is `0.526` at two sectors (chance) and
+`0.790` at one. Averaging buys a better-known ensemble, not a classifiable spectrum, which
+is why the tool splits the symmetry instead of hiding it in a longer run.
 
 The phenomenon is standard quantum-chaos practice
 ([Giraud et al., Phys. Rev. X **12**, 011006 (2022)](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.12.011006));
@@ -442,16 +450,19 @@ dynamical analogue with its invariants.
 [`docs/desymmetrisation_paper.md`](docs/desymmetrisation_paper.md) is the diagnostic
 written up as a methods manuscript, with its
 [submission checklist](docs/submission_checklist.md) and an unsent
-[cover letter](docs/cover_letter.md). All four figures are produced by
+[cover letter](docs/cover_letter.md). Four of the five figures are produced by
 `scripts/generate_desymmetrisation_figures.py`, which computes every plotted number at
 draw time — a figure drawn from a typed-in table could not fail a test, so it would not
-be evidence.
+be evidence. The fifth, which measures the resolution of the statistic, is produced by
+`scripts/generate_seed_study_figure.py` the same way.
 
 ![Full-spectrum mean r against the number of unresolved sectors, one dot per spectrum](output/desymmetrisation_warning.png)
 
 ![Measured coverage of the sector-count posterior against the nominal 95% level](output/desymmetrisation_coverage.png)
 
 ![Sector populations under the double-bracket flow, commuting and cross-sector starts](output/desymmetrisation_flow.png)
+
+![The mean converges while the per-spectrum scatter does not, and the two-sector distributions overlap completely](output/desymmetrisation_seeds.png)
 
 ## Can a candidate be screened at all?
 
@@ -967,7 +978,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1117 tests pass** on the current tree. They are not smoke tests: the suite
+**1121 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -996,7 +1007,7 @@ silently changed meaning.
 | `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
 | `test_manuscript_figures.py` | 4 | The manuscript has exactly four figure references, no duplicates, all files present, captions numbered |
 | `test_pdf_verification.py` | 6 | The committed PDF passes `verify_pdf.py`; the reader recovers the title, keeps fonts apart, and separates a figure's natural size from its placed size; the header pattern matches browser furniture |
-| `test_desymmetrisation_figures.py` | 5 | The manuscript's figures regenerate, and their numbers match Appendix B and Appendix C within noise |
+| `test_desymmetrisation_figures.py` | 6 | The manuscript's five figures regenerate, and their numbers match Appendix B and Appendix C within noise |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
 | `test_mpmath_stub.py` | 13 | Stub coverage and well-formedness, both driven into failing |
 | `test_documentation_sync.py` | 16 | README test counts, paths, figures and links against live artefacts |
@@ -1013,7 +1024,7 @@ silently changed meaning.
 | `test_dsin_sigma_symmetry.py` | 12 | Parity sectors, conservation, and the blind meter |
 | `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
 | `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
-| `test_desymmetrisation.py` | 37 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, and the posterior's measured accuracy and coverage |
+| `test_desymmetrisation.py` | 40 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, and the resolution of the mean |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |

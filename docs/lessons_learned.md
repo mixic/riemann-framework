@@ -697,11 +697,12 @@ three) and both are wrong often enough to be honest about:
 | limit | measured |
 |:---|:---|
 | the mean does not count | it is many-to-one and the scatter (`≈0.03`) exceeds the gaps between counts; a true `N = 4` was estimated as `12` (reviewer) and saturates or refuses here |
-| the sequence counts up to two | a first-order Markov model of the `r`-ratios puts `0.98` on one sector (interval `1..1`), `0.65` on two (interval `2..5` — "two", not "exactly two"), and `≥3` from three upward, with `3…6` indistinguishable |
-| the interval must be measured | coverage at a nominal 95% is `1.00`, `0.93`, `0.87`, `0.98`, `0.97` at `1, 2, 3, 4, 6` sectors and `0.78` for Poisson; modelling the ratios as independent covered only `0.70` at a nominal `0.90` |
+| the sequence counts up to two | a first-order Markov model of the `r`-ratios puts `0.97` on one sector (interval `1..1` in 376 of 400 draws), `0.66` on two (lower end `2` in 92% of draws, upper end anywhere from `2` to the open label: "at least two", not "exactly two"), and `≥3` from three upward, with `3…6` indistinguishable |
+| the interval must be measured | coverage at a nominal 95% is `0.99`, `0.92`, `0.91`, `0.96`, `0.98` at `1, 2, 3, 4, 6` sectors and `0.78` for Poisson; modelling the ratios as independent covered only `0.70` at a nominal `0.90` |
 | the count is a property of the estimator | a *known* two-sector spectrum at `d = 40` maps to `None` under the mean inversion, because its full mean `0.404` sits in the three-sector band |
-| at two sectors the class is erased | GOE `0.426` vs GUE `0.421`, a difference smaller than either standard deviation |
-| a pure single sector can be flagged | 4 of 40 GOE draws (10%) at `d = 60` fall below the `0.48` floor; 0 of 40 GUE draws do |
+| at two sectors the class is erased | GOE `0.4232` vs GUE `0.4222`, `1.4` standard errors of the two means and one thirtieth of the per-spectrum scatter |
+| more spectra do not resolve a class | the best single-spectrum balanced accuracy at two sectors is `0.526` with 4000 spectra per class (chance `0.500`), against `0.790` at one sector |
+| a pure single sector can be flagged | 37 of 400 GOE draws (9.2%) at `d = 60` fall below the `0.48` floor; 0 of 400 GUE draws do |
 
 The second row is the one that changed the claim. "Detects but does not count" was
 true of the mean and false of the spectrum: a posterior over counts measures one sector,

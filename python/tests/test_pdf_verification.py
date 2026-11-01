@@ -78,7 +78,7 @@ def test_the_reader_recovers_the_title_and_the_author_block():
     """The text layer is readable: a garbled one would fail every content check."""
     verifier = _load_verifier()
     text = verifier.extract_text(PDF)
-    assert len(text.pages) == 14
+    assert len(text.pages) == 16
     assert not text.pages_without_text
     assert "DesymmetrizationofQuantumSpectra" in text.flat
     assert "MilanNikolic" in text.flat
@@ -144,7 +144,7 @@ def test_the_figures_are_placed_inside_the_text_block():
         for reference in verifier._refs(body, b"Contents"):
             payload += verifier._stream(objects.get(reference, b"")) or b""
         placements.extend(verifier.image_placements(payload))
-    assert len(placements) == 4
+    assert len(placements) == 5
     for name, inner, effective, _, _ in placements:
         assert effective <= verifier.TEXT_WIDTH + 1.0, name
         assert inner <= verifier.PAGE_WIDTH + 1.0, name

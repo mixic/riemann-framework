@@ -48,18 +48,21 @@ from riemann_framework.desymmetrisation import (
     SectorCountModel,
     SpectrumStatistics,
     _synthetic_spectrum,
+    best_threshold_accuracy,
     calibration_table,
     class_information_at_two_sectors,
     classify_mean,
     commutator_ratio,
     contamination_warning,
     contamination_warnings,
+    convergence_series,
     default_sector_count_model,
     desymmetrise,
     detect_hidden_symmetry,
     estimate_sector_count,
     estimate_sectors_from_mean,
     is_involution,
+    mean_gap_separation,
     sector_count_posterior,
     sector_spectra,
     sector_blocks,
@@ -597,3 +600,76 @@ def test_the_posterior_agrees_that_a_two_sector_model_is_contaminated():
     assert estimate.posterior[1] < 0.1
     assert estimate.posterior[2] + estimate.posterior[3] > 0.4
     assert "CI" in estimate.summary()
+
+
+# ============================================================
+# The resolution of the statistic: what more spectra buy
+# ============================================================
+
+def test_a_threshold_separates_two_shifted_samples_and_not_identical_ones():
+    """The classifier the resolution claims are measured with, driven both ways.
+
+    A pure function, so it can be checked without a simulation: two well separated
+    samples must be classified perfectly, and two copies of one sample must come out at
+    chance, in either orientation.
+    """
+    rng = np.random.default_rng(7)
+    low = rng.normal(0.42, 0.03, 500)
+    high = rng.normal(0.60, 0.03, 500)
+
+    separated = best_threshold_accuracy(low, high)
+    assert separated.accuracy == pytest.approx(1.0, abs=0.01)
+    assert 0.42 < separated.threshold < 0.60
+    assert separated.first_is_higher is False, "the first sample is the lower one"
+
+    reversed_order = best_threshold_accuracy(high, low)
+    assert reversed_order.accuracy == pytest.approx(1.0, abs=0.01)
+    assert reversed_order.first_is_higher is True
+
+    identical = best_threshold_accuracy(low, low.copy())
+    assert identical.accuracy == pytest.approx(0.5, abs=0.01)
+
+    with pytest.raises(ValueError, match="non-empty"):
+        best_threshold_accuracy([], low)
+
+
+def test_more_spectra_narrow_the_mean_and_leave_the_scatter():
+    """`convergence_series`: the error falls as the inverse square root of the sample.
+
+    The per-spectrum scatter must not move, because it is a property of one spectrum. That
+    is the whole reason a two-sector spectrum cannot be classified by averaging harder.
+    """
+    points = convergence_series(2, 60, "gue", (25, 100, 400, 1600), seed=0)
+    assert [point.seeds for point in points] == [25, 100, 400, 1600]
+    assert all(point.mean_r == pytest.approx(0.42, abs=0.03) for point in points)
+
+    errors = [point.standard_error for point in points]
+    assert errors == sorted(errors, reverse=True)
+    # 64 times the spectra should give about 8 times the precision; allow the sampling
+    # noise of a single finite sample.
+    ratio = errors[0] / errors[-1]
+    assert 6.0 < ratio < 10.5
+
+    scatter = [point.std_r for point in points]
+    assert min(scatter) > 0.025
+    assert max(scatter) < 0.045
+
+    with pytest.raises(ValueError, match="two or more"):
+        convergence_series(2, 60, "gue", (1, 10))
+    with pytest.raises(ValueError, match="must not be empty"):
+        convergence_series(2, 60, "gue", ())
+
+
+def test_the_two_sector_class_test_is_chance_and_the_one_sector_test_is_not():
+    """Section 1.4's measured claim, re-derived from fresh spectra.
+
+    Two sectors: the classes are interchangeable, so the best single threshold is at
+    chance. One sector: `0.53` against `0.60`, so a threshold reads the class most of the
+    time. The gap between the two is the resolution of the diagnostic.
+    """
+    two = mean_gap_separation(2, 60, seeds=300)
+    one = mean_gap_separation(1, 60, seeds=300)
+
+    assert two.accuracy == pytest.approx(0.5, abs=0.06)
+    assert one.accuracy > 0.72
+    assert one.accuracy > two.accuracy + 0.15

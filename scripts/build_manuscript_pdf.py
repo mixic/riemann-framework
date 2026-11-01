@@ -661,6 +661,11 @@ def latex_figure(path: str, caption: str) -> str:
     FIGURE_CACHE.mkdir(parents=True, exist_ok=True)
     cached = FIGURE_CACHE / image_path.name
     cached.write_bytes(_png_with_resolution(data, dpi))
+    # The Markdown caption carries its own label ("Fig. 2. ...") because the repository
+    # renders the same line as a caption without LaTeX. LaTeX numbers the float itself,
+    # so the label is dropped here; without this the printed caption reads
+    # "Figure 2: Fig. 2. ...".
+    printed = re.sub(r"^\s*Fig\.\s*\d+\.\s*", "", caption)
     return "\n".join(
         [
             r"\begin{figure}[htbp]",
@@ -670,7 +675,7 @@ def latex_figure(path: str, caption: str) -> str:
             r"\includegraphics[width=\linewidth]{"
             + str(cached).replace("\\", "/")
             + "}",
-            r"\caption{" + latex_inline(caption) + "}",
+            r"\caption{" + latex_inline(printed) + "}",
             r"\end{figure}",
         ]
     )
@@ -710,8 +715,18 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
             raw = "\n".join(block)
             if all(ord(character) < 128 for character in raw):
                 # Pure ASCII: verbatim keeps the spacing and backslashes literal.
+                # The size adapts to the longest line, because a block of commands is
+                # the one place where a long line cannot be re-wrapped: at `\small` a
+                # 90-character command overflows the text block by 73pt.
+                longest = max((len(item) for item in block), default=0)
+                if longest <= 78:
+                    size = "\\small"
+                elif longest <= 92:
+                    size = "\\footnotesize"
+                else:
+                    size = "\\scriptsize"
                 out.append(
-                    "{\\small\\begin{verbatim}\n" + raw + "\n\\end{verbatim}}\n"
+                    "{" + size + "\\begin{verbatim}\n" + raw + "\n\\end{verbatim}}\n"
                 )
             else:
                 # A block with symbols (a display formula, in this manuscript): translate

@@ -56,7 +56,10 @@ TEXT_WIDTH = 595.276 - 2 * (2.1 / 2.54 * 72)  # the LaTeX text block, 476.2pt
 
 #: Strings the submission copy must not contain.
 FORBIDDEN = {
-    "GNU General Public License": "the licence header belongs to the code, not the paper",
+    # Naming the licence is normal attribution and appears in the data-availability
+    # statement on purpose. What must not appear is the *boilerplate block*, and its
+    # first sentence is the signature of that leak.
+    "This program is free software": "the licence header belongs to the code, not the paper",
     "A note on this draft": "the corrections section is repository-only",
     "Status.": "the draft banner is repository-only",
     "file:///": "a file URL means the browser printed its own footer",
@@ -74,8 +77,8 @@ EXPECTED_GLYPHS = {
     "⟨r⟩": "the mean gap ratio, in angle brackets",
     "≥6/poisson": "the open-ended posterior label",
     "1..1": "the single-sector interval",
-    "2..5": "the two-sector interval",
-    "3..6": "the three-sector interval",
+    "2..2": "the modal two-sector interval",
+    "3..≥6": "the modal three-or-more-sector interval",
 }
 
 #: Text that must be present because the paper is not submittable without it.
@@ -84,10 +87,14 @@ REQUIRED = {
     "Milan Nikolic": "the author",
     "Independent Researcher": "the affiliation",
     "m_nikolic@yahoo.com": "the contact address",
-    "Fig. 1.": "the first figure caption",
-    "Fig. 2.": "the second figure caption",
-    "Fig. 3.": "the third figure caption",
-    "Fig. 4.": "the fourth figure caption",
+    # LaTeX numbers the floats itself, so the caption text begins "Figure N:" and the
+    # Markdown's own "Fig. N." label is stripped at build time.
+    "Figure 1:": "the first figure caption",
+    "Figure 2:": "the second figure caption",
+    "Figure 3:": "the third figure caption",
+    "Figure 4:": "the fourth figure caption",
+    "Figure 5:": "the fifth figure caption",
+    "github.com/mixic/riemann-framework": "the repository every result is reproduced from",
 }
 
 
@@ -545,8 +552,8 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
     checks.append(
         Check(
             "figures captioned",
-            all(f"Fig.{index}." in text.flat for index in (1, 2, 3, 4)),
-            "all four captions found",
+            all(f"Figure{index}:" in text.flat for index in (1, 2, 3, 4, 5)),
+            "all five captions found",
         )
     )
 
@@ -576,8 +583,8 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
-    parser.add_argument("--pages", type=int, default=14)
-    parser.add_argument("--images", type=int, default=4)
+    parser.add_argument("--pages", type=int, default=16)
+    parser.add_argument("--images", type=int, default=5)
     parser.add_argument("--strict", action="store_true",
                         help="also fail on collapsed interval notation in the text layer")
     parser.add_argument("--dump-text", action="store_true",

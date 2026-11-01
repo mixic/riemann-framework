@@ -35,7 +35,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | **Authors** | Milan Nikolic — Independent Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
-| **Comments** | 14 pages, 4 figures, 3 appendices. Code, tests, figures and Lean verification at `[ADD: repository URL]`. |
+| **Comments** | 16 pages, 5 figures, 3 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
 | **Journal-ref** | none |
 | **DOI** | none |
 | **License** | `[CHECK]` arXiv non-exclusive distribution licence (default), or CC BY 4.0. The **code** is GPL-3.0 and stays GPL-3.0; the paper is not, and does not need to be, GPL. |
@@ -43,7 +43,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 The abstract field takes plain text with LaTeX math in `$…$`. The abstract below contains
 no math, so it can be pasted unmodified.
 
-## 2. Abstract (196 words, 1239 characters)
+## 2. Abstract (246 words, 1549 characters)
 
 > Spacing statistics are the standard diagnostic for quantum chaos, but they are measured
 > on a superposition whenever the Hamiltonian commutes with an involution. A spectrum that
@@ -53,16 +53,20 @@ no math, so it can be pasted unmodified.
 > estimates the number of unresolved sectors as a posterior with measured coverage. The
 > mean cannot be inverted; the sequence of gap ratios can. A first-order Markov model
 > fitted on simulated superpositions yields a posterior over one to six sectors or an
-> open-ended label. At a nominal 95% interval the measured coverage is 1.00, 0.93, 0.87,
-> 0.98, 0.97 at one, two, three, four and six sectors and 0.78 for a Poisson spectrum. The
-> single-sector case is decisive; the two-sector case is defensible as a set but not as a
-> point; from three sectors upward the count is not recoverable. Two-sector GOE and GUE
-> are indistinguishable, so a class test on a contaminated spectrum is uninformative. A
-> companion dynamical analysis shows that the double-bracket flow preserves sector
-> populations only for a commuting state.
+> open-ended label. At a nominal 95% interval, over 400 spectra per row, the measured
+> coverage is 0.99, 0.92, 0.91, 0.96, 0.98 at one, two, three, four and six sectors and
+> 0.78 for a Poisson spectrum. The single-sector case is decisive; the two-sector case
+> yields a lower bound but not a count; from three sectors upward the count is not
+> recoverable. Two-sector GOE and GUE are indistinguishable, so a class test on a
+> contaminated spectrum is uninformative, and the resolution of that test is measured: the
+> best single-spectrum class accuracy is 0.79 at one sector and 0.53, which is chance, at
+> two, while the same spectra averaged in thousands converge to within 0.0006. More
+> spectra sharpen the mean and leave the single measurement untouched. A companion
+> dynamical analysis shows that the double-bracket flow preserves sector populations only
+> for a commuting state.
 
-Measured lengths: `196` words, `1239` characters — against arXiv's `1920`-character limit
-and its ~200-word recommendation. The manuscript's own abstract is `291` words and is
+Measured lengths: `246` words, `1549` characters — against arXiv's `1920`-character limit
+and its ~200-word recommendation. The manuscript's own abstract is `279` words and is
 **over** the Physical Review E guide of ~250; use this one there too, or trim the long one.
 
 Two facts are stated in it because they are the paper's content, and neither should be
@@ -128,18 +132,18 @@ path is supported and tested, but it is the fallback.
 
 `scripts/verify_pdf.py` reads the PDF back — extracting the text layer per font, with a
 small PDF reader written for this purpose, because there is no PDF library here — and
-asserts 25 things. The current build passes all of them:
+asserts 27 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
-[PASS] page count: 14 pages (expected 14)
+[PASS] page count: 16 pages (expected 16)
 [PASS] page size: A4
-[PASS] embedded figures: 4 pictures (8 image objects, 4 masks; expected 4)
-[PASS] text layer: 14 pages, 22116 characters
+[PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
+[PASS] text layer: 16 pages, 29859 characters
 [PASS] no browser header: no date/time stamp
-[PASS] figures fit the page: 4 placements within the text block and the page
+[PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
-[PASS] absent: 'GNU General Public License': absent
+[PASS] absent: 'This program is free software': absent
 [PASS] absent: 'A note on this draft': absent
 [PASS] absent: 'Status.': absent
 [PASS] absent: 'file:///': absent
@@ -147,10 +151,15 @@ $ python scripts/verify_pdf.py
 [PASS] present: 'Milan Nikolic': present
 [PASS] present: 'Independent Researcher': present
 [PASS] present: 'm_nikolic@yahoo.com': present
-[PASS] present: 'Fig. 1.' … 'Fig. 4.': present
-[PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..5 / 3..6: render
-PASS: all 25 checks passed
+[PASS] present: 'Figure 1:' … 'Figure 5:': present
+[PASS] present: 'github.com/mixic/riemann-framework': present
+[PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..2 / 3..≥6: render
+PASS: all 27 checks passed
 ```
+
+The `absent` check on the licence text reads the *boilerplate*, not the licence name:
+naming GPL-3.0 in the data statement is attribution and is wanted, while the pasted header
+block is a leak from the source files.
 
 Two of those checks exist because builds **failed** them:
 
@@ -168,12 +177,12 @@ effective width with the text block *and* its natural width with the page.
 
 | property | value |
 |:---|:---|
-| pages | `14`, A4, numbered (LaTeX default) |
-| figures | `4`, one per section, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
+| pages | `16`, A4, numbered (LaTeX default) |
+| figures | `5`, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
 | fonts | Computer Modern (CMR10, CMR8, CMR7, CMMI10/8/7, CMSY10, MSBM10), all embedded |
 | text layer | complete and searchable (`/ToUnicode` per font) |
 | PDF/A | **not** compliant; arXiv accepts non-PDF/A, a venue that requires it needs a Ghostscript pass or a PDF/A class |
-| layout | one overfull box of `6.3pt` in the figure-list table; no other overfull or underfull warnings, no float drift (each figure sits within a page of its reference) |
+| layout | one overfull box of `3.5pt` in the figure-list table; no other overfull or underfull warnings, no float drift (each figure sits within a page of its reference) |
 
 ### 5.3 The figure-scaling defect that page 6 exposed
 
@@ -203,9 +212,9 @@ not submission), and `--backend chrome` forces the fallback.
 
 - [ ] repository URL resolved and public (the comments field and the data statement cite it)
 - [x] PDF generated from the current Markdown, figures embedded, `verify_pdf.py` passing
-      25/25 — but **open it once** and check the page breaks by eye, which is the one thing
+      27/27 — but **open it once** and check the page breaks by eye, which is the one thing
       a mechanical check cannot do
-- [ ] abstract pasted as plain text (196 words), not the long one
+- [ ] abstract pasted as plain text (246 words), not the long one
 - [ ] categories set; MSC added only if the `math-ph` cross-list is kept
 - [ ] licence selected, and the code's GPL-3.0 licence stated in the paper's data section
 - [ ] endorsement arranged if this is a first submission `[CHECK]`

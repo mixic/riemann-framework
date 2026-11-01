@@ -44,7 +44,7 @@ a way the next stage cannot see:
 | Markdown → LaTeX | a character with no mapping, a broken table, a long path into the margin | the build aborts on an unmapped character; `pdflatex`'s log is checked for overfull boxes |
 | LaTeX → PDF | figures at the wrong size, floats drifting from their text | `verify_pdf.py` measures the placement; the log is read for float warnings |
 | HTML → PDF (fallback) | browser furniture on every page | `verify_pdf.py` searches the text layer for a date header and a `file:///` footer |
-| PDF → submission | missing figures, wrong page count, a missing author | `verify_pdf.py`, 25 checks |
+| PDF → submission | missing figures, wrong page count, a missing author | `verify_pdf.py`, 27 checks |
 
 ## 2. The two scripts
 
@@ -79,8 +79,8 @@ The converter is deliberately narrow, so that its behaviour is inspectable:
 streams, per-font `/ToUnicode` CMaps) because there is no PDF library on the build
 machine. It asserts, on the PDF as a reader sees it:
 
-* **structure** — 14 pages, A4;
-* **figures** — four embedded pictures (distinguishing real images from alpha masks), and
+* **structure** — 16 pages, A4;
+* **figures** — five embedded pictures (distinguishing real images from alpha masks), and
   every placement inside the text block *and* inside the page;
 * **text layer** — non-empty on every page, with the title, the author, the affiliation,
   the address and all four captions present; the glyphs the abstract is made of
@@ -132,7 +132,7 @@ Open the PDF once before submitting. That is the one step the pipeline cannot ta
 python scripts/build_manuscript_pdf.py \
     --author "Milan Nikolic" --affiliation "Independent Researcher" \
     --email "m_nikolic@yahoo.com"          # writes output/desymmetrisation_paper.pdf
-python scripts/verify_pdf.py                # 25 checks, non-zero exit on failure
+python scripts/verify_pdf.py                # 27 checks, non-zero exit on failure
 python scripts/verify_pdf.py --dump-text    # what the text layer actually says
 cd python && python -m pytest tests/test_pdf_verification.py \
     tests/test_manuscript_figures.py -q    # the guards, in the suite

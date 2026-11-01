@@ -232,19 +232,22 @@ symmetries, splits the spectrum into joint sectors, flags contamination, and est
 sector count as a posterior with **measured** coverage — from the sequence of gap ratios,
 not their mean.
 
-| true sectors | coverage | posterior on the truth | interval |
+| true sectors | coverage | posterior on the truth | modal interval |
 |:---|---:|---:|:---|
-| 1 | `1.00` | `0.98` | `1..1` |
-| 2 | `0.93` | `0.65` | `2..5` |
-| 3 | `0.87` | `0.24` | `3..6` |
-| 4 | `0.98` | `0.17` | `3..6` |
-| 5 | `1.00` | `0.21` | `3..6` |
-| 6 | `0.97` | `0.20` | `3..6` |
-| Poisson | `0.78` | `0.20` | `4..6` |
+| 1 | `0.99` | `0.97` | `1..1` |
+| 2 | `0.92` | `0.66` | `2..2` |
+| 3 | `0.91` | `0.24` | `3..≥6` |
+| 4 | `0.96` | `0.19` | `3..≥6` |
+| 5 | `0.99` | `0.22` | `3..≥6` |
+| 6 | `0.98` | `0.22` | `3..≥6` |
+| Poisson | `0.78` | `0.24` | `3..≥6` |
 
-The limits are stated: two-sector GOE and GUE are indistinguishable (`0.426` vs `0.421`,
-against a scatter of `≈0.03`); the count is not recoverable above two; the false-positive
-rate is `4` of `40` pure single-sector GOE spectra. The dynamical companion (the
+The limits are stated: two-sector GOE and GUE are indistinguishable (`0.4232` vs `0.4222`,
+`1.4` standard errors of the two means, against a per-spectrum scatter of `0.031`); the
+count is not recoverable above two; the false-positive rate is `37` of `400` pure
+single-sector GOE spectra. The resolution of the statistic is measured too: the best
+single-spectrum class accuracy is `0.790` at one sector and `0.526`, which is chance, at
+two, so more spectra sharpen the mean and not the measurement. The dynamical companion (the
 double-bracket flow) preserves sector populations for a commuting state and selects a
 sector for one that does not, but never touches the Hamiltonian — so it cannot repair a
 contaminated spectrum.
@@ -344,7 +347,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
 | `sorry`-free Lean modules | 4 of 9 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
-| tests passing | 1117 | `python/tests/` |
+| tests passing | 1121 | `python/tests/` |
 | documents | 38 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
@@ -438,8 +441,8 @@ each script is checked by something that has failed before:
 
 | artifact | produced by | checked by |
 |:---|:---|:---|
-| `output/desymmetrisation_paper.pdf` | `scripts/build_manuscript_pdf.py` (Markdown → LaTeX → `pdflatex`) | `scripts/verify_pdf.py`, 25 checks |
-| the four figures in `output/` | `scripts/generate_desymmetrisation_figures.py` | `tests/test_desymmetrisation_figures.py` |
+| `output/desymmetrisation_paper.pdf` | `scripts/build_manuscript_pdf.py` (Markdown → LaTeX → `pdflatex`) | `scripts/verify_pdf.py`, 27 checks |
+| the five figures in `output/` | `scripts/generate_desymmetrisation_figures.py` and `scripts/generate_seed_study_figure.py` | `tests/test_desymmetrisation_figures.py` |
 | the manuscript's figure references | the Markdown | `tests/test_manuscript_figures.py` |
 | this document's counts | the tree | `tests/test_documentation_sync.py` |
 
@@ -462,7 +465,7 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1117 passed`; `lake build` → 9 modules
+**Last verified:** `python -m pytest tests/ -q` → `1121 passed`; `lake build` → 9 modules
 compile, the 4 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.

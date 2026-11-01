@@ -40,12 +40,13 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MANUSCRIPT = PROJECT_ROOT / "docs" / "desymmetrisation_paper.md"
 
-#: The four figures the manuscript is built around, in order.
+#: The five figures the manuscript is built around, in order.
 EXPECTED = (
     ("Fig. 1.", "output/desymmetrisation.png"),
-    ("Fig. 2.", "output/desymmetrisation_warning.png"),
-    ("Fig. 3.", "output/desymmetrisation_coverage.png"),
-    ("Fig. 4.", "output/desymmetrisation_flow.png"),
+    ("Fig. 2.", "output/desymmetrisation_seeds.png"),
+    ("Fig. 3.", "output/desymmetrisation_warning.png"),
+    ("Fig. 4.", "output/desymmetrisation_coverage.png"),
+    ("Fig. 5.", "output/desymmetrisation_flow.png"),
 )
 
 #: A figure line. The caption is greedy because captions contain square brackets
@@ -64,10 +65,10 @@ def _figure_lines() -> list[tuple[int, str, str]]:
     return found
 
 
-def test_the_manuscript_has_exactly_the_four_figures():
+def test_the_manuscript_has_exactly_the_five_figures():
     lines = _figure_lines()
-    assert len(lines) == 4, (
-        f"expected four figure lines, found {len(lines)}: "
+    assert len(lines) == 5, (
+        f"expected five figure lines, found {len(lines)}: "
         + ", ".join(f"line {number}" for number, _, _ in lines)
     )
     assert [(caption[:7], path) for _, caption, path in lines] == list(EXPECTED)

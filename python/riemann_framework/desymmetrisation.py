@@ -437,6 +437,212 @@ def calibration_table(
 
 
 # ============================================================
+# How much data resolves the statistic: convergence and overlap
+# ============================================================
+
+@dataclass(frozen=True)
+class ConvergencePoint:
+    """`mean r` from `seeds` spectra, with its own standard error.
+
+    The standard error is `std / sqrt(seeds)` over the same sample, so a reader can see
+    whether a difference between two rows is larger than the sampling noise of the rows
+    themselves rather than trusting the printed digits.
+    """
+
+    seeds: int
+    mean_r: float
+    std_r: float
+
+    @property
+    def standard_error(self) -> float:
+        return self.std_r / float(np.sqrt(self.seeds))
+
+    def summary(self) -> str:
+        return (
+            f"{self.seeds:5d} spectra: mean r {self.mean_r:.4f} "
+            f"+- {self.standard_error:.4f} (per-spectrum scatter {self.std_r:.4f})"
+        )
+
+
+def convergence_series(
+    n_sectors: int = 2,
+    dimension: int = 60,
+    matrix_class: str = "gue",
+    seed_counts: tuple[int, ...] = (25, 50, 100, 200, 400, 800, 1600, 3200),
+    seed: int = 0,
+) -> list[ConvergencePoint]:
+    """`mean r` against the number of spectra, computed on nested samples.
+
+    Every point is a *prefix* of the same largest sample, so the series shows what
+    accumulating spectra buys and nothing else. Two things are separated on purpose:
+    the standard error of the mean falls as `1 / sqrt(seeds)`, and the per-spectrum
+    scatter `std_r` does not move. What more spectra buy is a better-known mean, not a
+    narrower distribution of single measurements, which is why
+    `mean_gap_separation` is the question that matters for a one-shot measurement.
+    """
+    counts = sorted({int(count) for count in seed_counts})
+    if not counts:
+        raise ValueError("seed_counts must not be empty")
+    if counts[0] < 2:
+        raise ValueError("seed_counts must start at two or more")
+    values = np.array(
+        [
+            float(
+                mean_r_ratio(
+                    superposition_spectrum(n_sectors, dimension, matrix_class, seed + index),
+                    unfold=False,
+                )
+            )
+            for index in range(counts[-1])
+        ]
+    )
+    return [
+        ConvergencePoint(
+            seeds=count,
+            mean_r=float(values[:count].mean()),
+            std_r=float(values[:count].std(ddof=1)),
+        )
+        for count in counts
+    ]
+
+
+@dataclass(frozen=True)
+class ThresholdSeparation:
+    """How well one threshold on `mean r` separates two ensembles.
+
+    `accuracy` is balanced accuracy, and `first_is_higher` records which side of the cut
+    the first sample was assigned to, because the interesting cases go both ways: at one
+    sector GOE sits *below* GUE, at six sectors the two are on top of each other.
+    """
+
+    threshold: float
+    accuracy: float
+    first_above: float
+    second_above: float
+    first_is_higher: bool
+
+    def summary(self) -> str:
+        side = "above" if self.first_is_higher else "below"
+        return (
+            f"best threshold {self.threshold:.4f}: balanced accuracy {self.accuracy:.3f} "
+            f"(first class {self.first_above:.2f} above, {self.second_above:.2f} of the "
+            f"second above; first class is {side} the cut)"
+        )
+
+
+def best_threshold_accuracy(
+    first: np.ndarray | list[float],
+    second: np.ndarray | list[float],
+) -> ThresholdSeparation:
+    """The best a single cut on `mean r` can do at telling two ensembles apart.
+
+    The score is *balanced* accuracy, so answering the majority class cannot look good,
+    and `0.5` means the two samples are interchangeable. Both orientations are tried,
+    because either ensemble may be the one with the larger values. The candidate cuts are
+    the midpoints between consecutive pooled values, which is where a one-dimensional
+    threshold can change its mind, so no cutoff is skipped.
+    """
+    left = np.sort(np.asarray(first, dtype=float))
+    right = np.sort(np.asarray(second, dtype=float))
+    if left.size == 0 or right.size == 0:
+        raise ValueError("both samples must be non-empty")
+    pooled = np.sort(np.concatenate([left, right]))
+    cuts = (pooled[:-1] + pooled[1:]) / 2.0
+    if cuts.size == 0:
+        # One pooled value: every cut is the same, and nothing separates.
+        return ThresholdSeparation(
+            threshold=float(pooled[0]),
+            accuracy=0.5,
+            first_above=0.5,
+            second_above=0.5,
+            first_is_higher=True,
+        )
+    above_left = left.size - np.searchsorted(left, cuts, side="right")
+    above_right = right.size - np.searchsorted(right, cuts, side="right")
+    left_above = above_left / left.size
+    right_above = above_right / right.size
+    # Orientation one: the first sample is the larger one.
+    first_higher = (left_above + (1.0 - right_above)) / 2.0
+    # Orientation two: the first sample is the smaller one.
+    first_lower = ((1.0 - left_above) + right_above) / 2.0
+    higher_best = int(np.argmax(first_higher))
+    lower_best = int(np.argmax(first_lower))
+    if first_higher[higher_best] >= first_lower[lower_best]:
+        best, is_higher = higher_best, True
+        accuracy = float(first_higher[best])
+    else:
+        best, is_higher = lower_best, False
+        accuracy = float(first_lower[best])
+    return ThresholdSeparation(
+        threshold=float(cuts[best]),
+        accuracy=accuracy,
+        first_above=float(left_above[best]),
+        second_above=float(right_above[best]),
+        first_is_higher=is_higher,
+    )
+
+
+def mean_gap_separation(
+    n_sectors: int = 2,
+    dimension: int = 60,
+    seeds: int = 500,
+    seed: int = 900_000,
+) -> ThresholdSeparation:
+    """Best single-spectrum class test at `n_sectors`, measured rather than assumed.
+
+    One spectrum, one number `mean r`, one threshold. At two sectors this lands at
+    chance however many spectra were used to *choose* the threshold, because the
+    overlap of the two per-spectrum distributions is a property of the spectrum, not of
+    the sample size used to characterise it.
+    """
+    first = [
+        float(
+            mean_r_ratio(
+                superposition_spectrum(n_sectors, dimension, "goe", seed + index),
+                unfold=False,
+            )
+        )
+        for index in range(seeds)
+    ]
+    second = [
+        float(
+            mean_r_ratio(
+                superposition_spectrum(n_sectors, dimension, "gue", seed + 10_000 + index),
+                unfold=False,
+            )
+        )
+        for index in range(seeds)
+    ]
+    return best_threshold_accuracy(first, second)
+
+
+def false_positive_counts(
+    matrix_class: str = "goe",
+    dimension: int = 60,
+    seeds: int = 400,
+) -> tuple[int, int]:
+    """How often a *pure* single-sector spectrum is flagged as contaminated.
+
+    The flag is `mean r < SINGLE_SECTOR_FLOOR`, and a single-sector spectrum carries no
+    unresolved symmetry, so every one below the floor is a false positive of the
+    instrument. Returned as `(flagged, total)` so the paper can quote a rate with its
+    binomial uncertainty instead of a bare count.
+    """
+    if matrix_class not in ("goe", "gue"):
+        raise ValueError("matrix_class must be 'goe' or 'gue'")
+    if seeds < 1:
+        raise ValueError("seeds must be at least one")
+    flagged = 0
+    for index in range(seeds):
+        value = float(
+            mean_r_ratio(superposition_spectrum(1, dimension, matrix_class, index), unfold=False)
+        )
+        if value < SINGLE_SECTOR_FLOOR:
+            flagged += 1
+    return flagged, seeds
+
+
+# ============================================================
 # The two limits: counting fails, and two sectors erase the class
 # ============================================================
 
@@ -654,21 +860,23 @@ def contamination_warning(
 # honest better: the datum is the whole gap-ratio *sequence*, not its mean, and the
 # answer is a distribution over counts with a calibrated interval. What it recovers
 # is measured, not assumed (240 levels, 200 training spectra per hypothesis, nominal
-# 95% interval, 60 simulated spectra per row):
+# 95% interval, 400 simulated spectra per row):
 #
 # | truth | P(true) | interval covers | interval is a point |
 # |:---|---:|---:|---:|
-# | 1 sector | `0.98` | `1.00` | `0.95` |
-# | 2 sectors | `0.65` | `0.93` | `0.28` |
-# | 3 sectors | `0.24` | `0.87` | `0.00` |
-# | 4 sectors | `0.17` | `0.98` | `0.00` |
-# | 6 sectors | `0.20` | `0.97` | `0.00` |
-# | Poisson | `0.20` | `0.78` | `0.00` |
+# | 1 sector | `0.97` | `0.99` | `0.94` |
+# | 2 sectors | `0.66` | `0.92` | `0.37` |
+# | 3 sectors | `0.24` | `0.91` | `0.00` |
+# | 4 sectors | `0.19` | `0.96` | `0.00` |
+# | 5 sectors | `0.22` | `0.99` | `0.00` |
+# | 6 sectors | `0.22` | `0.98` | `0.00` |
+# | Poisson | `0.24` | `0.78` | `0.00` |
 #
-# So the count is a measurement at one and at two, and at three or more the posterior
-# refuses to separate 3 from 6 -- the original negative result, now with an interval
-# instead of a shrug. The Poisson row is the weakest: an integrable spectrum is easily
-# read as a five-sector superposition, because that is what it looks like.
+# So the count is a measurement at one, a lower bound at two (its interval's lower end is
+# `2` in 92% of draws), and at three or more the posterior refuses to separate 3 from
+# 6 -- the original negative result, now with an interval instead of a shrug. The Poisson
+# row is the weakest: an integrable spectrum is read as a finite superposition in 0.22 of
+# draws, because that is what it looks like.
 
 COUNT_LABELS: tuple[int | None, ...] = (1, 2, 3, 4, 5, 6, None)
 

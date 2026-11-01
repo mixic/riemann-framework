@@ -38,27 +38,30 @@ import pytest
 from riemann_framework.desymmetrisation import (
     calibration_table,
     default_sector_count_model,
+    false_positive_counts,
     superposition_spectrum,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "output"
 GENERATOR = PROJECT_ROOT / "scripts" / "generate_desymmetrisation_figures.py"
+SEED_STUDY = PROJECT_ROOT / "scripts" / "generate_seed_study_figure.py"
 
 FIGURE_FILES = (
     "desymmetrisation_warning.png",
     "desymmetrisation_coverage.png",
     "desymmetrisation_flow.png",
+    "desymmetrisation_seeds.png",
 )
 
-#: Appendix B of the manuscript: true sector count -> measured coverage.
+#: Appendix B of the manuscript: true sector count -> measured coverage, 400 draws.
 MANUSCRIPT_COVERAGE = {
-    1: 1.00,
-    2: 0.93,
-    3: 0.87,
-    4: 0.98,
-    5: 1.00,
-    6: 0.97,
+    1: 0.99,
+    2: 0.92,
+    3: 0.91,
+    4: 0.96,
+    5: 0.99,
+    6: 0.98,
     None: 0.78,
 }
 
@@ -80,18 +83,45 @@ def test_the_generator_writes_every_manuscript_figure():
     assert "coverage" in result.stdout
 
 
+def test_the_seed_study_figure_regenerates_with_its_measured_numbers():
+    """Fig. 5: the resolution is measured, and the numbers on it are the manuscript's.
+
+    The point of the figure is that the two-sector per-spectrum accuracy is chance while
+    the one-sector accuracy is not, so that is what this pins.
+    """
+    from riemann_framework.desymmetrisation import mean_gap_separation
+
+    result = subprocess.run(
+        [sys.executable, str(SEED_STUDY)],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=1800,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    path = OUTPUT_DIR / "desymmetrisation_seeds.png"
+    assert path.exists()
+    assert path.stat().st_size > 20_000
+
+    two = mean_gap_separation(2, 60, seeds=300)
+    one = mean_gap_separation(1, 60, seeds=300)
+    assert two.accuracy == pytest.approx(0.53, abs=0.05)
+    assert one.accuracy == pytest.approx(0.79, abs=0.06)
+    assert one.accuracy > two.accuracy + 0.15
+
+
 def test_the_coverage_table_matches_the_manuscript():
     """Appendix B, re-derived: each row within binomial noise of the published value."""
-    rows = default_sector_count_model().coverage(draws=60)
+    rows = default_sector_count_model().coverage(draws=400)
     by_truth = {row.truth: row for row in rows}
     assert set(by_truth) == set(MANUSCRIPT_COVERAGE)
     for truth, published in MANUSCRIPT_COVERAGE.items():
         measured = by_truth[truth].coverage
-        assert measured == pytest.approx(published, abs=0.08), (
+        assert measured == pytest.approx(published, abs=0.04), (
             f"truth {truth}: manuscript says {published}, measured {measured}"
         )
-    assert by_truth[1].coverage == 1.0
-    assert by_truth[1].posterior_probability == pytest.approx(0.98, abs=0.05)
+    assert by_truth[1].coverage >= 0.97
+    assert by_truth[1].posterior_probability == pytest.approx(0.97, abs=0.03)
 
 
 def test_the_two_sector_gap_is_smaller_than_the_scatter():
@@ -106,16 +136,30 @@ def test_the_two_sector_gap_is_smaller_than_the_scatter():
 
 
 def test_the_false_positive_rate_is_the_manuscripts():
-    """Appendix C: 4 of 40 pure single-sector GOE spectra fall below the floor."""
-    from riemann_framework.desymmetrisation import SINGLE_SECTOR_FLOOR
-    from riemann_framework.statistics import mean_r_ratio
+    """Appendix C: 37 of 400 pure single-sector GOE spectra fall below the floor.
 
-    flagged = 0
-    for seed in range(40):
-        values = superposition_spectrum(1, 60, "goe", seed)
-        if float(mean_r_ratio(values, unfold=False)) < SINGLE_SECTOR_FLOOR:
-            flagged += 1
-    assert flagged == 4
+    The rate is measured, not tuned: raising the floor to the GOE reference value would
+    trade these false positives for missed contamination, and the manuscript states the
+    number instead of choosing a flattering one.
+    """
+    from riemann_framework.desymmetrisation import SINGLE_SECTOR_FLOOR
+
+    flagged, total = false_positive_counts("goe", 60, 400)
+    assert (flagged, total) == (37, 400)
+    assert flagged / total == pytest.approx(0.092, abs=0.005)
+
+    gue_flagged, gue_total = false_positive_counts("gue", 60, 400)
+    assert (gue_flagged, gue_total) == (0, 400)
+
+    # The rate is what the scatter says it should be: the floor is 1.3 standard
+    # deviations below the one-sector GOE mean, which is about a tenth of the draws.
+    rows = {
+        row.matrix_class: row
+        for row in calibration_table((1,), dimension=60, seeds=400)
+    }
+    goe = rows["goe"]
+    distance = (goe.mean_r - SINGLE_SECTOR_FLOOR) / goe.std_r
+    assert 1.0 < distance < 1.6
 
 
 def test_the_flow_figure_uses_measured_panels():

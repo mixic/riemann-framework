@@ -66,6 +66,7 @@ from riemann_framework.desymmetrisation import (  # noqa: E402
     R_GUE,
     R_POISSON,
     SEVERE_THRESHOLD,
+    SINGLE_SECTOR_FLOOR,
     default_sector_count_model,
     superposition_spectrum,
 )
@@ -81,14 +82,14 @@ from riemann_framework.statistics import mean_r_ratio  # noqa: E402
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
 #: Spectra per point in the warning figure, and the per-sector dimension.
-WARNING_SEEDS = 300
+WARNING_SEEDS = 4000
 WARNING_DIMENSION = 60
 
-#: The sector counts shown in the manuscript's Fig. 2.
+#: The sector counts shown in the manuscript's Fig. 3.
 WARNING_COUNTS = (1, 2, 3, 6)
 
 #: Spectra per row in the coverage figure, and the flow run length.
-COVERAGE_DRAWS = 60
+COVERAGE_DRAWS = 400
 FLOW_BETA = 15.0
 FLOW_STEPS = 3000
 
@@ -98,7 +99,7 @@ def _colours() -> dict[str, str]:
 
 
 def plot_warning() -> Path:
-    """Fig. 2: full-spectrum `mean r` against the number of unresolved sectors."""
+    """Fig. 3: full-spectrum `mean r` against the number of unresolved sectors."""
     colours = _colours()
     markers = {"goe": "o", "gue": "s"}
     figure, axis = plt.subplots(figsize=(10, 6.5), constrained_layout=True)
@@ -155,8 +156,10 @@ def plot_warning() -> Path:
                  label=f"GOE {R_GOE}")
     axis.axvline(R_GUE, color="tab:green", linestyle="-.", linewidth=1.2,
                  label=f"GUE {R_GUE}")
-    axis.axvline(SEVERE_THRESHOLD, color="black", linestyle="-", linewidth=1.0,
-                 alpha=0.6, label=f"contamination floor {SEVERE_THRESHOLD}")
+    axis.axvline(SINGLE_SECTOR_FLOOR, color="black", linestyle="-", linewidth=1.0,
+                 alpha=0.7, label=f"flag threshold {SINGLE_SECTOR_FLOOR}")
+    axis.axvline(SEVERE_THRESHOLD, color="black", linestyle="--", linewidth=0.9,
+                 alpha=0.5, label=f"severe boundary {SEVERE_THRESHOLD}")
 
     axis.set_yticks(list(WARNING_COUNTS))
     axis.set_yticklabels(
@@ -178,7 +181,7 @@ def plot_warning() -> Path:
 
 
 def plot_coverage() -> tuple[Path, list[tuple[int | None, float, float]]]:
-    """Fig. 3: measured coverage of the posterior, against the nominal level."""
+    """Fig. 4: measured coverage of the posterior, against the nominal level."""
     model = default_sector_count_model()
     rows = model.coverage(draws=COVERAGE_DRAWS)
     labels = [row.truth for row in rows]
@@ -236,7 +239,7 @@ def plot_coverage() -> tuple[Path, list[tuple[int | None, float, float]]]:
 
 
 def plot_flow() -> Path:
-    """Fig. 4: sector populations under the double-bracket flow, both kinds of start.
+    """Fig. 5: sector populations under the double-bracket flow, both kinds of start.
 
     The commuting start is a mixture with equal mass in the two sectors, built from
     random superpositions *within* each sector. It is therefore not an eigenstate of

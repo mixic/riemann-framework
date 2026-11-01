@@ -36,20 +36,25 @@ splits the spectrum into joint sectors, (iii) flags a contaminated full spectrum
 
 The mean `⟨r⟩` cannot be inverted. The sequence of `≈240` gap ratios can be. A
 first-order Markov model fitted on simulated superpositions yields a posterior over
-`{1, …, 6, ≥6/poisson}`. At a nominal 95% interval the measured coverage is `1.00`,
-`0.93`, `0.87`, `0.98`, `0.97` at `1, 2, 3, 4, 6` sectors and `0.78` for a Poisson
-spectrum. The single-sector case is decisive (`p = 0.98`, interval `1..1`, correct 95% of
-the time); the two-sector case is defensible as a set (`2..5`) but not as a point. From
+`{1, …, 6, ≥6/poisson}`. At a nominal 95% interval the measured coverage is `0.99`,
+`0.92`, `0.91`, `0.96`, `0.98` at `1, 2, 3, 4, 6` sectors and `0.78` for a Poisson
+spectrum, over 400 spectra per row. The single-sector case is decisive (`p = 0.97`,
+interval `1..1` in 376 of 400 draws); the two-sector case yields a lower bound (`2` in 92%
+of draws) but not a count. From
 three sectors upward the count is not recoverable — the posterior reports `≥3`, and `3`
 through `6` are indistinguishable. Two-sector GOE and GUE are indistinguishable in the
 full spectrum, so a class test on a contaminated spectrum is uninformative rather than
-noisy.
+noisy. That last limit is measured rather than assumed: the best single-threshold class
+accuracy on one two-sector spectrum is `0.526` (chance), against `0.790` at one sector,
+so collecting more spectra does not help.
 
 **What is new.** The phenomenon is standard quantum-chaos practice (Giraud et al., Phys.
 Rev. X **12**, 011006 (2022)). What is local is the measured table, the entry points, the
-posterior's measured resolution, and the recorded limits. The diagnostic is calibrated on
-a measured table, its false-positive rate is stated (`4` of `40` pure single-sector GOE
-spectra fall below the flag), and its limits are reported rather than hidden.
+posterior's measured resolution, the measured resolution of the mean itself, and the
+recorded limits. The diagnostic is calibrated on
+a measured table, its false-positive rate is stated (`37` of `400` pure single-sector GOE
+spectra fall below the flag, `0` of `400` GUE), and its limits are reported rather than
+hidden.
 
 **The dynamical counterpart.** The multi-copy imaginary-time circuits are built on the
 double-bracket flow `dρ/dβ = [[ρ, H], ρ]`. We implement the flow and measure what it
