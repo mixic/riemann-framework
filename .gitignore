@@ -73,6 +73,7 @@ output/.shot-profile/
 !output/hilbert_polya.png
 !output/operator_candidates.png
 !output/mixed_sector_count.png
+!output/real_systems.png
 
 # OS
 .DS_Store

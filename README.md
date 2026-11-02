@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1173 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1191 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -508,6 +508,32 @@ thirteen labels and two hundred spectra each, in
   never rises above `0.57` and is `0.50` at six sectors, which is a coin flip.
 
 ![Count accuracy against a dominant sector, the equal-block model's bias, and the recoverability of the size ratio](output/mixed_sector_count.png)
+
+### Does it work on a real system?
+
+Gaussian blocks are not a real spectrum. `real_systems.py` builds three systems with
+**exact** involutions, verified by commutator rather than assumed: the transverse-field
+Ising chain, the Heisenberg chain in the zero-magnetisation sector with weak bond
+disorder, and the kicked top, whose Floquet phases live on a circle. Measured in
+[`docs/real_systems.md`](docs/real_systems.md):
+
+* the full spectrum is flagged in **4 of 4** cases, and on the kicked top the count is
+  right as well (two sectors);
+* the full spectrum sits below every sector in **3 of 4**: Ising `0.370` against `0.500`
+  and `0.559`, Heisenberg `0.399` against `0.431` and `0.494`, kicked top `0.418` against
+  `0.520` and `0.603`;
+* the interacting Ising chain is the counterexample: its sectors measure `0.402` and
+  `0.359`, so one lies below the full spectrum and the predicted ordering fails there;
+* the detector's **absolute floor over-flags real sectors** (only 3 of 8 cleared), because
+  it was calibrated on GOE blocks at `0.531` while a real 126-level sector measures `0.43`
+  to `0.49`. The within-Hamiltonian comparison is the reliable signal, which is what the
+  manuscript says and what this measurement shows on systems rather than on blocks;
+* the first run found a real defect: a degenerate spectrum gave a **NaN** mean, so
+  `detect_hidden_symmetry` flagged it for a reason unrelated to symmetry. Degenerate
+  spacings are now dropped before the ratios are formed (the free Ising chain measures
+  `0.042` with them and `0.344` without), which leaves every synthetic number unchanged.
+
+![Full spectra against their sectors for three real systems, and each spectrum's mean ratio relative to the detector floor](output/real_systems.png)
 
 ## Can a candidate be screened at all?
 
@@ -1023,7 +1049,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1173 tests pass** on the current tree. They are not smoke tests: the suite
+**1191 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1073,6 +1099,7 @@ silently changed meaning.
 | `test_diagnostic_robustness.py` | 9 | The flag's size dependence, the posterior's robustness to its simulator, the long-range statistics that separate what the ratio cannot, and the higher-order ratios that carry the count order one cannot |
 | `test_boundary_map.py` | 17 | The three statistics on identical spectra: order one is the adjacent-gap ratio, the mean-ratio boundary is one sector, the family and the variance reach two, and pairwise separation is easier than counting |
 | `test_mixed_sector_count.py` | 22 | Unequal blocks: the construction and its occupancy, the count-uniform prior, the class mixture that moved one-sector accuracy from 0.78 to 0.91, the equal-block under-count, and the middle ratio that is not recoverable |
+| `test_real_systems.py` | 18 | The Ising, Heisenberg and kicked-top constructions with their exact involutions, the circle convention, the split that raises the statistic, the rejection of a non-commuting involution, and the regression for the NaN a degenerate real spectrum produced |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
