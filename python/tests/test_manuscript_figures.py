@@ -133,3 +133,19 @@ def test_a_table_without_a_separator_aborts_the_build():
     """
     with pytest.raises(ValueError, match="malformed table"):
         _convert("# T\n\n| a | b |\n| 1 | 2 |\n")
+
+
+def test_a_heading_that_carries_its_own_label_is_not_numbered_again():
+    """The Disclaimer and the D.x subsections keep their own labels.
+
+    An unnumbered heading that LaTeX is allowed to number picks up the counter of the last
+    numbered section: `\\\\subsection{D.1 ...}` printed as "9.1 D.1 ...", and `\\\\section` on
+    the Disclaimer printed as "10 Disclaimer".
+    """
+    latex = _convert(
+        "# T\n\n## 1. Introduction\n\n### 1.1 A section\n\n## Disclaimer\n\n### D.1 A thing\n"
+    )
+    assert r"\section{Introduction}" in latex
+    assert r"\subsection{A section}" in latex
+    assert r"\section*{Disclaimer}" in latex
+    assert r"\subsection*{D.1 A thing}" in latex

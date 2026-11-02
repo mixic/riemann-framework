@@ -81,7 +81,7 @@ The converter is deliberately narrow, so that its behaviour is inspectable:
 streams, per-font `/ToUnicode` CMaps) because there is no PDF library on the build
 machine. It asserts, on the PDF as a reader sees it:
 
-* **structure** — 18 pages, A4;
+* **structure** — 20 pages, A4;
 * **figures** — five embedded pictures (distinguishing real images from alpha masks), and
   every placement inside the text block *and* inside the page;
 * **text layer** — non-empty on every page, with the title, the author, the affiliation,

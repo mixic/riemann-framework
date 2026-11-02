@@ -30,7 +30,9 @@ import numpy as np
 import pytest
 
 from riemann_framework.desymmetrisation import (
+    COUNT_ORDERS,
     SINGLE_SECTOR_FLOOR,
+    HigherOrderCountModel,
     false_positive_rate_at_size,
     one_sector_r_moments,
     robustness_table,
@@ -39,7 +41,9 @@ from riemann_framework.desymmetrisation import (
 )
 from riemann_framework.statistics import (
     dyson_mehta_statistic,
+    higher_order_r_ratio,
     number_variance,
+    r_ratio,
 )
 
 
@@ -124,3 +128,53 @@ def test_the_robustness_table_records_the_departures():
     assert rows["mixed class"].truth == 2
     assert rows["mixed class"].posterior_probability > 0.5
     assert all(0.85 <= row.coverage <= 1.0 for row in rows.values())
+
+
+def test_order_one_reproduces_the_adjacent_gap_ratio():
+    """The higher-order family is an extension, not a different statistic.
+
+    `r^(1)` folded with min/max must equal `r_ratio`, so the k=1 column of the family is
+    the number the rest of the manuscript uses.
+    """
+    spectrum = superposition_spectrum(2, 60, "goe", seed=0)
+    first = higher_order_r_ratio(spectrum, order=1)
+    plain = r_ratio(spectrum)
+    assert first.size == plain.size
+    assert np.allclose(first, plain)
+    with pytest.raises(ValueError, match="at least one"):
+        higher_order_r_ratio(spectrum, order=0)
+
+
+def test_higher_orders_separate_counts_that_order_one_cannot():
+    """The boundary is the ratio's, not the spectrum's, and this is the measurement.
+
+    With only the adjacent-gap mean the model is barely better than chance at telling
+    three sectors from six; with orders one to six it is not. These are the numbers the
+    manuscript quotes for the higher-order family.
+    """
+    from riemann_framework.desymmetrisation import default_higher_order_model
+
+    single = HigherOrderCountModel.fit(orders=(1,), seeds=120)
+    family = default_higher_order_model()
+
+    assert family.orders == COUNT_ORDERS == (1, 2, 3, 4, 5, 6)
+    for pair in ((2, 3), (3, 6)):
+        one = single.balanced_accuracy(*pair, draws=120)
+        many = family.balanced_accuracy(*pair, draws=120)
+        assert one < 0.78, f"{pair}: order one already at {one:.2f}"
+        assert many > 0.78, f"{pair}: all orders only at {many:.2f}"
+        assert many > one + 0.10
+
+
+def test_the_higher_order_posterior_measures_coverage():
+    """Coverage is measured for the family, not assumed, and three to six are separated."""
+    from riemann_framework.desymmetrisation import default_higher_order_model
+
+    rows = {row.truth: row for row in default_higher_order_model().coverage(draws=120)}
+    assert set(rows) == {1, 2, 3, 4, 5, 6, None}
+    assert rows[1].coverage >= 0.95
+    assert rows[1].posterior_probability >= 0.9
+    for truth in (3, 4, 5, 6):
+        assert 0.7 <= rows[truth].coverage <= 1.0
+        assert rows[truth].posterior_probability > 0.25
+    assert rows[None].coverage >= 0.9

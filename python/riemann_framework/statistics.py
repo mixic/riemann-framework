@@ -109,6 +109,40 @@ def mean_r_ratio(eigenvalues, unfold=True):
     return float(np.mean(r)) if len(r) > 0 else float("nan")
 
 
+def higher_order_r_ratio(eigenvalues, order=1, unfold=True):
+    """The `order`-th spacing ratio, folded to `(0, 1]`.
+
+    With spacings `s_i = E_{i+1} - E_i`, the cited definition is
+
+        r_i^(k) = (E_{i+2k} - E_{i+k}) / (E_{i+k} - E_i),
+
+    the ratio of the next block of `k` spacings to the current one. This function folds
+    it to `(0, 1]` with `min/max`, exactly as `r_ratio` does for `k = 1`, so order one
+    reproduces the ordinary adjacent-gap ratio and the distributions of the different
+    orders are directly comparable.
+
+    The result that makes the statistic useful is Tekur, Bhosale and Santhanam,
+    Phys. Rev. B **98**, 104305 (2018): the `k`-th order ratio distribution of a
+    composite spectrum equals the nearest-neighbour distribution with a modified Dyson
+    index, which is what lets it see a sector count the nearest-neighbour ratio cannot.
+    """
+    if order < 1:
+        raise ValueError("order must be at least one")
+    spacings = level_spacings(eigenvalues, unfold=unfold)
+    if spacings.size < 2 * order + 1:
+        return np.array([])
+    block = np.convolve(spacings, np.ones(order), mode="valid")
+    current = block[: block.size - order]
+    following = block[order:]
+    return np.minimum(current, following) / np.maximum(current, following)
+
+
+def mean_higher_order_r_ratio(eigenvalues, order=1, unfold=True):
+    """Mean of the `order`-th spacing ratio (a single scalar)."""
+    values = higher_order_r_ratio(eigenvalues, order=order, unfold=unfold)
+    return float(np.mean(values)) if values.size > 0 else float("nan")
+
+
 # ============================================================
 # Long-range (spectral rigidity) statistics
 # ============================================================

@@ -347,7 +347,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
 | `sorry`-free Lean modules | 4 of 9 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
-| tests passing | 1129 | `python/tests/` |
+| tests passing | 1133 | `python/tests/` |
 | documents | 38 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
@@ -465,7 +465,7 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1129 passed`; `lake build` → 9 modules
+**Last verified:** `python -m pytest tests/ -q` → `1133 passed`; `lake build` → 9 modules
 compile, the 4 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.

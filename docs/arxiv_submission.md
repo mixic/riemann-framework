@@ -35,7 +35,7 @@ Manuscript: [`desymmetrisation_paper.md`](desymmetrisation_paper.md). Checklist:
 | **Authors** | Milan Nikolic — Independent Researcher — `m_nikolic@yahoo.com` — no ORCID given |
 | **Primary category** | `quant-ph` |
 | **Cross-lists** | `nlin.CD` (chaotic dynamics), `math-ph` (needs MSC codes, §3) `[CHECK: whether the second cross-list is worth the MSC typing]` |
-| **Comments** | 18 pages, 5 figures, 4 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
+| **Comments** | 20 pages, 5 figures, 4 appendices. Code, tests, figures and Lean verification at `https://github.com/mixic/riemann-framework`. |
 | **Journal-ref** | none |
 | **DOI** | none |
 | **License** | `[CHECK]` arXiv non-exclusive distribution licence (default), or CC BY 4.0. The **code** is GPL-3.0 and stays GPL-3.0; the paper is not, and does not need to be, GPL. |
@@ -136,10 +136,10 @@ asserts 29 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
-[PASS] page count: 18 pages (expected 18)
+[PASS] page count: 20 pages (expected 20)
 [PASS] page size: A4
 [PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
-[PASS] text layer: 18 pages, 37947 characters
+[PASS] text layer: 20 pages, 42147 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
@@ -155,7 +155,7 @@ $ python scripts/verify_pdf.py
 [PASS] present: 'github.com/mixic/riemann-framework': present
 [PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..2 / 3..≥6: render
 [PASS] ligatures extract: fi, fl and ff ligatures survive extraction
-[PASS] headings numbered once: no doubled heading label and no numbered Disclaimer
+[PASS] headings numbered once: no doubled heading label
 PASS: all 29 checks passed
 ```
 
@@ -179,7 +179,7 @@ effective width with the text block *and* its natural width with the page.
 
 | property | value |
 |:---|:---|
-| pages | `18`, A4, numbered (LaTeX default) |
+| pages | `20`, A4, numbered (LaTeX default) |
 | figures | `5`, captioned; each placed within the text block, with a natural width equal to the printed width (see 5.3) |
 | fonts | Computer Modern (CMR10, CMR8, CMR7, CMMI10/8/7, CMSY10, MSBM10), all embedded |
 | text layer | complete and searchable (`/ToUnicode` per font) |

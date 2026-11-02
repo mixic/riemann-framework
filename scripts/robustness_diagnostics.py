@@ -65,6 +65,8 @@ import numpy as np  # noqa: E402
 
 from riemann_framework.desymmetrisation import (  # noqa: E402
     SINGLE_SECTOR_FLOOR,
+    HigherOrderCountModel,
+    default_higher_order_model,
     false_positive_rate_at_size,
     one_sector_r_moments,
     robustness_table,
@@ -137,6 +139,23 @@ def main() -> None:
     print("the r-ratio reads Poisson and a 3-or-more-sector union as the same number;")
     print("the long-range statistics read them as different, so 'not recoverable' is a")
     print("property of the adjacent-gap ratio, not of the spectrum.")
+
+    print()
+    print("== 4. what the higher-order ratios add (one spectrum, balanced accuracy) ==")
+    order_one = HigherOrderCountModel.fit(orders=(1,), seeds=200)
+    family = default_higher_order_model()
+    print(f"{'pair':>8} {'k = 1 only':>12} {'k = 1..6':>10}")
+    for first, second in ((2, 3), (3, 6), (4, 6)):
+        one = order_one.balanced_accuracy(first, second, draws=200)
+        many = family.balanced_accuracy(first, second, draws=200)
+        print(f"{first} vs {second:<3} {one:12.3f} {many:10.3f}")
+    print("the adjacent-gap ratio is the k = 1 member of the family; the counts it cannot")
+    print("separate are separable once the higher orders are read.")
+
+    print()
+    print("== coverage of the higher-order posterior, 120 draws per row ==")
+    for row in family.coverage(draws=120):
+        print("  " + row.summary())
 
     print()
     print("No Riemann-hypothesis claim is made here.")

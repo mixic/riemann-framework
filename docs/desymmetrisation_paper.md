@@ -354,6 +354,45 @@ Reading the table:
 
 ![Fig. 4. Measured coverage of the sector-count posterior at a nominal 95% interval, 400 spectra per row, against the nominal level (dashed). The open-ended label is the hard row: an integrable spectrum is covered by its own label in only 0.78 of draws, so in 0.22 of draws the posterior reports a finite count, and that residual is also its false-positive rate.](output/desymmetrisation_coverage.png)
 
+### 2.5 The count from higher-order spacing ratios
+
+The adjacent-gap ratio is the first member of a family. With spacings `s_i = E_{i+1} − E_i`,
+the `k`-th order spacing ratio is
+
+```
+r_i^(k) = (E_{i+2k} − E_{i+k}) / (E_{i+k} − E_i),
+```
+
+folded to `(0, 1]` with min/max so that `k = 1` reproduces `⟨r⟩`. Tekur, Bhosale and
+Santhanam [10] showed that the `k`-th order distribution of a composite spectrum is the
+nearest-neighbour distribution with a modified Dyson index, which is why the family can
+carry a count that `k = 1` cannot.
+
+**Model.** The mean ratio at each order `k = 1, …, 6` is one feature. For each hypothesis
+(1 to 6 sectors, plus Poisson) the feature vector is fitted on 200 simulated spectra with
+the class alternated, and the posterior is Gaussian naive Bayes over the six per-order
+means, with one mean and one standard deviation per hypothesis and order and a uniform
+prior over the seven hypotheses. It is a plug-in classifier like the one in Section 2.3,
+and its coverage is measured the same way, at 120 spectra per row:
+
+| true sectors | coverage | posterior on the truth |
+|:---|---:|---:|
+| 1 | `1.00` | `0.99` |
+| 2 | `0.90` | `0.76` |
+| 3 | `0.78` | `0.47` |
+| 4 | `0.82` | `0.40` |
+| 5 | `0.87` | `0.31` |
+| 6 | `0.88` | `0.48` |
+| Poisson | `0.96` | `0.90` |
+
+With `k = 1` alone the model is the adjacent-gap limit and reproduces the negative result
+of Section 2.4: single-spectrum balanced accuracy is `0.66` for two versus three sectors,
+`0.63` for three versus six and `0.55` for four versus six. With orders one to six the same
+model reaches `0.81`, `0.94` and `0.82`. The count that the adjacent-gap ratio cannot carry
+above two sectors is carried by the family, and the Poisson row improves from `0.78` to
+`0.96`: an integrable spectrum is now identified as such in `0.90` of draws, against
+`0.24` for the adjacent-gap model.
+
 ## 3. Symmetry dynamics under the double-bracket flow
 
 ### 3.1 Definition of the flow
@@ -424,7 +463,9 @@ Both are `sorry`-free and depend only on `propext`, checked by `#print axioms`.
 ## 4. Non-reproduction of a quoted multi-copy identity
 
 A description of the multi-copy imaginary-time circuits quotes an identity for the
-first-order term (the description has no citable source):
+first-order term. The description has no citable source, and no published derivation of
+the identity was found for this paper, so it is reproduced here as quoted and tested as
+quoted:
 
 ```
 Tr₂(u ρ₁ ⊗ ρ₂ u†) = ρ₁ − ε[[ρ₁, H], ρ₁] + O(ε^{3/2}).
@@ -475,6 +516,20 @@ The fifth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(
 should use the scaled floor and report its z-score, not a single threshold; this
 manuscript quotes the fixed floor because it is the one the tables were measured on.
 
+The scaled floor is not free. It keeps the false-positive rate flat by lowering the
+threshold where the one-sector distribution is wider, and at small sizes that costs missed
+contamination: at 15 levels per sector it misses `0.46` of two-sector superpositions
+against `0.19` for the fixed floor, at 30 levels `0.21` against `0.12`, and from 60 levels
+upward the two agree. The reference implementation uses the fixed floor at 60 levels; a
+deployed one should use the scaled floor and report the z-score together with the missed
+rate. The calibration is in levels per sector, which is the size of one block; a caller who
+knows only the total length of a spectrum should pass that length, because that is what the
+null hypothesis, a single sector, assumes.
+
+Appendix C's `9.2%` and the `0.11` in this table measure the same quantity at different
+sample sizes: their difference is sampling noise, with a standard error of about `0.015`,
+not a measurement that moved.
+
 ### 5.2 Robustness of the posterior to its own simulator
 
 The posterior is trained on equal-sized, independent, class-balanced sectors at 240
@@ -520,6 +575,14 @@ statistic are the instruments when a bare spectrum must be read as Poisson or as
 of rigid sectors. A complete diagnostic reports both, because the two statistics fail in
 different places. The posterior in this paper uses the ratio sequence alone, so its "not
 counted above two" is a statement about that statistic and nothing stronger.
+
+The number variance is also sensitive to the unfolding. With the polynomial unfolding used
+here the Poisson value is `12.2` at a window of 20, against `17.8` with no polynomial
+unfolding and `20` for a pure Poisson process, so the absolute values and the factor of
+three depend on the unfolding while the ordering does not. Table 5.3 compares means; one
+spectrum at a time, with the balanced accuracy of Section 1.4, the two statistics separate
+three sectors from six at `0.90` (`Σ²`) and `0.93` (`Δ₃`), and six sectors from Poisson at
+`0.98` and `0.96`.
 
 ## 6. Comparison with explicit desymmetrization
 
@@ -640,6 +703,15 @@ Hilbert space into invariant sectors, and that a composite spectrum does not pre
 spectral correlations of its blocks, and cross the boundary this paper measures, using
 higher-order statistics rather than the adjacent-gap ratio.
 
+The higher-order family itself is older, and the two papers below build on it. Tekur and
+Santhanam [9] showed that a spectrum composed of `k` independent level sequences of equal
+level density has a `k`-th order spacing-ratio distribution equal to its nearest-neighbour
+counterpart with a modified Dyson index, which is how the symmetry structure of a measured
+spectrum can be read without desymmetrization. Tekur, Bhosale and Santhanam [10] derived
+the modified index for the Gaussian and circular ensembles, and Bhosale [11] carried the
+construction to superposed spectra. The statistics the two papers below use, and those
+measured in Section 2.5, are theirs.
+
 Vyas, Tekur and Santhanam (arXiv:2610.03108) use higher-order spacing ratios (HOSR) and a
 Best Subset Technique (BST). For order `k` they define
 
@@ -666,18 +738,26 @@ so that for `k = m` in the GOE case (or `k+1 = m+1` in the GUE case) the number 
 sectors `m` becomes directly readable. The `k`-th order ratio sees the sector count where
 the adjacent-gap ratio does not.
 
-Rout and Bhosale (arXiv:2510.00503) use higher-order spacings in superposed random-matrix
-spectra, tested on the quantum kicked top. Both papers avoid explicit desymmetrization,
-and both work for unequal sector dimensions, which the BST handles through the optimal
-fraction `f*`.
+Rout and Bhosale (arXiv:2510.00503) study higher-order spacings in superposed spectra of
+random matrices of the same class, with equal-sized subsectra, and test the result on the
+quantum kicked top. Their setting is therefore the symmetric case that the best-subset
+technique generalises: the unequal-dimension problem is treated by Vyas et al. through the
+optimal fraction `f*`, not by Rout and Bhosale.
 
 The relation between those methods and this paper is precise and complementary, not
 competitive. The adjacent-gap ratio is the `k = 1` case of the higher-order family. This
 paper measures where the `k = 1` statistic stops carrying the sector count: at three or
 more sectors the `⟨r⟩` values (`0.404`, `0.396`, `0.391`) lie closer together than the
 per-spectrum scatter (`0.017` to `0.039`) that one spectrum carries, so no ensemble
-average can separate them. The higher-order statistics are the instruments designed to
-cross that boundary, and they do.
+average can separate them.
+
+The crossing is measured here rather than quoted. Section 2.5 extends the posterior to
+orders one to six, and on one spectrum the difference is direct: the mean ratio alone
+separates two from three sectors at `0.66` balanced accuracy, three from six at `0.63` and
+four from six at `0.55`, while orders one to six separate them at `0.81`, `0.94` and `0.82`
+(200 spectra per class). The count that the adjacent-gap ratio cannot carry above two
+sectors is carried by the family, and the statement "not recoverable" belongs to `k = 1`,
+not to the spectrum.
 
 The involution `σ` plays a different role in the two settings. In this paper `σ` is a
 concrete, verifiable operator: `[H, σ] = 0` and `[Uᵢ, Uⱼ] = 0` are checked before the
@@ -902,6 +982,14 @@ record rather than an embarrassment to be quietly removed.
 8. Rout, S. and Bhosale, U. T. *Higher-order spacings in the superposed spectra of random
    matrices with comparison to spacing ratios and application to complex systems.*
    arXiv:2510.00503 (2025).
+9. Tekur, S. H. and Santhanam, M. S. *Symmetry deduction from spectral fluctuations in
+   complex quantum systems.* Phys. Rev. Research **2**, 032063 (2020); arXiv:1808.08541.
+10. Tekur, S. H., Bhosale, U. T. and Santhanam, M. S. *Higher order spacing ratios in
+    random matrix theory and complex quantum systems.* Phys. Rev. B **98**, 104305 (2018);
+    arXiv:1806.05958.
+11. Bhosale, U. T. *Superposition and higher-order spacing ratios in random matrix theory
+    with application to complex systems.* Phys. Rev. B **104**, 054204 (2021);
+    arXiv:1905.02585.
 
 ## Disclaimer
 

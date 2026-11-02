@@ -73,7 +73,7 @@ from typing import Any
 
 import numpy as np
 
-from .statistics import mean_r_ratio, r_ratio
+from .statistics import mean_higher_order_r_ratio, mean_r_ratio, r_ratio
 
 
 #: Reference values, from `statistics.REFERENCE_R`.
@@ -1386,5 +1386,211 @@ def sector_count_posterior(
     recoverable -- reproducing the earlier negative result with an error bar.
     """
     active = model if model is not None else default_sector_count_model()
+    return active.estimate(eigenvalues, level=level)
+
+
+# ============================================================
+# The count from higher-order spacing ratios
+# ============================================================
+
+#: The orders the higher-order model reads by default. Order one is the ordinary
+#: adjacent-gap ratio; orders two to six are the statistics the count above two sectors
+#: is not recoverable from until they are added.
+COUNT_ORDERS: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
+
+
+def spectrum_features(eigenvalues, orders: tuple[int, ...] = COUNT_ORDERS) -> np.ndarray:
+    """The mean spacing ratio at each order, as one feature vector."""
+    return np.array(
+        [
+            mean_higher_order_r_ratio(eigenvalues, order=order, unfold=False)
+            for order in orders
+        ],
+        dtype=float,
+    )
+
+
+@dataclass(frozen=True)
+class HigherOrderCountModel:
+    """A Gaussian naive-Bayes posterior over the sector count, from orders one to six.
+
+    The nearest-neighbour ratio is the `k = 1` member of the higher-order family (Tekur,
+    Bhosale and Santhanam, PRB **98**, 104305 (2018)). The count that `k = 1` cannot
+    carry above two sectors is recoverable from the family as a whole, so this model
+    treats the mean ratio at each order as a feature, estimates a Gaussian per feature
+    and per hypothesis on simulated spectra, and combines them with a uniform prior.
+
+    This is the measured counterpart of the claim in the manuscript: with `orders=(1,)`
+    the model reproduces the adjacent-gap limit, and with the full order set the
+    three-versus-six and four-versus-six questions become answerable.
+    """
+
+    total_levels: int
+    orders: tuple[int, ...]
+    means: dict[int | None, np.ndarray]
+    scales: dict[int | None, np.ndarray]
+
+    @classmethod
+    def fit(
+        cls,
+        total_levels: int = COUNT_DEFAULT_LEVELS,
+        seeds: int = COUNT_DEFAULT_SEEDS,
+        orders: tuple[int, ...] = COUNT_ORDERS,
+        max_sectors: int = 6,
+    ) -> "HigherOrderCountModel":
+        if total_levels < 24:
+            raise ValueError("need at least 24 levels to fit a sector-count model")
+        if seeds < 8:
+            raise ValueError("need at least 8 training spectra per hypothesis")
+        if not orders or any(order < 1 for order in orders):
+            raise ValueError("orders must be a non-empty tuple of positive integers")
+
+        samples: dict[int | None, list[np.ndarray]] = {}
+        for n_sectors in range(1, max_sectors + 1):
+            dimension = max(4, total_levels // n_sectors)
+            samples[n_sectors] = [
+                spectrum_features(
+                    superposition_spectrum(
+                        n_sectors,
+                        dimension,
+                        "gue" if index % 2 else "goe",
+                        index,
+                    ),
+                    orders,
+                )
+                for index in range(seeds)
+            ]
+        samples[None] = [
+            spectrum_features(
+                np.cumsum(
+                    np.random.default_rng(10_000 + index).exponential(1.0, total_levels)
+                ),
+                orders,
+            )
+            for index in range(seeds)
+        ]
+
+        means: dict[int | None, np.ndarray] = {}
+        scales: dict[int | None, np.ndarray] = {}
+        for label, group in samples.items():
+            stacked = np.stack(group)
+            means[label] = np.mean(stacked, axis=0)
+            scales[label] = np.maximum(np.std(stacked, axis=0), 1e-3)
+        return cls(total_levels=total_levels, orders=orders, means=means, scales=scales)
+
+    def log_likelihood(self, features) -> dict[int | None, float]:
+        """Gaussian naive-Bayes log likelihood of one feature vector per hypothesis."""
+        vector = np.asarray(features, dtype=float)
+        if vector.shape != (len(self.orders),):
+            raise ValueError("feature vector does not match the model's orders")
+        return {
+            label: float(
+                -0.5 * np.sum(((vector - self.means[label]) / self.scales[label]) ** 2)
+            )
+            for label in self.means
+        }
+
+    def posterior(
+        self, features, level: float = COUNT_DEFAULT_LEVEL
+    ) -> SectorCountEstimate:
+        """Posterior over the labels, with a uniform prior over the hypotheses."""
+        log_likelihood = self.log_likelihood(features)
+        largest = max(log_likelihood.values())
+        weights = {
+            label: float(np.exp(value - largest))
+            for label, value in log_likelihood.items()
+        }
+        total = sum(weights.values())
+        posterior = {label: weight / total for label, weight in weights.items()}
+        return SectorCountEstimate(
+            posterior=posterior,
+            credible_interval=_contiguous_interval(posterior, level),
+            level=level,
+        )
+
+    def estimate(
+        self, eigenvalues, level: float = COUNT_DEFAULT_LEVEL
+    ) -> SectorCountEstimate:
+        """Posterior for a spectrum, from its eigenvalues alone."""
+        return self.posterior(spectrum_features(eigenvalues, self.orders), level=level)
+
+    def coverage(
+        self,
+        truths: tuple[int | None, ...] = COUNT_LABELS,
+        draws: int = 40,
+        level: float = COUNT_DEFAULT_LEVEL,
+        seed: int = 50_000,
+    ) -> list[CoverageRow]:
+        """Measure the interval, rather than asserting it."""
+        if draws < 1:
+            raise ValueError("need at least one draw")
+        rows: list[CoverageRow] = []
+        for truth in truths:
+            covered = 0
+            exact = 0
+            probability = 0.0
+            for index in range(draws):
+                estimate = self.estimate(
+                    _synthetic_spectrum(truth, index, seed, self.total_levels), level
+                )
+                low, high = estimate.credible_interval
+                covered += _count_index(low) <= _count_index(truth) <= _count_index(high)
+                exact += low == high
+                probability += estimate.posterior.get(truth, 0.0)
+            rows.append(
+                CoverageRow(
+                    truth=truth,
+                    posterior_probability=probability / draws,
+                    coverage=covered / draws,
+                    exact=exact / draws,
+                    draws=draws,
+                )
+            )
+        return rows
+
+    def balanced_accuracy(
+        self,
+        first: int,
+        second: int,
+        draws: int = 200,
+        seed: int = 70_000,
+    ) -> float:
+        """Balanced accuracy at telling one sector count from another, single spectra.
+
+        Each spectrum is classified by which of the two hypotheses carries more
+        posterior mass; the two truths contribute equally, so a trivial answer scores
+        0.5. This is the measurement the manuscript quotes for the higher-order family.
+        """
+        correct = 0
+        for truth in (first, second):
+            for index in range(draws):
+                estimate = self.estimate(
+                    _synthetic_spectrum(truth, index, seed + index, self.total_levels)
+                )
+                vote = (
+                    first
+                    if estimate.posterior.get(first, 0.0)
+                    >= estimate.posterior.get(second, 0.0)
+                    else second
+                )
+                correct += vote == truth
+        return correct / (2 * draws)
+
+
+@lru_cache(maxsize=4)
+def default_higher_order_model(
+    total_levels: int = COUNT_DEFAULT_LEVELS,
+) -> HigherOrderCountModel:
+    """The fitted higher-order model, cached."""
+    return HigherOrderCountModel.fit(total_levels=total_levels)
+
+
+def sector_count_posterior_higher_order(
+    eigenvalues,
+    model: HigherOrderCountModel | None = None,
+    level: float = COUNT_DEFAULT_LEVEL,
+) -> SectorCountEstimate:
+    """The sector-count posterior from orders one to six, rather than order one alone."""
+    active = model if model is not None else default_higher_order_model()
     return active.estimate(eigenvalues, level=level)
 

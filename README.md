@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1129 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1133 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -983,7 +983,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1129 tests pass** on the current tree. They are not smoke tests: the suite
+**1133 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1010,7 +1010,7 @@ silently changed meaning.
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
 | `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
-| `test_manuscript_figures.py` | 6 | The manuscript has exactly five figure references, no duplicates, all files present, captions numbered; a well-formed table becomes a tabular and a table without a separator aborts the build |
+| `test_manuscript_figures.py` | 7 | The manuscript has exactly five figure references, no duplicates, all files present, captions numbered; a well-formed table becomes a tabular, a table without a separator aborts the build, and a heading with its own label is not numbered twice |
 | `test_pdf_verification.py` | 6 | The committed PDF passes `verify_pdf.py`; the reader recovers the title, keeps fonts apart, and separates a figure's natural size from its placed size; the header pattern matches browser furniture |
 | `test_desymmetrisation_figures.py` | 6 | The manuscript's five figures regenerate, and their numbers match Appendix B and Appendix C within noise |
 | `test_finite_field_curves.py` | 30 | Field axioms, exact Hasse certificates, and the smoothness hypotheses |
@@ -1030,7 +1030,7 @@ silently changed meaning.
 | `test_m5_analysis.py` | 17 | The two falsification criteria and the abandoned verdict |
 | `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
 | `test_desymmetrisation.py` | 40 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, and the resolution of the mean |
-| `test_diagnostic_robustness.py` | 6 | The flag's size dependence, the posterior's robustness to its simulator, and the long-range statistics that separate what the ratio cannot |
+| `test_diagnostic_robustness.py` | 9 | The flag's size dependence, the posterior's robustness to its simulator, the long-range statistics that separate what the ratio cannot, and the higher-order ratios that carry the count order one cannot |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |

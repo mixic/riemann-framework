@@ -571,20 +571,18 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
 
     # A heading that carries its own label must not also receive a LaTeX number. When
     # Section 10 moved to an unnumbered appendix, `\subsection{D.1 ...}` printed as
-    # "9.1 D.1 ..." (LaTeX numbered it from the last numbered section) and the unnumbered
-    # Disclaimer printed as "10 Disclaimer". Both are invisible to a per-glyph check and
-    # obvious to a reader, so the doubled label is looked for directly.
+    # "9.1 D.1 ...". That doubled label is unambiguous in the flat text. The unnumbered
+    # Disclaimer is not checked here: a page number that ends in "9" followed by the
+    # unnumbered heading produces the same flat token ("19Disclaimer"), so the defect can
+    # only be told apart in the LaTeX. `test_manuscript_figures.py` checks that instead.
     doubled = re.findall(r"\d+\.\d+D\.\d", text.flat)
-    numbered_tail = [token for token in ("9Disclaimer", "10Disclaimer", "11Disclaimer")
-                     if token in text.flat]
-    numbering_ok = not doubled and not numbered_tail
     checks.append(
         Check(
             "headings numbered once",
-            numbering_ok,
-            "no doubled heading label and no numbered Disclaimer"
-            if numbering_ok
-            else f"doubled labels: {doubled[:3]}; numbered tail: {numbered_tail}",
+            not doubled,
+            "no doubled heading label"
+            if not doubled
+            else f"doubled labels: {doubled[:3]}",
         )
     )
 
@@ -614,7 +612,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
-    parser.add_argument("--pages", type=int, default=18)
+    parser.add_argument("--pages", type=int, default=20)
     parser.add_argument("--images", type=int, default=5)
     parser.add_argument("--strict", action="store_true",
                         help="also fail on collapsed interval notation in the text layer")
