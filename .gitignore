@@ -72,6 +72,7 @@ output/.shot-profile/
 !output/finite_field_curves.png
 !output/hilbert_polya.png
 !output/operator_candidates.png
+!output/mixed_sector_count.png
 
 # OS
 .DS_Store

@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1151 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1173 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -488,6 +488,26 @@ up in [`docs/boundary_map.md`](docs/boundary_map.md) and produced by
   cannot make.
 
 ![Per-class accuracy against the sector count for each statistic, pairwise balanced accuracy, and the number variance at a window of 20](output/boundary_map.png)
+
+### When the sectors are not the same size
+
+Every count above assumes the blocks are equal. `mixed_sector_count.py` drops that
+assumption: one block carries `r` times the levels of each of the others, with the total
+still fixed at 240, and the posterior becomes a joint one over `(m, r)`. Measured over
+thirteen labels and two hundred spectra each, in
+[`docs/mixed_sectors.md`](docs/mixed_sectors.md):
+
+* the equal-block model's error under a dominant sector is a **bias**, not noise: at a
+  four-to-one partition it reads two sectors as `1.51`, three as `2.31`, four as `2.98` and
+  six as `4.80`, about one sector short every time;
+* the joint model holds the count there instead (`0.60`, `0.41`, `0.38`, `0.74` against
+  `0.52`, `0.29`, `0.23`, `0.30`), and pays for it at the decisive cases: one sector drops
+  from `1.000` to `0.905`, and two sectors at an even split from `0.760` to `0.605`;
+* the **size ratio itself is not recoverable**, except at the extremes: four-to-one is named
+  correctly `0.72` to `0.86` of the time once the count is known, while the middle ratio two
+  never rises above `0.57` and is `0.50` at six sectors, which is a coin flip.
+
+![Count accuracy against a dominant sector, the equal-block model's bias, and the recoverability of the size ratio](output/mixed_sector_count.png)
 
 ## Can a candidate be screened at all?
 
@@ -1003,7 +1023,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1151 tests pass** on the current tree. They are not smoke tests: the suite
+**1173 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1052,6 +1072,7 @@ silently changed meaning.
 | `test_desymmetrisation.py` | 41 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, the resolution of the mean, and the size-scaled detector floor |
 | `test_diagnostic_robustness.py` | 9 | The flag's size dependence, the posterior's robustness to its simulator, the long-range statistics that separate what the ratio cannot, and the higher-order ratios that carry the count order one cannot |
 | `test_boundary_map.py` | 17 | The three statistics on identical spectra: order one is the adjacent-gap ratio, the mean-ratio boundary is one sector, the family and the variance reach two, and pairwise separation is easier than counting |
+| `test_mixed_sector_count.py` | 22 | Unequal blocks: the construction and its occupancy, the count-uniform prior, the class mixture that moved one-sector accuracy from 0.78 to 0.91, the equal-block under-count, and the middle ratio that is not recoverable |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
