@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1231 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1238 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -695,6 +695,18 @@ universal — and the theorem **does not transfer to `Q`**, because its proof ru
 through the Frobenius action on étale cohomology and no analogue of that action
 is known over `Q`. See [`docs/finite_field_curves.md`](docs/finite_field_curves.md).
 
+## Installing
+
+The module tree is also a package: `pip install .` (or `pip install -e .` for the working
+copy) puts `riemann_framework` on the path with `numpy`, `mpmath` and `scipy`;
+`pip install .[plots]` adds `matplotlib` for the plotting modules and `.[tests]` adds pytest.
+`pyproject.toml` holds the metadata, the version has one source in
+`python/riemann_framework/__init__.py` which the build backend reads back, and
+`test_packaging.py` checks that the declared dependencies cover **every** third-party import
+in the tree, so a module cannot start using a library the package does not install. Nothing
+about the research content is redistributed differently by installing it: the code is
+GPL-3.0-or-later and the papers are not.
+
 ## Numerical core
 
 The foundation everyone else builds on:
@@ -1116,7 +1128,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1231 tests pass** on the current tree. They are not smoke tests: the suite
+**1238 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1170,6 +1182,7 @@ silently changed meaning.
 | `test_diagnose.py` | 15 | The one-call report: a verified involution is used and a rejected one is only reported, the full-versus-sector comparison is stated with its numbers, the two obvious spectra get opposite verdicts, and the input validation |
 | `test_pt_symmetric.py` | 13 | The dimer's closed form and exceptional point, the generically broken random ensemble, the pairing defect that stays zero when every level is complex, the ratio of the real parts falling toward Poisson, and the refusal of a non-Hermitian matrix by the Hamiltonian analysis |
 | `test_stage_screen.py` | 8 | The DH filter applied to this stage: five claims, one unsourced input, no `dead` and no `eligible`, no claim about the zeros, and the undeclared claim left unscreened |
+| `test_packaging.py` | 7 | The metadata parses, the version has one source and is read back by the backend, the licence matches `LICENSE`, every third-party import is declared, and matplotlib stays in the `plots` extra |
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
