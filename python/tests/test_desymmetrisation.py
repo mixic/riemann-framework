@@ -421,8 +421,9 @@ def test_the_detector_flags_pure_goe_spectra_too():
     """The false-positive rate is why this is a warning and not a measurement.
 
     Measured at `d = 60`, seeds `0 … 39`: 4 of 40 pure single-sector GOE draws fall
-    below the `0.48` floor and are flagged; 0 of 40 GUE draws are. The flag is worth
-    acting on, and it is not evidence of anything by itself.
+    below the floor and are flagged; 0 of 40 GUE draws are. The floor is the scaled one,
+    which at 60 levels equals the fixed `0.48`. The flag is worth acting on, and it is
+    not evidence of anything by itself.
     """
     goe_flagged = sum(
         detect_hidden_symmetry(superposition_spectrum(1, 60, "goe", seed)).is_contaminated
@@ -434,6 +435,27 @@ def test_the_detector_flags_pure_goe_spectra_too():
     )
     assert 0 < goe_flagged < 10
     assert gue_flagged == 0
+
+
+def test_the_detector_scales_its_floor_with_the_spectrum():
+    """A bare spectrum is screened against its own size, not against a fixed number.
+
+    The null hypothesis is one sector, so the size that enters the floor is the total
+    number of levels: at 60 levels the scaled floor is the fixed `0.48`, and at 15 levels
+    it is lower, which is why the flag rate stays flat across sizes instead of collapsing
+    from 29% to 0.3%.
+    """
+    from riemann_framework.desymmetrisation import size_dependent_floor
+
+    long = detect_hidden_symmetry(superposition_spectrum(1, 60, "gue", seed=1))
+    assert "at 60 levels" in long.explanation
+    assert f"{size_dependent_floor(60):.4f}" in long.explanation
+    assert size_dependent_floor(60) == pytest.approx(SINGLE_SECTOR_FLOOR, abs=0.001)
+
+    short = detect_hidden_symmetry(superposition_spectrum(1, 15, "goe", seed=3))
+    assert "at 15 levels" in short.explanation
+    assert f"{size_dependent_floor(15):.4f}" in short.explanation
+    assert size_dependent_floor(15) < size_dependent_floor(60)
 
 
 def test_contamination_warning_verifies_the_involution_it_is_given():

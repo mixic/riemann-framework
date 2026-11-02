@@ -50,7 +50,9 @@ alongside the ones this repository reproduces:
 
 The one-sector GOE value is `0.530` at `d = 60` and `0.519` at `d = 100`; the
 reviewer's `0.52` is the larger-`d` value. The finite-size dependence is why the
-one-sector floor below is set at `0.48` rather than at the reference value.
+one-sector floor is `0.48` at 60 levels rather than the reference value, and why the
+detector scales it with the spectrum: `size_dependent_floor(n)` keeps the same `1.3`
+z-score at every size, and `0.48` is what it returns at `n = 60`.
 
 At 4000 spectra per point the standard error of each entry is at most `0.0006`, so the
 three decimal places are real information; the per-spectrum scatter at the same points is
@@ -206,8 +208,11 @@ each sector — is the only one that works, and it requires knowing the symmetri
 
 Because the absolute-band flags overlap at finite size (a single GOE sector can draw
 `0.49`; a two-sector GUE superposition can draw `0.46`), the utility is a **flag to
-investigate**, not a classifier. Measured at `d = 60`, seeds `0 … 399`: `37` of `400` pure
-single-sector GOE spectra fall below the `0.48` floor and are flagged (`9.2%`, 95%
+investigate**, not a classifier. The threshold is `size_dependent_floor(n)`, which keeps
+the same `1.3` z-score at every spectrum size and equals `0.48` at `n = 60`; a fixed
+threshold would flag 29% of 15-level GOE spectra and 0.3% of 480-level ones. Measured at
+`d = 60`, seeds `0 … 399`: `37` of `400` pure
+single-sector GOE spectra fall below the floor and are flagged (`9.2%`, 95%
 interval `6.6%` to `12.6%`), and `0` of `400`
 GUE spectra are. A `severe` flag therefore means *do not call this Poisson yet* — not
 *this is a superposition*. The reliable half is the comparison against resolved

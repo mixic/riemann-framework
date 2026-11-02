@@ -266,17 +266,20 @@ Two entry points cover a caller that has only a spectrum:
   commutation, splits, and compares the full spectrum with the resolved sectors. This is
   the reliable half: the comparison is within one Hamiltonian and needs no calibration.
 * `detect_hidden_symmetry(eigenvalues)`: when no involution is known. It computes the
-  full-spectrum `⟨r⟩` and flags a value below the single-sector floor.
+  full-spectrum `⟨r⟩` and flags a value below the single-sector floor, where the floor
+  scales with the number of levels in the spectrum (§5.1). A bare spectrum is screened
+  under the null hypothesis that it is a single sector, so the size that enters the
+  floor is its total length.
 
 The flag is not a classifier (Fig. 3). `37` of `400` pure single-sector GOE spectra at
 `d = 60` also fall below the floor, a rate of `9.2%` with a 95% binomial interval of
 `6.6%` to `12.6%`, and `0` of `400` GUE spectra do (Appendix C). The rate is that high
 because the one-sector GOE value is `0.530` with a per-spectrum scatter of `0.039`, and
-the floor is `0.48`: a third of a distribution width below the mean is a tenth of the
-distribution. A low `⟨r⟩` is also what an integrable system produces. Spacing statistics
-cannot separate the two, and the warning says so in its own text.
+the floor at 60 levels is `0.48`: a third of a distribution width below the mean is a
+tenth of the distribution. A low `⟨r⟩` is also what an integrable system produces. Spacing
+statistics cannot separate the two, and the warning says so in its own text.
 
-![Fig. 3. Distribution of the full-spectrum mean gap ratio for four sector counts and both block classes, one dot per simulated spectrum (4000 per point), with the per-point mean marked. The Poisson window is shaded, the flag threshold (0.48) and the severe-contamination boundary (0.46) are drawn. At two sectors the GOE and GUE clouds coincide, so a class test on the full spectrum is uninformative rather than noisy.](output/desymmetrisation_warning.png)
+![Fig. 3. Distribution of the full-spectrum mean gap ratio for four sector counts and both block classes, one dot per simulated spectrum (4000 per point), with the per-point mean marked. The Poisson window is shaded, the flag threshold at 60 levels (0.48) and the severe-contamination boundary (0.46) are drawn. At two sectors the GOE and GUE clouds coincide, so a class test on the full spectrum is uninformative rather than noisy.](output/desymmetrisation_warning.png)
 
 ### 2.3 Bayesian estimation of the sector count
 
@@ -512,19 +515,18 @@ ones (measured, 400 spectra per point, GOE):
 | 480 | `0.014` | `0.003` | `0.00` | `0.12` |
 
 The fifth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(n)` with
-`σ(n) = 0.0393·√(60/n)`), and its rate is flat at about `0.12`. A deployed instrument
-should use the scaled floor and report its z-score, not a single threshold; this
-manuscript quotes the fixed floor because it is the one the tables were measured on.
+`σ(n) = 0.0393·√(60/n)`), and its rate is flat at about `0.12`. That is the floor the
+detector uses, so its threshold moves with the spectrum and the flag rate does not; the
+fixed `0.48` remains the reference value at 60 levels, where the two coincide.
 
 The scaled floor is not free. It keeps the false-positive rate flat by lowering the
 threshold where the one-sector distribution is wider, and at small sizes that costs missed
 contamination: at 15 levels per sector it misses `0.46` of two-sector superpositions
 against `0.19` for the fixed floor, at 30 levels `0.21` against `0.12`, and from 60 levels
-upward the two agree. The reference implementation uses the fixed floor at 60 levels; a
-deployed one should use the scaled floor and report the z-score together with the missed
-rate. The calibration is in levels per sector, which is the size of one block; a caller who
-knows only the total length of a spectrum should pass that length, because that is what the
-null hypothesis, a single sector, assumes.
+upward the two agree. A caller should therefore report the z-score together with the
+missed rate at the size in hand. The calibration is in levels per sector, which is the size
+of one block; a caller who knows only the total length of a spectrum should pass that
+length, because that is what the null hypothesis, a single sector, assumes.
 
 Appendix C's `9.2%` and the `0.11` in this table measure the same quantity at different
 sample sizes: their difference is sampling noise, with a standard error of about `0.015`,
@@ -867,15 +869,16 @@ table exists to expose.
 | false-positive rate, GOE | `9.2%`, 95% interval `6.6%` to `12.6%` |
 | false-positive rate, GUE | `0%`, 95% upper bound `0.75%` |
 
-The floor is `0.48`, not the reference value `0.531`, because the measured one-sector GOE
-value at `d = 60` is `0.5297` with a per-spectrum scatter of `0.0393`: the floor sits `1.3`
-standard deviations below that mean, which is precisely why `9.2%` of pure GOE spectra are
-flagged. A floor raised to the reference value would exchange those false positives for
-missed contamination, and the trade is the user's, so the rate is stated rather than
-tuned. The GUE side is quiet because its one-sector value is `0.5993`, `3.2` standard
-deviations above the floor. The rate is a function of the spectrum size, not a constant of
-the instrument: Section 5.1 reports it across sizes and gives a floor that keeps the same
-z-score as the size changes.
+At 60 levels the floor is `0.48`, not the reference value `0.531`, because the measured
+one-sector GOE value at `d = 60` is `0.5297` with a per-spectrum scatter of `0.0393`: the
+floor sits `1.3` standard deviations below that mean, which is precisely why `9.2%` of pure
+GOE spectra are flagged. A floor raised to the reference value would exchange those false
+positives for missed contamination, and the trade is the user's, so the rate is stated
+rather than tuned. The GUE side is quiet because its one-sector value is `0.5993`, `3.2`
+standard deviations above the floor. The rate is a function of the spectrum size, not a
+constant of the instrument: Section 5.1 reports it across sizes, and the detector applies
+the scaled floor, so `0.48` is the value that scaling takes at 60 levels rather than a
+constant.
 
 ## Appendix D: Technical applications and outlook
 

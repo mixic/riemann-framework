@@ -946,6 +946,13 @@ def detect_hidden_symmetry(eigenvalues: np.ndarray) -> ContaminationWarning:
     operator-candidate screen, for instance. It cannot verify commutation, because it
     does not know the symmetries, so the flag is a prompt to look for them.
 
+    The floor scales with the spectrum. The mean r of a single sector is a mean over
+    `n - 2` ratios, and its scatter falls as `1 / sqrt(n)`, so a fixed absolute floor
+    would over-flag a short spectrum and under-flag a long one. The null hypothesis here
+    is one sector, so the size that enters the floor is the total number of levels, and
+    `size_dependent_floor` keeps the same z-score at every size. The fixed
+    `SINGLE_SECTOR_FLOOR` is the value that scaling takes at 60 levels.
+
     The honest limit is in the text it returns: a low `mean r` is produced by an
     unresolved symmetry **and** by a genuinely integrable system, and no spacing
     statistic separates the two. A `severe` flag therefore means "do not call this
@@ -955,8 +962,9 @@ def detect_hidden_symmetry(eigenvalues: np.ndarray) -> ContaminationWarning:
     if values.size < 8:
         raise ValueError("need at least 8 levels to compute a gap ratio")
     mean_r = float(mean_r_ratio(values, unfold=False))
+    floor = size_dependent_floor(values.size)
 
-    if mean_r >= SINGLE_SECTOR_FLOOR:
+    if mean_r >= floor:
         return ContaminationWarning(
             is_contaminated=False,
             full_mean_r=mean_r,
@@ -964,7 +972,8 @@ def detect_hidden_symmetry(eigenvalues: np.ndarray) -> ContaminationWarning:
             severity="none",
             explanation=(
                 f"mean r = {mean_r:.4f} is in the single-sector range "
-                f"(>= {SINGLE_SECTOR_FLOOR}); no unresolved symmetry is indicated"
+                f"(>= {floor:.4f} at {values.size} levels); "
+                "no unresolved symmetry is indicated"
             ),
         )
 
@@ -987,8 +996,8 @@ def detect_hidden_symmetry(eigenvalues: np.ndarray) -> ContaminationWarning:
         severity=severity,
         explanation=(
             f"mean r = {mean_r:.4f} is below the single-sector floor "
-            f"{SINGLE_SECTOR_FLOOR}: {limit}. Find the commuting involutions, verify "
-            "them, split, and test each sector"
+            f"{floor:.4f} at {values.size} levels: {limit}. Find the commuting "
+            "involutions, verify them, split, and test each sector"
         ),
     )
 

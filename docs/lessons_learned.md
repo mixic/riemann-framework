@@ -702,7 +702,8 @@ three) and both are wrong often enough to be honest about:
 | the count is a property of the estimator | a *known* two-sector spectrum at `d = 40` maps to `None` under the mean inversion, because its full mean `0.404` sits in the three-sector band |
 | at two sectors the class is erased | GOE `0.4232` vs GUE `0.4222`, `1.4` standard errors of the two means and one thirtieth of the per-spectrum scatter |
 | more spectra do not resolve a class | the best single-spectrum balanced accuracy at two sectors is `0.526` with 4000 spectra per class (chance `0.500`), against `0.790` at one sector |
-| a pure single sector can be flagged | 37 of 400 GOE draws (9.2%) at `d = 60` fall below the `0.48` floor; 0 of 400 GUE draws do |
+| a pure single sector can be flagged | 37 of 400 GOE draws (9.2%) at `d = 60` fall below the scaled floor, which is `0.48` at 60 levels; 0 of 400 GUE draws do |
+| a fixed floor is a fixed error rate | the floor scales with the spectrum (`size_dependent_floor`), keeping the rate near 0.12 at every size; a fixed `0.48` flags 29% at 15 levels and 0.3% at 480 |
 
 The second row is the one that changed the claim. "Detects but does not count" was
 true of the mean and false of the spectrum: a posterior over counts measures one sector,
