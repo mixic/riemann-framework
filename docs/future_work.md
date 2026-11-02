@@ -160,7 +160,8 @@ The Lean formalization should grow from small independent facts:
 None of these lemmas proves RH. Their purpose is to make the algebraic core
 precise before attempting analytic or spectral claims.
 
-**Status.** Items 1, 2 and 4 are done.
+**Status.** Items 1, 2 and 4 are done, and item 3 was **false**: it has been
+replaced by the true statement and a machine-checked counterexample.
 
 Items 1 and 2 are in `lean/RiemannFramework/DimensionShift.lean`
 (`sectorSwap_squared`, `sectorSwap_injective`, `sectorSwap_not_fixed`), which
@@ -178,6 +179,19 @@ assumption: a commuting operator preserves an eigenspace because the map is well
 defined on it, in about five lines. It was the cheapest item on the list, not one
 of the hard ones.
 
+Item 3, as it was written here, is wrong. "The `+1` and `-1` eigenspaces have
+equal dimension" does not follow from `T * T = 1`, and it is not true:
+`T = diag(1, 1, -1)` is an involution with a two-dimensional `+1` eigenspace and a
+one-dimensional `-1` eigenspace. That is the same fact the statistics section
+measures from the other side: unresolved sectors need not be the same size, and
+`docs/mixed_sectors.md` measures what assuming otherwise costs. What is true, and
+is now proved in `lean/RiemannFramework/Boundary.lean`, is that the two eigenspaces
+are *complementary* when `2 != 0`, so their dimensions add up to the ambient
+dimension (`eigenspace_isCompl`); that file also carries the counterexample
+(`eigenspaces_can_differ`) and the `2 ^ k` sector-label count
+(`card_sectorLabel`). The equal-dimension and half-dimension claims in the
+docstring of `InvolutionEigenspace.lean` have been corrected to match.
+
 The general involution layer in `InvolutionEigenspace.lean`:
 
 - done: for an endomorphism `T` with `T * T = 1` over any field, the `+1` and
@@ -186,10 +200,15 @@ The general involution layer in `InvolutionEigenspace.lean`:
   and `T + 1` annihilate each other (`sub_one_comp_add_one`,
   `add_one_comp_sub_one`); and a commuting operator preserves both eigenspaces
   (item 4, `maps_eigenspace_one`, `maps_eigenspace_neg_one`);
-- open: the matching range descriptions, and the equal-dimension and
-  complementary results (item 3). *These* are the ones that reduce to a
-  rank-nullity computation over `Nat` (`finrank` coercions plus `Nat` truncated
-  subtraction), and that has not yet been closed.
+- done in `Boundary.lean`: the two eigenspaces are complementary over a field with
+  `2 != 0` (`eigenspace_isCompl`), so `finrank` of them sums to `finrank` of the
+  space;
+- open: the matching *range* descriptions (`T.eigenspace 1 = (T + 1).range` and
+  the `-1` version). This is the one piece that reduces to a rank-nullity
+  computation over `Nat` (`finrank` coercions plus `Nat` truncated subtraction),
+  and it has not yet been closed. It is the only item from the old list that is
+  still a gap, and it is stated over `Nat` subtraction, which is what makes it
+  fiddly rather than deep.
 
 ### 4.1 Proven vs. open, by file
 

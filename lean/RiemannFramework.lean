@@ -16,6 +16,7 @@
 
 import RiemannFramework.DimensionShift
 import RiemannFramework.InvolutionEigenspace
+import RiemannFramework.Boundary
 
 /-!
 # Riemann Framework

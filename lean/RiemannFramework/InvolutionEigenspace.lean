@@ -34,18 +34,28 @@ each statement, never something the framework establishes about a physical
 Hamiltonian. None of these lemmas needs finite dimension or a
 characteristic assumption.
 
-Still open for this module, tracked in `docs/future_work.md` (Priority 4):
-
-1. the range descriptions `T.eigenspace 1 = (T + 1).range` and
-   `T.eigenspace (-1) = (T - 1).range`;
-2. that the two eigenspaces are complementary and have equal dimension; and
-3. that each has half the dimension of the ambient space.
-
-Items 1-3 reduce to a rank-nullity computation over `Nat` subtraction
-(`finrank` coercions plus `Nat` truncated subtraction). The mutual
-annihilation identities they need are proved below; the remaining gap is
-converting `T.range ≤ S.ker` plus `S.range ≤ T.ker` into
+Still open for this module, tracked in `docs/future_work.md` (Priority 4): the
+range descriptions `T.eigenspace 1 = (T + 1).range` and
+`T.eigenspace (-1) = (T - 1).range`. That one reduces to a rank-nullity
+computation over `Nat` subtraction (`finrank` coercions plus `Nat` truncated
+subtraction); the mutual annihilation identities it needs are proved below, and
+the remaining gap is converting `T.range ≤ S.ker` plus `S.range ≤ T.ker` into
 `S.range = T.ker` over `finrank`.
+
+Two items that used to be listed here are **not** open, because they are false:
+
+* "the two eigenspaces are complementary and have equal dimension" and "each has
+  half the dimension of the ambient space". The equal-dimension and half-dimension
+  halves do not follow from `T * T = 1`. `T = diag(1, 1, -1)` is an involution
+  with a two-dimensional `+1` eigenspace against a one-dimensional `-1` eigenspace,
+  and `RiemannFramework/Boundary.lean` proves that as `eigenspaces_can_differ`.
+  The same fact is what the statistics in `docs/mixed_sectors.md` measure on
+  spectra: unresolved sectors need not be the same size.
+
+What *is* true is now proved in `RiemannFramework/Boundary.lean`: over a field with
+`2 != 0` the two eigenspaces are complementary (`eigenspace_isCompl`), so their
+dimensions add up to the ambient dimension. Nothing forces them to be equal, and
+nothing in this framework may assume it.
 -/
 
 namespace RiemannFramework

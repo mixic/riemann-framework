@@ -58,6 +58,7 @@ SORRY_FREE_FILES = [
     RIEMANN_FRAMEWORK_DIR / "InvolutionEigenspace.lean",
     RIEMANN_FRAMEWORK_DIR / "ZetaBridge.lean",
     RIEMANN_FRAMEWORK_DIR / "DynamicalDesymmetrisation.lean",
+    RIEMANN_FRAMEWORK_DIR / "Boundary.lean",
 ]
 
 # Files that state the Riemann Hypothesis target itself. None of these may ever
