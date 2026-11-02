@@ -519,11 +519,16 @@ The fifth column keeps the same `1.3` z-score at every size (`R_GOE − 1.3·σ(
 detector uses, so its threshold moves with the spectrum and the flag rate does not; the
 fixed `0.48` remains the reference value at 60 levels, where the two coincide.
 
-The scaled floor is not free. It keeps the false-positive rate flat by lowering the
-threshold where the one-sector distribution is wider, and at small sizes that costs missed
-contamination: at 15 levels per sector it misses `0.46` of two-sector superpositions
-against `0.19` for the fixed floor, at 30 levels `0.21` against `0.12`, and from 60 levels
-upward the two agree. A caller should therefore report the z-score together with the
+The scaled floor is not free, and the trade runs in both directions. At small sizes it
+sits below `0.48`, so it flags fewer pure spectra but misses contamination: at 15 levels
+per sector it misses `0.46` of two-sector superpositions against `0.19` for the fixed
+floor, and at 30 levels `0.21` against `0.12`. At long sizes it sits above `0.48`, so it
+flags more pure spectra, about `0.12` at 240 and 480 levels against `0.013` and `0.003`,
+while missing no two-sector superposition under either floor. The two floors are mirror
+images: the fixed one is talkative at short sizes and quiet at long ones, the scaled one
+the reverse. The scaled floor is chosen for a rate that does not depend on the size, and
+both directions of the trade are stated here rather than only the one that flatters it. A
+caller should therefore report the z-score together with the
 missed rate at the size in hand. The calibration is in levels per sector, which is the size
 of one block; a caller who knows only the total length of a spectrum should pass that
 length, because that is what the null hypothesis, a single sector, assumes.
