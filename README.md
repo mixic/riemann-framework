@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1191 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1206 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -534,6 +534,29 @@ disorder, and the kicked top, whose Floquet phases live on a circle. Measured in
   `0.042` with them and `0.344` without), which leaves every synthetic number unchanged.
 
 ![Full spectra against their sectors for three real systems, and each spectrum's mean ratio relative to the detector floor](output/real_systems.png)
+
+### One call
+
+The pieces above are separate functions, and a user who wants one answer would rewrite the
+same six lines every time, in an order that matters: a count computed before the split is
+the number this framework exists to warn about. `diagnose()` is that one call. It takes a
+matrix with its candidate involutions, or a bare spectrum, and returns every symmetry check
+with its commutator, the sector statistics, the detector's verdict, the count posterior,
+and the conclusions those numbers support:
+
+```python
+from riemann_framework.diagnose import diagnose
+from riemann_framework.real_systems import tfim_chain
+
+hamiltonian, parity = tfim_chain(5)
+print(diagnose(matrix=hamiltonian, involutions=[parity], title="TFIM n=5").summary())
+```
+
+Two rules are in the code rather than in a note: an involution that does not commute is
+**reported and not used**, because splitting by a non-symmetry mixes sectors and produces a
+meaningless sector statistic; and no conclusion is printed without the number it rests on.
+`test_diagnose.py` drives both, including the case where the detector later flags the
+sectors themselves and the report says the flag may be finite size rather than symmetry.
 
 ## Can a candidate be screened at all?
 
@@ -1049,7 +1072,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1191 tests pass** on the current tree. They are not smoke tests: the suite
+**1206 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1100,6 +1123,7 @@ silently changed meaning.
 | `test_boundary_map.py` | 17 | The three statistics on identical spectra: order one is the adjacent-gap ratio, the mean-ratio boundary is one sector, the family and the variance reach two, and pairwise separation is easier than counting |
 | `test_mixed_sector_count.py` | 22 | Unequal blocks: the construction and its occupancy, the count-uniform prior, the class mixture that moved one-sector accuracy from 0.78 to 0.91, the equal-block under-count, and the middle ratio that is not recoverable |
 | `test_real_systems.py` | 18 | The Ising, Heisenberg and kicked-top constructions with their exact involutions, the circle convention, the split that raises the statistic, the rejection of a non-commuting involution, and the regression for the NaN a degenerate real spectrum produced |
+| `test_diagnose.py` | 15 | The one-call report: a verified involution is used and a rejected one is only reported, the full-versus-sector comparison is stated with its numbers, the two obvious spectra get opposite verdicts, and the input validation |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
