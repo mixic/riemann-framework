@@ -52,6 +52,7 @@ output/.shot-profile/
 !output/desymmetrisation_coverage.png
 !output/desymmetrisation_flow.png
 !output/desymmetrisation_seeds.png
+!output/boundary_map.png
 !output/falsification_summary.txt
 !output/shift_zeta_traces.png
 !output/shift_zeta_convergence.png

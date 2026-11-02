@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1134 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1151 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -468,6 +468,26 @@ long-range statistics that separate what the ratio cannot — are printed by
 ![Sector populations under the double-bracket flow, commuting and cross-sector starts](output/desymmetrisation_flow.png)
 
 ![The mean converges while the per-spectrum scatter does not, and the two-sector distributions overlap completely](output/desymmetrisation_seeds.png)
+
+### Where each statistic stops
+
+The manuscript measures one boundary: the adjacent-gap ratio's. `boundary_map.py` measures
+three on identical spectra — the mean ratio, the higher-order family of orders one to six,
+and the Dyson–Mehta number variance — with one fixed classifier and one 80/80 split, so the
+difference in accuracy comes from the statistic and not from the data. The result, written
+up in [`docs/boundary_map.md`](docs/boundary_map.md) and produced by
+`scripts/generate_boundary_map.py`:
+
+* the mean ratio's boundary is **one sector** (per-class accuracy `0.525` at two, chance);
+* the six-order family and the number variance each reach **two**, and no statistic names a
+  count of three, four or six;
+* told only to separate three sectors from six, the family reaches `0.850` and the number
+  variance `0.869` against `0.606` for the mean, so pairwise separation and counting are
+  different questions and the map reports both;
+* `Σ²(20)` is `12.46` for Poisson against `3.93` for six sectors, the separation the ratio
+  cannot make.
+
+![Per-class accuracy against the sector count for each statistic, pairwise balanced accuracy, and the number variance at a window of 20](output/boundary_map.png)
 
 ## Can a candidate be screened at all?
 
@@ -983,7 +1003,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1134 tests pass** on the current tree. They are not smoke tests: the suite
+**1151 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1031,6 +1051,7 @@ silently changed meaning.
 | `test_bb84_detector.py` | 17 | Detector blinding, the power monitor, and the partial defence |
 | `test_desymmetrisation.py` | 41 | The sector table, the split, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, the resolution of the mean, and the size-scaled detector floor |
 | `test_diagnostic_robustness.py` | 9 | The flag's size dependence, the posterior's robustness to its simulator, the long-range statistics that separate what the ratio cannot, and the higher-order ratios that carry the count order one cannot |
+| `test_boundary_map.py` | 17 | The three statistics on identical spectra: order one is the adjacent-gap ratio, the mean-ratio boundary is one sector, the family and the variance reach two, and pairwise separation is easier than counting |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
