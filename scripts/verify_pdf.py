@@ -614,7 +614,7 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
-    parser.add_argument("--pages", type=int, default=17)
+    parser.add_argument("--pages", type=int, default=18)
     parser.add_argument("--images", type=int, default=5)
     parser.add_argument("--strict", action="store_true",
                         help="also fail on collapsed interval notation in the text layer")

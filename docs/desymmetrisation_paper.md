@@ -595,12 +595,52 @@ the figures without further input.
 
 ## 8. Relation to prior work
 
+The phenomenon this paper addresses is not new. The superposed spectra of independent
+symmetry sectors were studied by Rosenzweig and Porter [3] and entered quantum chaos
+through the Bohigas–Giannoni–Schmit conjecture [4]; the gap-ratio statistic used
+throughout is from Atas et al. [5] and Oganesyan and Huse [6]. The specific observation
+that a superposed spectrum biases the gap-ratio distribution away from the single-sector
+class is due to Giraud et al. [1]. This paper takes that phenomenon as given and measures
+its consequences.
+
+Two recent papers address the same question, how many unresolved sectors a spectrum
+contains, with different tools. Vyas, Tekur and Santhanam (arXiv:2610.03108) use
+higher-order spacing ratios and a best-subset technique to count sectors when the sector
+dimensions are unequal and the symmetries are unknown or only partially known. Rout and
+Bhosale (arXiv:2510.00503) use higher-order spacings in superposed random-matrix spectra,
+and test the method on the quantum kicked top. Both avoid explicit desymmetrization, as
+does this paper, but they extract the count from statistics of `k`-th neighbour spacings
+rather than from the adjacent-gap sequence.
+
+This paper differs in three respects. First, the estimator is a Bayesian posterior over
+the sector count built from a first-order Markov model of the adjacent-gap ratio
+sequence, and its interval coverage is measured at 400 spectra per row rather than
+assumed: `0.99`, `0.92`, `0.91`, `0.96`, `0.98` at `1, 2, 3, 4, 6` sectors and `0.78`
+for Poisson. Second, the paper separates precision from resolution: 4000 spectra per
+point determine the mean to `0.0007`, but the best single-spectrum class accuracy at two
+sectors is `0.526`, which is chance. Averaging buys a better-known ensemble, not a
+classifiable spectrum, and the diagnostic therefore splits the spectrum structurally
+rather than averaging harder statistically. Third, the paper states the limits of the
+adjacent-gap ratio explicitly: the count is not recoverable from that statistic above two
+sectors, and long-range statistics do what the ratio cannot. The Dyson–Mehta number
+variance reads a Poisson spectrum as `12.4` and a six-sector union as `3.8`, where the
+ratio reads both as `0.39`; a complete diagnostic should report both statistics, because
+they fail in different places.
+
+The contribution is therefore not a new method for counting sectors. It is a measured,
+calibrated diagnostic with a stated resolution, a measured false-positive rate as a
+function of spectrum size, and an explicit boundary where the adjacent-gap ratio stops
+carrying the count. That boundary is the paper's principal result, and it is what the
+other methods, which use higher-order statistics, are designed to cross.
+
 | reference | contribution | what this adds |
 |:---|:---|:---|
-| Giraud et al. [1] | the phenomenon: superpositions bias spacing statistics | the measured table, the entry points, the posterior, the coverage |
-| Rosenzweig–Porter [3] | block superpositions in random-matrix theory | the diagnostic form, not the theory |
+| Giraud et al. [1] | the phenomenon: superpositions bias the ratio | the measured table, the entry points, the posterior, the coverage |
+| Rosenzweig–Porter [3] | block superpositions in RMT | the diagnostic form, not the theory |
 | Mehta [2] | the reference distributions | the calibration values |
 | Atas et al. [5] | the `r`-ratio as a statistic | the inversion attempt and its measured failure |
+| Vyas, Tekur, Santhanam [7] | sector count from higher-order ratios, unequal sectors | the measured coverage and the stated ratio-limit |
+| Rout, Bhosale [8] | higher-order spacings, quantum kicked top | the posterior and the resolution measurement |
 
 The phenomenon is not new. The instrument is.
 
@@ -794,6 +834,11 @@ record rather than an embarrassment to be quietly removed.
    084101 (2013).
 6. Oganesyan, V. and Huse, D. A. *Localization of interacting fermions at high
    temperature.* Phys. Rev. B **75**, 155111 (2007).
+7. Vyas, N., Tekur, S. H. and Santhanam, M. S. *Determining the Number of Symmetry
+   Sectors in Composite Quantum Spectra.* arXiv:2610.03108 (2026).
+8. Rout, S. and Bhosale, U. T. *Higher-order spacings in the superposed spectra of random
+   matrices with comparison to spacing ratios and application to complex systems.*
+   arXiv:2510.00503 (2025).
 
 ## Disclaimer
 

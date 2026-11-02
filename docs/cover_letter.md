@@ -48,6 +48,19 @@ noisy. That last limit is measured rather than assumed: the best single-threshol
 accuracy on one two-sector spectrum is `0.526` (chance), against `0.790` at one sector,
 so collecting more spectra does not help.
 
+**Relation to recent work.** Two very recent papers address the same question with
+different tools. Vyas, Tekur and Santhanam (arXiv:2610.03108) use higher-order spacing
+ratios and a best-subset technique to count sectors when the sector dimensions are unequal
+and the symmetries are unknown or only partially known. Rout and Bhosale
+(arXiv:2510.00503) use higher-order spacings in superposed random-matrix spectra, tested
+on the quantum kicked top. Both avoid explicit desymmetrization, and both cross a boundary
+that this paper measures: the count is not recoverable from the adjacent-gap ratio alone
+above two sectors. The contribution here is not a new method for counting sectors. It is
+the measured coverage of a Bayesian posterior over the ratio sequence, the measured
+resolution of the single-spectrum statistic (`0.526` at two sectors, which is chance), and
+the explicit statement that the ratio stops carrying the count where the higher-order
+statistics begin to.
+
 **What is new.** The phenomenon is standard quantum-chaos practice (Giraud et al., Phys.
 Rev. X **12**, 011006 (2022)). What is local is the measured table, the entry points, the
 posterior's measured resolution, the measured resolution of the mean itself, and the
