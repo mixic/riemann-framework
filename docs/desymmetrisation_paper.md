@@ -221,6 +221,38 @@ Given a Hamiltonian `H` and a set of involutions `{U₁, …, Uₖ}`:
   that identity is checked against the blocks, not assumed. For a `ℤ₂ × ℤ₂` the four
   sectors are checked against a direct sum built from four known blocks.
 
+The structural reason the split matters is worth stating explicitly. An involution is an
+operator `σ` with
+
+```
+σ² = 1.
+```
+
+If the Hamiltonian commutes with it, `[H, σ] = 0`, the Hilbert space decomposes into the
+two eigenspaces of `σ`, with eigenvalues `+1` and `-1`. In the eigenbasis of `σ`, the
+Hamiltonian is block diagonal:
+
+```
+\[
+H = \begin{pmatrix} H_{+} & 0 \\ 0 & H_{-} \end{pmatrix}
+\]
+```
+
+The full spectrum of `H` is the union of the spectra of `H₊` and `H₋`. A spacing statistic
+measured on the full spectrum is therefore measured on a superposition, not on either
+sector. That is the silent failure mode: a value of `⟨r⟩ = 0.42` looks like a legitimate
+measurement, and it is exactly what a two-sector superposition produces.
+
+In the application that motivated this paper, `σ` is the map
+
+```
+σ(s) = 1 − conj(s),
+```
+
+whose fixed locus is the critical line `Re(s) = 1/2`. That involution came from an
+abandoned route to the Riemann hypothesis (§1.2); it is used here as a diagnostic tool,
+not as a proof route.
+
 The refusal in Step 1 is not a formality. A split routine that skips it returns arrays
 that are not sector spectra, and the error is invisible downstream: on a fixture whose
 `‖[H, U]‖/‖H‖` is `1.14 … 1.18`, the unchecked split discards exactly the mass that makes
@@ -603,46 +635,77 @@ that a superposed spectrum biases the gap-ratio distribution away from the singl
 class is due to Giraud et al. [1]. This paper takes that phenomenon as given and measures
 its consequences.
 
-Two recent papers address the same question, how many unresolved sectors a spectrum
-contains, with different tools. Vyas, Tekur and Santhanam (arXiv:2610.03108) use
-higher-order spacing ratios and a best-subset technique to count sectors when the sector
-dimensions are unequal and the symmetries are unknown or only partially known. Rout and
-Bhosale (arXiv:2510.00503) use higher-order spacings in superposed random-matrix spectra,
-and test the method on the quantum kicked top. Both avoid explicit desymmetrization, as
-does this paper, but they extract the count from statistics of `k`-th neighbour spacings
-rather than from the adjacent-gap sequence.
+Two recent works address the same structural fact, that discrete symmetries split the
+Hilbert space into invariant sectors, and that a composite spectrum does not preserve the
+spectral correlations of its blocks, and cross the boundary this paper measures, using
+higher-order statistics rather than the adjacent-gap ratio.
 
-This paper differs in three respects. First, the estimator is a Bayesian posterior over
-the sector count built from a first-order Markov model of the adjacent-gap ratio
-sequence, and its interval coverage is measured at 400 spectra per row rather than
-assumed: `0.99`, `0.92`, `0.91`, `0.96`, `0.98` at `1, 2, 3, 4, 6` sectors and `0.78`
-for Poisson. Second, the paper separates precision from resolution: 4000 spectra per
-point determine the mean to `0.0007`, but the best single-spectrum class accuracy at two
-sectors is `0.526`, which is chance. Averaging buys a better-known ensemble, not a
-classifiable spectrum, and the diagnostic therefore splits the spectrum structurally
-rather than averaging harder statistically. Third, the paper states the limits of the
-adjacent-gap ratio explicitly: the count is not recoverable from that statistic above two
-sectors, and long-range statistics do what the ratio cannot. The Dyson–Mehta number
-variance reads a Poisson spectrum as `12.4` and a six-sector union as `3.8`, where the
-ratio reads both as `0.39`; a complete diagnostic should report both statistics, because
-they fail in different places.
+Vyas, Tekur and Santhanam (arXiv:2610.03108) use higher-order spacing ratios (HOSR) and a
+Best Subset Technique (BST). For order `k` they define
 
-The contribution is therefore not a new method for counting sectors. It is a measured,
-calibrated diagnostic with a stated resolution, a measured false-positive rate as a
-function of spectrum size, and an explicit boundary where the adjacent-gap ratio stops
-carrying the count. That boundary is the paper's principal result, and it is what the
-other methods, which use higher-order statistics, are designed to cross.
+```
+r_i^(k) = (E_{i+2k} − E_{i+k}) / (E_{i+k} − E_i),
+```
 
-| reference | contribution | what this adds |
-|:---|:---|:---|
+and fit the empirical `k`-th order spacing-ratio distribution to the Wigner surmise with
+an effective Dyson index `β′`, minimising the Kullback–Leibler divergence
+
+```
+D_KL(k, f) = Σ_r  P_emp^(k)(r; f) · log[ P_emp^(k)(r; f) / P(r; β′) ]
+```
+
+over a fraction `f` of the spectrum that selects the maximally overlapping part of the
+blocks. Their central self-consistency relation is
+
+```
+P_k(r, β = 1, m) = P(r, β′ = k = m)       (GOE)
+P_k(r, β = 2, m) = P(r, β′ = k+1 = m+1)   (GUE)
+```
+
+so that for `k = m` in the GOE case (or `k+1 = m+1` in the GUE case) the number of
+sectors `m` becomes directly readable. The `k`-th order ratio sees the sector count where
+the adjacent-gap ratio does not.
+
+Rout and Bhosale (arXiv:2510.00503) use higher-order spacings in superposed random-matrix
+spectra, tested on the quantum kicked top. Both papers avoid explicit desymmetrization,
+and both work for unequal sector dimensions, which the BST handles through the optimal
+fraction `f*`.
+
+The relation between those methods and this paper is precise and complementary, not
+competitive. The adjacent-gap ratio is the `k = 1` case of the higher-order family. This
+paper measures where the `k = 1` statistic stops carrying the sector count: at three or
+more sectors the `⟨r⟩` values (`0.404`, `0.396`, `0.391`) lie closer together than the
+per-spectrum scatter (`0.017` to `0.039`) that one spectrum carries, so no ensemble
+average can separate them. The higher-order statistics are the instruments designed to
+cross that boundary, and they do.
+
+The involution `σ` plays a different role in the two settings. In this paper `σ` is a
+concrete, verifiable operator: `[H, σ] = 0` and `[Uᵢ, Uⱼ] = 0` are checked before the
+split, and the involution is the key that guarantees the block structure. In Vyas et al.
+the symmetry is more general and less explicit: the sectors may arise from several
+discrete symmetries (parity, reflection, and others), their dimensions may be unequal, and
+the BST recovers the count `m` without knowing the symmetry operators. The involution used
+here is the simplest case of the general problem those papers solve: `m = 2`, equal
+dimensions, one explicit `ℤ₂` symmetry.
+
+The contribution of this paper is therefore a measurement of that case, not a method that
+generalises it. It reports the interval coverage of a Bayesian posterior over the ratio
+sequence (`0.99` to `0.78`, at 400 spectra per row), the separation of precision from
+resolution (4000 spectra determine the mean to `0.0007`, while the best single-spectrum
+class accuracy at two sectors is `0.526`, which is chance), and the explicit statement
+that the ratio stops carrying the count above two sectors, where the Dyson–Mehta number
+variance continues to separate Poisson from a six-sector union by a factor of three.
+
+| **reference** | **contribution** | **what this adds** |
+| :--- | :--- | :--- |
 | Giraud et al. [1] | the phenomenon: superpositions bias the ratio | the measured table, the entry points, the posterior, the coverage |
 | Rosenzweig–Porter [3] | block superpositions in RMT | the diagnostic form, not the theory |
 | Mehta [2] | the reference distributions | the calibration values |
 | Atas et al. [5] | the `r`-ratio as a statistic | the inversion attempt and its measured failure |
 | Vyas, Tekur, Santhanam [7] | sector count from higher-order ratios, unequal sectors | the measured coverage and the stated ratio-limit |
-| Rout, Bhosale [8] | higher-order spacings, quantum kicked top | the posterior and the resolution measurement |
+| Rout, Bhosale [8] | higher-order spacings, quantum kicked top | the Bayesian posterior and the resolution measurement |
 
-The phenomenon is not new. The instrument is.
+The phenomenon is not new. The boundary is what this paper measures.
 
 ## 9. Conclusion
 

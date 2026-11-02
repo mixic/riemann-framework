@@ -439,10 +439,13 @@ LATEX_CHARACTERS = {
     "₁": r"$_{1}$",
     "₂": r"$_{2}$",
     "₃": r"$_{3}$",
+    "₊": r"$_{+}$",
+    "₋": r"$_{-}$",
     "ᵢ": r"$_{i}$",
     "ₖ": r"$_{k}$",
     "ⱼ": r"$_{j}$",
     "ᵏ": r"$^{k}$",
+    "′": r"$\prime$",
     "—": r"---",
     "–": r"--",
     "…": r"\ldots{}",
@@ -468,6 +471,7 @@ LATEX_PATTERNS = (
     (r"‖[ρ, H]‖", r"$\|[\rho,H]\|$"),
     (r"Hρ²", r"$H\rho^{2}$"),
     (r"ρ²H", r"$\rho^{2}H$"),
+    (r"β′", r"$\beta'$"),
 )
 
 
@@ -716,6 +720,13 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
                 index += 1
             index += 1
             raw = "\n".join(block)
+            if raw.strip().startswith("\\[") and raw.strip().endswith("\\]"):
+                # Display math, passed through as LaTeX. A pseudo-matrix drawn with
+                # spaces cannot align: TeX collapses the spaces, and a monospace column
+                # cannot hold a subscript. The manuscript writes the one matrix it needs
+                # as `\[ ... \]` with `pmatrix` instead.
+                out.append(raw.strip() + "\n")
+                continue
             if all(ord(character) < 128 for character in raw):
                 # Pure ASCII: verbatim keeps the spacing and backslashes literal.
                 # The size adapts to the longest line, because a block of commands is
@@ -733,8 +744,10 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
                 )
             else:
                 # A block with symbols (a display formula, in this manuscript): translate
-                # it so the glyphs survive, and keep it visually distinct.
-                translated = "\n".join(
+                # it so the glyphs survive, and keep it visually distinct. Lines are
+                # separated with `\\` rather than a newline, which TeX would read as a
+                # space: a pseudo-matrix needs its rows on separate lines.
+                translated = "\\\\\n".join(
                     latex_symbols(latex_escape(item)) for item in block
                 )
                 out.append("\\par\\noindent{\\ttfamily " + translated + "}\\par\n")
