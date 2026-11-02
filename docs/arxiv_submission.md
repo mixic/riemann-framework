@@ -132,14 +132,14 @@ path is supported and tested, but it is the fallback.
 
 `scripts/verify_pdf.py` reads the PDF back — extracting the text layer per font, with a
 small PDF reader written for this purpose, because there is no PDF library here — and
-asserts 28 things. The current build passes all of them:
+asserts 29 things. The current build passes all of them:
 
 ```
 $ python scripts/verify_pdf.py
 [PASS] page count: 17 pages (expected 17)
 [PASS] page size: A4
 [PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
-[PASS] text layer: 17 pages, 33567 characters
+[PASS] text layer: 17 pages, 33550 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
@@ -155,7 +155,8 @@ $ python scripts/verify_pdf.py
 [PASS] present: 'github.com/mixic/riemann-framework': present
 [PASS] glyph: ⟨r⟩ / ≥6/poisson / 1..1 / 2..2 / 3..≥6: render
 [PASS] ligatures extract: fi, fl and ff ligatures survive extraction
-PASS: all 28 checks passed
+[PASS] headings numbered once: no doubled heading label and no numbered Disclaimer
+PASS: all 29 checks passed
 ```
 
 The `absent` check on the licence text reads the *boilerplate*, not the licence name:
@@ -213,7 +214,7 @@ not submission), and `--backend chrome` forces the fallback.
 
 - [ ] repository URL resolved and public (the comments field and the data statement cite it)
 - [x] PDF generated from the current Markdown, figures embedded, `verify_pdf.py` passing
-      28/28 — but **open it once** and check the page breaks by eye, which is the one thing
+      29/29 — but **open it once** and check the page breaks by eye, which is the one thing
       a mechanical check cannot do
 - [ ] abstract pasted as plain text (246 words), not the long one
 - [ ] categories set; MSC added only if the `math-ph` cross-list is kept

@@ -165,7 +165,7 @@ past the cut and made a present appendix look missing.
 python scripts/build_manuscript_pdf.py \
     --author "Milan Nikolic" --affiliation "Independent Researcher" \
     --email "m_nikolic@yahoo.com"          # writes output/desymmetrisation_paper.pdf
-python scripts/verify_pdf.py                # 28 checks, non-zero exit on failure
+python scripts/verify_pdf.py                # 29 checks, non-zero exit on failure
 python scripts/verify_pdf.py --dump-text    # what the text layer actually says
 cd python && python -m pytest tests/test_pdf_verification.py \
     tests/test_manuscript_figures.py -q    # the guards, in the suite

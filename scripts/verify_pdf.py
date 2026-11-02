@@ -569,6 +569,25 @@ def check(pdf: Path, expected_pages: int, expected_images: int,
         )
     )
 
+    # A heading that carries its own label must not also receive a LaTeX number. When
+    # Section 10 moved to an unnumbered appendix, `\subsection{D.1 ...}` printed as
+    # "9.1 D.1 ..." (LaTeX numbered it from the last numbered section) and the unnumbered
+    # Disclaimer printed as "10 Disclaimer". Both are invisible to a per-glyph check and
+    # obvious to a reader, so the doubled label is looked for directly.
+    doubled = re.findall(r"\d+\.\d+D\.\d", text.flat)
+    numbered_tail = [token for token in ("9Disclaimer", "10Disclaimer", "11Disclaimer")
+                     if token in text.flat]
+    numbering_ok = not doubled and not numbered_tail
+    checks.append(
+        Check(
+            "headings numbered once",
+            numbering_ok,
+            "no doubled heading label and no numbered Disclaimer"
+            if numbering_ok
+            else f"doubled labels: {doubled[:3]}; numbered tail: {numbered_tail}",
+        )
+    )
+
     if strict:
         # Report one suspicious pattern as a warning rather than a failure: a dot pair
         # that lost a dot is the known text-layer quirk, and it is worth surfacing.

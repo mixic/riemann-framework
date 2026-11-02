@@ -764,12 +764,14 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
             numbered = re.match(r"^(\d+(?:\.\d+)*)\.?\s+(.*)$", heading)
             label = numbered.group(2) if numbered else heading
             starred = label.lower().startswith(("appendix", "references"))
-            if level == 2:
-                command = "section*" if starred else "section"
-            elif level == 3:
-                command = "subsection"
-            else:
-                command = "subsubsection"
+            # A heading that carries its own label (an appendix, a letter-numbered
+            # subsection such as "D.1", the disclaimer) must not also receive a LaTeX
+            # number: `\subsection{D.1 ...}` under an unnumbered appendix printed as
+            # "9.1 D.1 ...", numbered from the last numbered section, and the unnumbered
+            # Disclaimer printed as "10 Disclaimer".
+            unnumbered = numbered is None or starred
+            base = {2: "section", 3: "subsection"}.get(level, "subsubsection")
+            command = base + "*" if unnumbered else base
             out.append("\\" + command + "{" + latex_inline(label) + "}\n")
             index += 1
             continue
