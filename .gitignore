@@ -74,6 +74,7 @@ output/.shot-profile/
 !output/operator_candidates.png
 !output/mixed_sector_count.png
 !output/real_systems.png
+!output/pt_symmetric.png
 
 # OS
 .DS_Store

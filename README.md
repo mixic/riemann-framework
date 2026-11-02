@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1210 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1223 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -557,6 +557,28 @@ Two rules are in the code rather than in a note: an involution that does not com
 meaningless sector statistic; and no conclusion is printed without the number it rests on.
 `test_diagnose.py` drives both, including the case where the detector later flags the
 sectors themselves and the report says the flag may be finite size rather than symmetry.
+
+### PT symmetry, where the machinery stops
+
+The diagnostic needs a linear involution and a Hermitian spectrum. A PT symmetry gives
+neither: it is anti-linear, and a broken PT spectrum is a set of conjugate pairs.
+`pt_symmetric_statistics.py` measures what the tools do there instead of asserting a
+correspondence, in
+[`docs/pt_symmetric_statistics.md`](docs/pt_symmetric_statistics.md):
+
+* the dimer's exceptional point is exact: the levels are real below `γ/g = 1`, collide
+  there, and are a conjugate pair above it;
+* a random real PT ensemble is **generically broken**: at dimension 120 none of 40 spectra
+  with `w = 0.05` keeps a real spectrum, while the `w = 0` control is GOE-like (`0.534`
+  against `0.531`);
+* the **pairing** is what survives: the defect is `0` at every `w`, including fully broken
+  spectra, and a pairing of levels is exactly what the sector decomposition cannot
+  represent;
+* applied to the real parts, the ratio falls from `0.534` to `0.393` as the imaginary parts
+  grow to `13.5` spacings, so a count read off it would be an artefact of the projection.
+  `analyse_hamiltonian` refuses such a matrix before that can happen.
+
+![The real-part mean gap ratio against the antisymmetry strength, and the dimer's eigenvalues crossing its exceptional point](output/pt_symmetric.png)
 
 ## Can a candidate be screened at all?
 
@@ -1079,7 +1101,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1210 tests pass** on the current tree. They are not smoke tests: the suite
+**1223 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1131,6 +1153,7 @@ silently changed meaning.
 | `test_mixed_sector_count.py` | 22 | Unequal blocks: the construction and its occupancy, the count-uniform prior, the class mixture that moved one-sector accuracy from 0.78 to 0.91, the equal-block under-count, and the middle ratio that is not recoverable |
 | `test_real_systems.py` | 18 | The Ising, Heisenberg and kicked-top constructions with their exact involutions, the circle convention, the split that raises the statistic, the rejection of a non-commuting involution, and the regression for the NaN a degenerate real spectrum produced |
 | `test_diagnose.py` | 15 | The one-call report: a verified involution is used and a rejected one is only reported, the full-versus-sector comparison is stated with its numbers, the two obvious spectra get opposite verdicts, and the input validation |
+| `test_pt_symmetric.py` | 13 | The dimer's closed form and exceptional point, the generically broken random ensemble, the pairing defect that stays zero when every level is complex, the ratio of the real parts falling toward Poisson, and the refusal of a non-Hermitian matrix by the Hamiltonian analysis |
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
