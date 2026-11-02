@@ -100,3 +100,36 @@ def test_the_captions_are_numbered_and_ordered():
             f"caption {index} starts {caption[:20]!r}, expected 'Fig. {index}.'"
         )
         assert len(caption) > 80, f"caption {index} is too short to be self-contained"
+
+
+def _convert(markdown: str) -> str:
+    """Run the manuscript converter over a Markdown snippet."""
+    import importlib.util
+    import sys
+
+    spec = importlib.util.spec_from_file_location(
+        "build_manuscript_pdf_under_test",
+        PROJECT_ROOT / "scripts" / "build_manuscript_pdf.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.markdown_to_latex(markdown, ["A"], None, None, None)
+
+
+def test_a_well_formed_table_becomes_a_tabular():
+    """The normal path: header, separator, rows, one tabular in the LaTeX."""
+    latex = _convert("# T\n\n| a | b |\n|:---|:---|\n| 1 | 2 |\n")
+    assert latex.count(r"\begin{tabular}") == 1
+    assert latex.count(r"\begin{table}") == 1
+
+
+def test_a_table_without_a_separator_aborts_the_build():
+    """A malformed table must fail loudly, not print its cells as running text.
+
+    This is the "table collapsed into a number stream" defect: the converter used to
+    fall through to the paragraph branch and emit the pipe characters and cell contents.
+    """
+    with pytest.raises(ValueError, match="malformed table"):
+        _convert("# T\n\n| a | b |\n| 1 | 2 |\n")

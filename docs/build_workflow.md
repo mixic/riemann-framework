@@ -51,7 +51,7 @@ a way the next stage cannot see:
 | script | role | command |
 |:---|:---|:---|
 | `scripts/build_manuscript_pdf.py` | Markdown → LaTeX → PDF (LaTeX backend), or Markdown → HTML → PDF (Chrome fallback) | `--author`, `--affiliation`, `--email`, `--backend`, `--keep-tex`, `--html-only` |
-| `scripts/verify_pdf.py` | reads the PDF back and asserts 25 properties | `--pdf`, `--strict`, `--dump-text` |
+| `scripts/verify_pdf.py` | reads the PDF back and asserts 29 properties | `--pdf`, `--strict`, `--dump-text` |
 
 `scripts/build_and_verify.py` runs the two in order. There is no fix step: a tool that
 rewrites prose is a tool that can silently delete a sentence. The guards that catch a bad
@@ -66,7 +66,9 @@ The converter is deliberately narrow, so that its behaviour is inspectable:
   (`LATEX_CHARACTERS` in the build script), and **a character with no mapping aborts the
   build** — a dropped glyph is worse than a failed build;
 * tables are `booktabs`, text-heavy tables get paragraph columns and a resize-to-fit
-  guard, and long identifiers get `\allowbreak` so they do not run into the margin;
+  guard, and long identifiers get `\allowbreak` so they do not run into the margin; a
+  `|`-led block without a separator row **aborts the build** instead of printing its cells
+  as running text;
 * figures are included at the text width, and each PNG's `pHYs` chunk is rewritten so that
   its *natural* width equals the printed width (see §5);
 * the licence header, the draft banner and the "A note on this draft" section are
@@ -83,8 +85,11 @@ machine. It asserts, on the PDF as a reader sees it:
 * **figures** — five embedded pictures (distinguishing real images from alpha masks), and
   every placement inside the text block *and* inside the page;
 * **text layer** — non-empty on every page, with the title, the author, the affiliation,
-  the address and all four captions present; the glyphs the abstract is made of
-  (`⟨r⟩`, `≥6/poisson`, `1..1`, `2..5`, `3..6`) recoverable after NFKC normalisation;
+  the address, the repository URL and all five captions present; the glyphs the abstract is
+  made of (`⟨r⟩`, `≥6/poisson`, `1..1`, `2..2`, `3..≥6`) recoverable after NFKC
+  normalisation; the fi/fl/ff ligatures intact (`classifier`, `flag`, `effect`);
+* **heading numbering** — no heading carries two numbers (`9.1 D.1` was the failure) and
+  the unnumbered Disclaimer is not numbered;
 * **absence of furniture** — no browser date header, no `file:///` footer, no licence
   header, no draft note, no `Status.` banner;
 * **no page dominated by digits** — a page that is more than half digits is the symptom of

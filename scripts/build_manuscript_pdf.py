@@ -793,6 +793,16 @@ def markdown_to_latex(markdown: str, authors: list[str], affiliation: str | None
             out.append(latex_table(block) + "\n")
             continue
 
+        if stripped.startswith("|"):
+            # A `|`-led block that is not followed by a separator row is a malformed
+            # table. Emitting it as a paragraph would print the cell text and the pipe
+            # characters into the PDF -- the "table collapsed into running text" defect.
+            # Fail the build here instead of leaking it silently.
+            raise ValueError(
+                f"malformed table at line {index + 1}: a `|`-led block needs a separator "
+                f"row such as |:---|:---| directly below the header"
+            )
+
         if stripped.startswith(">"):
             flush()
             quoted = []
