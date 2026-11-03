@@ -154,9 +154,54 @@ from several independent blocks and use them to *infer* the block structure
 the general version of the measured table above, and they are also the reason the
 table cannot be inverted for the block count in general.
 
-What is local is the calibration for *this* `σ` structure, the warning functions, and
-the recorded failure of the count. In the vocabulary of an instrument: the physics is
-known, the sensor is what this module adds.
+Two more recent papers cross the same boundary with different tools, and the manuscript
+compares against them in its §8:
+
+* **Vyas, Tekur and Santhanam** ([arXiv:2610.03108](https://arxiv.org/abs/2610.03108))
+  read the sector count from **higher-order spacing ratios** `r^(k)`, and they treat
+  unequal sectors through an optimal fraction `f*`. That is the same direction this
+  module's `HigherOrderCountModel` takes; the difference is that the posterior here is
+  Bayesian, its coverage is *measured* rather than asserted, and the unequal-sector case
+  is measured rather than optimised (see [`mixed_sectors.md`](mixed_sectors.md), which
+  finds that the fraction is not recoverable in the middle).
+* **Rout and Bhosale** ([arXiv:2510.00503](https://arxiv.org/abs/2510.00503)) study
+  higher-order spacings in superposed spectra, including the quantum kicked top. The
+  kicked top is one of the three real systems this repository now validates the
+  diagnostic on ([`real_systems.md`](real_systems.md)), which is where the two lines of
+  work touch directly.
+
+What is local is the calibration for *this* `σ` structure, the warning functions, the
+recorded failure of the count, and the measurement of **where each statistic stops**:
+the mean ratio's boundary is one sector, the six-order family and the number variance
+reach two, and no statistic in the comparison names a count of three or more. In the
+vocabulary of the paper: the phenomenon is not new, the boundary is what this work
+measures.
+
+## What the higher orders add, and where every statistic stops
+
+The count above is fitted to adjacent-gap ratios alone, which is why it stops at two
+sectors. `HigherOrderCountModel` is the same Gaussian naive-Bayes posterior over the mean
+ratio at orders one to six (`k = 1` reproduces the adjacent-gap limit, pinned by a test),
+and `boundary_map.py` measures the boundary of three statistics **on identical spectra**
+with one fixed classifier and one 80/80 split, so a difference in accuracy comes from the
+statistic rather than from the data
+([`boundary_map.md`](boundary_map.md) has the tables):
+
+| statistic | boundary | accuracy at `m = 2` |
+|:---|:---|:---|
+| mean adjacent-gap ratio (the table above) | one sector | `0.525`, chance |
+| orders one to six, as one feature vector | two sectors | `0.850` |
+| Dyson–Mehta number variance, `L = 20` | two sectors | `0.875` |
+| any single higher order (`k = 3`, `k = 6`) | one sector | `0.600`, `0.713` |
+
+Two results from that measurement are worth carrying here because they bound what the
+posterior can ever claim. First, **a single higher order buys nothing**: orders three and
+six each stay at the mean ratio's boundary, so what the family adds is the set of orders,
+not any one of them. Second, **pairwise separation is a different question from counting**:
+told only to separate three sectors from six, the family reaches `0.850` and the number
+variance `0.869` against `0.606` for the mean, while none of the three names a count of
+three. The posterior in this module is therefore right to report an interval above two
+sectors rather than a number.
 
 ## What the utility does
 
@@ -182,7 +227,7 @@ sectors and emits up to three flags, in decreasing order of reliability:
 | full mean in the two-sector band `[0.40, 0.49]` | the class is unreadable there | medium — an absolute band, and one spectrum scatters by `≈0.03` |
 | full mean `≤ 0.40` | consistent with `≥ 3` sectors **or** integrability | a flag only — spacing statistics cannot separate the two |
 
-Six further entry points serve a caller that has only a spectrum — the screening case,
+Seven further entry points serve a caller that has only a spectrum — the screening case,
 where the candidate operator is known and its symmetries are not:
 
 | entry point | input | what it can say |
@@ -190,6 +235,7 @@ where the candidate operator is known and its symmetries are not:
 | `contamination_warning(H, U)` | a *candidate* involution | verifies it, splits, compares — the reliable half, and it raises if `[H,U] ≠ 0` |
 | `detect_hidden_symmetry(eigenvalues)` | the spectrum | a severity (`none`/`mild`/`severe`) with the integrability caveat inside its own text |
 | `sector_count_posterior(eigenvalues)` | the spectrum | a posterior over `{1,…,6, ≥6/poisson}` and a 95% interval — `1` is a measurement, `2` a set, `≥3` the honest ceiling |
+| `sector_count_posterior_higher_order(eigenvalues)` | the spectrum | the same posterior from the mean ratio at orders one to six, which is what makes the three-versus-six question answerable at `0.850` |
 | `estimate_sectors_from_mean(mean_r)` | a mean `r` | `1`, `2`, or `None` — the mean-inverting estimator, kept to demonstrate the failure |
 | `classify_mean(mean_r)` | a mean `r` | `goe`/`gue`/`poisson`/`intermediate`, in the windows `m5_analysis.py` uses |
 | `sector_spectra(H, U)` | a candidate involution | the sector spectra, or a `ValueError` naming the failed commutation |
@@ -279,12 +325,15 @@ tool that makes the mistake hard.
 
 | File | Contents |
 |:---|:---|
-| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, the resolution measurements (`convergence_series`, `mean_gap_separation`), the size-dependent floor, the robustness table, and the failed mean-inverting estimator kept as the demonstration |
-| `python/tests/test_desymmetrisation.py` | 40 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, and the resolution of the statistic |
-| `python/tests/test_diagnostic_robustness.py` | 6 tests: the flag's size dependence, the posterior's robustness to its simulator, and the long-range statistics |
+| `python/riemann_framework/desymmetrisation.py` | the split, the warning, the calibration table, the posterior over sector counts, the higher-order count model (orders one to six), the resolution measurements (`convergence_series`, `mean_gap_separation`), the size-dependent floor, the robustness table, and the failed mean-inverting estimator kept as the demonstration |
+| `python/riemann_framework/boundary_map.py` | the boundary of three statistics on identical spectra: the mean ratio, the six-order family, and the number variance |
+| `python/tests/test_desymmetrisation.py` | 41 tests: the table, both limits of the mean, the refusal to split a non-commuting matrix, the posterior's measured accuracy and coverage, the higher-order model, and the resolution of the statistic |
+| `python/tests/test_diagnostic_robustness.py` | 9 tests: the flag's size dependence, the posterior's robustness to its simulator, and the long-range statistics |
+| `python/tests/test_boundary_map.py` | 17 tests: where each statistic stops, order one is the adjacent-gap ratio, and pairwise separation is easier than counting |
 | `scripts/run_desymmetrisation_demo.py` | the figure, the 4000-seed table, and the coverage rows |
 | `scripts/generate_seed_study_figure.py` | the resolution figure: nested samples, and the two-sector overlap |
-| `scripts/robustness_diagnostics.py` | the size-dependence, robustness and number-variance tables |
+| `scripts/robustness_diagnostics.py` | the size-dependence, robustness and number-variance tables, and the higher-order accuracy table |
+| `scripts/generate_boundary_map.py` | the boundary figure and its CSV |
 | `python/riemann_framework/dynamical_desymmetrisation.py` | the double-bracket flow, its invariants, and the negative circuit check |
 | `python/tests/test_dynamical_desymmetrisation.py` | 15 tests: isospectrality, the preserved commutant, sector selection, and the unverified identity |
 | `scripts/run_dynamical_desymmetrisation_demo.py` | the trajectory figure and the circuit table |
@@ -294,6 +343,8 @@ tool that makes the mistake hard.
 
 A tool, and a measurement with a stated resolution: the phenomenon is standard; what is
 local is a measured calibration, a warning that plugs into the screening step, a
-posterior that counts one sector and bounds two, a recorded refusal to count above that,
-and a dynamical counterpart that is honest about acting on states rather than spectra.
-No statement about the Riemann hypothesis is made or implied.
+posterior that counts one sector and bounds two, a measured boundary map showing that no
+statistic in the comparison names a count of three or more, a higher-order model whose
+pairwise resolution is measured rather than assumed, and a dynamical counterpart that is
+honest about acting on states rather than spectra. No statement about the Riemann
+hypothesis is made or implied.
