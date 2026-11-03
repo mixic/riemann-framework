@@ -396,6 +396,11 @@ above two sectors is carried by the family, and the Poisson row improves from `0
 `0.96`: an integrable spectrum is now identified as such in `0.90` of draws, against
 `0.24` for the adjacent-gap model.
 
+None of the higher-order machinery is new: it is Tekur, Bhosale and Santhanam's, and
+Bhosale's, and Section 8 sets the two recent papers that use it against this one. What is
+contributed here is the measured boundary of the `k = 1` statistic, and the demonstration
+that the family crosses it on the same spectra used throughout.
+
 ## 3. Symmetry dynamics under the double-bracket flow
 
 ### 3.1 Definition of the flow
@@ -710,14 +715,15 @@ Hilbert space into invariant sectors, and that a composite spectrum does not pre
 spectral correlations of its blocks, and cross the boundary this paper measures, using
 higher-order statistics rather than the adjacent-gap ratio.
 
-The higher-order family itself is older, and the two papers below build on it. Tekur and
-Santhanam [9] showed that a spectrum composed of `k` independent level sequences of equal
-level density has a `k`-th order spacing-ratio distribution equal to its nearest-neighbour
-counterpart with a modified Dyson index, which is how the symmetry structure of a measured
-spectrum can be read without desymmetrization. Tekur, Bhosale and Santhanam [10] derived
-the modified index for the Gaussian and circular ensembles, and Bhosale [11] carried the
-construction to superposed spectra. The statistics the two papers below use, and those
-measured in Section 2.5, are theirs.
+The higher-order family itself is older, and the two papers below build on it. Tekur,
+Bhosale and Santhanam [10] introduced the `k`-th order spacing ratio and derived the
+modified Dyson index for the Gaussian and circular ensembles (2018). Tekur and Santhanam
+[9] then showed that a spectrum composed of `k` independent level sequences of equal level
+density has a `k`-th order spacing-ratio distribution equal to its nearest-neighbour
+counterpart with that modified index, which is how the symmetry structure of a measured
+spectrum can be read without desymmetrization (2020). Bhosale [11] carried the
+construction to superposed spectra (2021). The statistics the two papers below use, and
+those measured in Section 2.5, are theirs.
 
 Vyas, Tekur and Santhanam (arXiv:2610.03108) use higher-order spacing ratios (HOSR) and a
 Best Subset Technique (BST). For order `k` they define

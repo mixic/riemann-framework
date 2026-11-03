@@ -139,7 +139,7 @@ $ python scripts/verify_pdf.py
 [PASS] page count: 20 pages (expected 20)
 [PASS] page size: A4
 [PASS] embedded figures: 5 pictures (10 image objects, 5 masks; expected 5)
-[PASS] text layer: 20 pages, 42666 characters
+[PASS] text layer: 20 pages, 42996 characters
 [PASS] no browser header: no date/time stamp
 [PASS] figures fit the page: 5 placements within the text block and the page
 [PASS] no page of numbers: no page is dominated by digits
