@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1238 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1247 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -430,9 +430,10 @@ sector (coherence `1.41 → 3e-3`, populations `(0.50, 0.50) → (1.00, 0.00)`),
 flow **selects** a sector rather than preserving one. In neither case does it touch the
 Hamiltonian, so it cannot repair a contaminated spectrum — the class is a property of
 `H`, and `H` never evolves. The same module checks the multi-copy identity quoted for
-these circuits and reports a negative: every natural generator produces a first-order
-term the identity does not have, so the identity is recorded as unverified rather than
-assumed.
+these circuits and reports a negative: every natural Hermitian generator produces a
+first-order term `i√ε[H, ρ]` that the identity does not have, so the identity is
+**refuted analytically and deprecated**, not merely left unverified. The flow itself and
+its invariants are unaffected.
 
 The invariance step is also **machine-verified**, in
 `lean/RiemannFramework/DynamicalDesymmetrisation.lean`: if `ρ` and `H` commute with an
@@ -446,6 +447,30 @@ and axiom-free apart from `propext`, checked by `#print axioms` in
 [`docs/desymmetrisation.md`](docs/desymmetrisation.md) records the table, the split,
 the warning logic and its false-positive, the coverage table of the posterior, and the
 dynamical analogue with its invariants.
+
+### Symmetry breaking, measured
+
+The static diagnostic assumes `[H, σ] = 0` exactly. `symmetry_breaking.py` adds the
+missing axis: `H(g) = H0 + g·Δ·V`, with `H0` two equal GOE sectors, `V` a full GOE matrix
+and `Δ` the mean level spacing of `H0`. The dimensionless `g` is the mixing matrix element
+in units of the spacing, so it transfers between matrix sizes; a raw `ε` does not.
+Measured over 60 draws per point with the exact-sector posterior:
+
+| `g` | mean `r` | flag | MAP | 95 % coverage |
+|---:|---:|---:|---:|---:|
+| 0.0 | 0.427 | 1.00 | 0.62 | 0.88 |
+| 0.1 | 0.446 | 1.00 | 0.73 | 0.98 |
+| 0.2 | 0.474 | 0.97 | 0.87 | 0.97 |
+| **0.3** | **0.494** | **0.70** | **0.53** | **0.70** |
+| 0.5 | 0.516 | 0.32 | 0.18 | 0.37 |
+| 1.0 | 0.529 | 0.10 | 0.05 | 0.08 |
+
+Under the stated thresholds (`MAP < 0.5` or `coverage < 0.8`) the critical value is
+**`g_c = 0.3`**: the symmetry must be intact to better than about a third of a level
+spacing. The curve is not monotone — the posterior improves slightly below `g = 0.2`
+before collapsing — and that is reported rather than smoothed away. Details, thresholds
+and limits are in [`docs/symmetry_breaking.md`](docs/symmetry_breaking.md); the runnable
+report is `scripts/run_symmetry_breaking.py`.
 
 ### The manuscript and its figures
 
@@ -1128,7 +1153,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1238 tests pass** on the current tree. They are not smoke tests: the suite
+**1247 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1154,7 +1179,8 @@ silently changed meaning.
 | `test_prime_orbits.py` | 17 | Orbit counting, `h = 1`, and the measured error-term limit |
 | `test_hilbert_polya.py` | 40 | The operator, the picket-fence failure, the `PT` threshold, and the thermal blindness |
 | `test_operator_candidates.py` | 33 | The prime-length graph, the statistics trap, the twin, and the screening table |
-| `test_dynamical_desymmetrisation.py` | 15 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, and the unverified circuit identity |
+| `test_dynamical_desymmetrisation.py` | 17 | The double-bracket flow: isospectrality, the preserved commutant, sector selection, the analytic first-order term, and the refuted circuit identity |
+| `test_symmetry_breaking.py` | 7 | The block Hamiltonian's exact symmetry, a perturbation that breaks it, the degradation curve, the stated thresholds and the input validation |
 | `test_manuscript_figures.py` | 7 | The manuscript has exactly five figure references, no duplicates, all files present, captions numbered; a well-formed table becomes a tabular, a table without a separator aborts the build, and a heading with its own label is not numbered twice |
 | `test_pdf_verification.py` | 6 | The committed PDF passes `verify_pdf.py`; the reader recovers the title, keeps fonts apart, and separates a figure's natural size from its placed size; the header pattern matches browser furniture |
 | `test_desymmetrisation_figures.py` | 6 | The manuscript's five figures regenerate, and their numbers match Appendix B and Appendix C within noise |

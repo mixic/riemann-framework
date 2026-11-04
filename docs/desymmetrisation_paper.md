@@ -479,18 +479,34 @@ quoted:
 Tr₂(u ρ₁ ⊗ ρ₂ u†) = ρ₁ − ε[[ρ₁, H], ρ₁] + O(ε^{3/2}).
 ```
 
-The identity is tested against the three natural generators (`exp(i√ε(H₁ − H₂))`, the same with a
-swap inserted, and the Trotter split of the two phases) by fitting
-`ρ(ε) = ρ + √ε A + ε B + …` from three scales. In every case:
+The identity is tested against the two Hermitian-generator circuits (`exp(i√ε(H₁ − H₂))` and
+the Trotter split of the two phases) by fitting `ρ(ε) = ρ + √ε A + ε B + …` from three
+scales. In both cases:
 
 * the first-order term is **not** zero: it is `A = i[H, ρ₁]`, which the identity does
   not have;
 * the second-order term is **not** `±[[ρ₁, H], ρ₁]`.
 
-The identity is therefore recorded as **unverified**, not as confirmed and not as
-refuted: the generator that makes the first-order term vanish is
-a property of the circuit, and the circuit was not read. Recording the discrepancy is the
-correct response; assuming the identity and building on it would not be.
+A swap variant is also fitted in the code, but `(H₁ − H₂)S` is not Hermitian, so the
+numeric construction is not the exponential of that generator; it is not used as evidence
+for or against the identity.
+
+The first-order term is exact, not a numerical artefact. Writing `u = exp(i√ε G)` and
+expanding to first order,
+
+```
+Tr₂[u (ρ₁ ⊗ ρ₂) u†] = ρ₁ + i√ε Tr₂[G, ρ₁ ⊗ ρ₂] + O(ε).
+```
+
+For `G = H₁ − H₂`, `Tr₂[H₁, ρ₁ ⊗ ρ₂] = [H, ρ₁]` (because `Tr ρ₂ = 1`) and
+`Tr₂[H₂, ρ₁ ⊗ ρ₂] = 0`, so `A = i[H, ρ₁]`. A generator can have `A = 0` for every `ρ₁`
+only if `Tr₂[G, I ⊗ ρ₂] = 0`, which `H₁ − H₂` does not satisfy. The quoted identity
+therefore does not hold for these circuits and is **deprecated**; the flow itself and its
+invariants (Sections 3.2–3.5) are unaffected.
+
+The numerical checks in `dynamical_desymmetrisation.py` (`two_copy_expansion`,
+`first_order_term`) pin both the fitted coefficient and the analytic one, so the
+deprecation is a testable claim rather than a reading of the literature.
 
 ## 5. Limitations and scope
 
@@ -562,6 +578,18 @@ the two-sector mixed-class row stays the strong case. The coverage numbers in Se
 2.4 and 1.5 are therefore a property of the symmetric simulator, not a promise about a
 real spectrum, and Appendix D's device descriptions are stated as an outlook for exactly
 that reason.
+
+A separate axis is symmetry breaking in the data themselves. Writing
+`H(g) = H0 + g·Δ·V`, with `H0` two 120-level GOE blocks, `V` a full GOE matrix and `Δ`
+the mean level spacing of `H0`, the dimensionless `g` is the mixing matrix element in
+units of the level spacing. Measured over 60 draws per point with the exact-sector
+posterior (`docs/symmetry_breaking.md`): the MAP accuracy is `0.62` at `g = 0`, rises to
+`0.87` at `g = 0.2`, and falls to `0.53` at `g = 0.3` and `0.18` at `g = 0.5`; the 95 %
+coverage falls from `0.88` to `0.70` at `g = 0.3`. The critical value under the stated
+thresholds is **`g_c = 0.3`**, i.e. the symmetry must be intact to better than about a
+third of a level spacing before the posterior's interval is trustworthy. The small
+improvement below `g = 0.2` is measured and reported rather than smoothed away; it is a
+finite-size training effect, not evidence that noise helps.
 
 ### 5.3 The limit is the ratio, not the spectrum
 

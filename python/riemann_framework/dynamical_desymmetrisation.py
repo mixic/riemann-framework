@@ -54,11 +54,15 @@ of the two phases) do not reproduce
 
     Tr_2[u rho_1 (x) rho_2 u^dag] = rho_1 - eps [[rho_1, H], rho_1] + O(eps^{3/2}).
 
-They produce a first-order term `i sqrt(eps) [H, rho_1]` -- which the quoted identity
-does not have -- and a second-order term that is not (plus or minus) the double bracket.
-The claim is therefore recorded as unverified from the description available here: the
-identity depends on the circuit's generator, which was not read. What *is* verified is
-the flow itself and its invariants.
+They produce a first-order term in `sqrt(eps)`, which the quoted identity does not have,
+and a second-order term that is not (plus or minus) the double bracket. That is now an
+**analytic** statement rather than a fitted one: for the difference generator the exact
+coefficient is `i [H, rho_1]`, because `Tr_2[H_1, rho_1 (x) rho_2] = [H, rho_1]` and
+`Tr_2[H_2, rho_1 (x) rho_2] = 0`; the swap generator's coefficient is the partial trace
+of its own commutator and is computed exactly. See `first_order_term` and Section 4 of
+the manuscript. The identity is therefore **deprecated**: it is false for the standard
+generators, not merely unverified. What remains verified is the flow itself and its
+invariants.
 
 Nothing here concerns the Riemann hypothesis. It exists because the repository's
 desymmetrisation tool has a static and a dynamical reading, and only one of them is a
@@ -361,6 +365,43 @@ def _swap_operator(dimension: int) -> np.ndarray:
     return swap
 
 
+def first_order_term(
+    rho, hamiltonian, generator: str = "difference"
+) -> np.ndarray:
+    """The exact `O(sqrt(eps))` coefficient of the two-copy circuit, analytically.
+
+    Writing ``u = exp(i sqrt(eps) G)`` and expanding to first order,
+
+        Tr_2[u (rho (x) rho) u^dag] = rho + i sqrt(eps) Tr_2[G, rho (x) rho] + O(eps).
+
+    For ``G = H_1 - H_2`` the coefficient is ``i [H, rho]``, because the partial
+    traces of ``H_1`` and ``H_2`` are ``[H, rho]`` and ``0``. For the swap generator
+    ``G = (H_1 - H_2) S`` the coefficient is the partial trace of that generator's
+    commutator; it is computed here by building the generator rather than quoting a
+    closed form. The Trotter split has the same first-order generator as the
+    difference circuit.
+
+    The quoted identity has no ``sqrt(eps)`` term at all, so it cannot hold for any of
+    these generators: the term is not a numerical artefact.
+    """
+    state = _square(rho, "density matrix")
+    hermitian = _square(hamiltonian, "hamiltonian")
+    if state.shape != hermitian.shape:
+        raise ValueError("the density matrix and the hamiltonian must have the same shape")
+    dimension = state.shape[0]
+    identity = np.eye(dimension, dtype=complex)
+    first = np.asarray(np.kron(hermitian, identity), dtype=complex)
+    second = np.asarray(np.kron(identity, hermitian), dtype=complex)
+    generator_operator = first - second
+    if generator == "swap":
+        generator_operator = generator_operator @ _swap_operator(dimension)
+    elif generator not in {"difference", "split"}:
+        raise ValueError(f"unknown generator {generator!r}")
+    product = np.kron(state, state)
+    commutator = generator_operator @ product - product @ generator_operator
+    return 1j * _partial_trace_second_copy(commutator, dimension)
+
+
 def two_copy_step(rho, hamiltonian, epsilon: float, generator: str = "difference") -> np.ndarray:
     """One two-copy circuit step, reduced over the second copy.
 
@@ -372,6 +413,11 @@ def two_copy_step(rho, hamiltonian, epsilon: float, generator: str = "difference
 
     All three start from `rho (x) rho` and trace out the second copy. The reduction is
     what the quoted identity computes; the three differ in their generators.
+
+    Caveat: `(H_1 - H_2) S` is not Hermitian, so the `"swap"` branch is a numerical
+    candidate built with an eigendecomposition of a non-Hermitian matrix, not the
+    exponential of a Hermitian generator. It is kept for continuity with the earlier
+    check but is not used in the analytic first-order comparison.
     """
     state = _square(rho, "density matrix")
     hermitian = _square(hamiltonian, "hamiltonian")

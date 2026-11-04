@@ -41,6 +41,7 @@ from riemann_framework.dynamical_desymmetrisation import (
     commutator_norm,
     double_bracket,
     dynamical_desymmetrise,
+    first_order_term,
     flow,
     sector_populations,
     two_copy_expansion,
@@ -225,6 +226,30 @@ def test_the_difference_circuit_has_a_first_order_term(model, cross_sector_state
     assert not expansion.first_order_is_zero
     commutator = 1j * (hamiltonian @ cross_sector_state - cross_sector_state @ hamiltonian)
     assert np.allclose(expansion.first_order, commutator, atol=1e-6)
+
+
+def test_the_first_order_term_is_known_analytically(model, cross_sector_state):
+    """The fitted coefficient is the analytic `i[H, rho]`, not a numerical accident."""
+    hamiltonian, _, _ = model
+    for generator in ("difference", "split"):
+        expansion = two_copy_expansion(
+            cross_sector_state, hamiltonian, generator=generator
+        )
+        analytic = first_order_term(cross_sector_state, hamiltonian, generator)
+        assert np.allclose(expansion.first_order, analytic, atol=5e-3)
+        assert np.linalg.norm(analytic) > 0.0
+
+    expansion = two_copy_expansion(cross_sector_state, hamiltonian, generator="swap")
+    # The swap candidate multiplies a Hermitian generator by the swap, which is not
+    # Hermitian, so the numeric circuit is not the exponential of that generator.
+    # It is kept as a fitted candidate but is not part of the analytic comparison.
+    assert expansion.first_order_is_zero is False
+
+
+def test_the_first_order_term_rejects_an_unknown_generator(model, cross_sector_state):
+    hamiltonian, _, _ = model
+    with pytest.raises(ValueError, match="generator"):
+        first_order_term(cross_sector_state, hamiltonian, "triple")
 
 
 def test_no_candidate_circuit_reproduces_the_double_bracket(model, cross_sector_state):
