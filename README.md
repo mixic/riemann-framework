@@ -1107,8 +1107,11 @@ communication layer (`docs/dimension_shift_quantum_communication.md`,
 
 **What is open.** The Lean formalization of RH (statements exist, all `sorry`); the
 BB84 implementation layer (detector blinding, timing side channels); and a size-aware
-replacement for the unreachable `std < 0.02` clause. **The DSH sector question is
-closed** — abandoned on criterion (2), see
+replacement for the unreachable `std < 0.02` clause. The evidence gaps that no code change
+can close are now recorded too — one measured spectrum, independent reproduction, and
+review, plus what the symmetry-breaking curve does not cover — each with what it would test
+and which claim it would move, in [`docs/future_work.md`](docs/future_work.md). **The DSH
+sector question is closed** — abandoned on criterion (2), see
 [`docs/central_hypothesis.md`](docs/central_hypothesis.md) §10.
 
 | milestone | success criterion (measurable) | status |
@@ -1116,7 +1119,7 @@ closed** — abandoned on criterion (2), see
 | M1 multi-seed verdict | verdict written with `n_seeds ≥ 300`, `std`, and the parameter point | **done** — `mixed`, 300 seeds, in `output/falsification_summary.txt` |
 | M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
 | M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | **done** — `bb84_detector.py`: at `10⁶` mean photons per pulse the sifted-key QBER is `0.0000` while Eve holds `1.00` bits, so the error-rate statistic cannot see it; an optical power monitor at `≥ 10` photons catches the attack `100%` with honest false alarm `1.7e-10`. Randomised detector efficiency needs `≥ 50%` to reach the `0.11` abort threshold, so it is a partial defence. See [`docs/bb84_implementation.md`](docs/bb84_implementation.md) §3 |
-| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 9 Lean modules compile (`test_formal_proof.py`) |
+| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 10 Lean modules compile (`test_formal_proof.py`) |
 | M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | **done — the DSH is abandoned.** Criterion (2) holds: GUE blocks give 2/2 GUE sectors, GOE blocks give 0/2, so the class is inherited at 300 seeds and `d = 100, 200`. Criterion (1) holds only for GOE blocks and is therefore class-conditional, not independent evidence. See [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 
 **M5 outcome: the hypothesis is abandoned.** The milestone ran at 300 seeds per

@@ -35,6 +35,96 @@ Every future experiment should state:
 A passing test confirms an implementation property. It does not prove the
 Riemann Hypothesis, the Dimension-Shift Hypothesis, or DSIN security.
 
+## Missing evidence, and what it would change
+
+This section answers "what is still missing" as evidence rather than as features. Each item
+says what it would test and which claim it would move, because a backlog that only lists
+wishes cannot be prioritised.
+
+### M1. One measured spectrum
+
+Every spectrum this repository measures is synthetic or computed: Gaussian blocks, and the
+three real but *computed* Hamiltonians in [`real_systems.md`](real_systems.md). There is no
+laboratory data anywhere in it, so no document here claims empirical applicability, and the
+manuscript's "spectrum" means a spectrum, not a measurement.
+
+What is missing is one citable, redistributable measured spectrum — a microwave-billiard
+resonance list, a quantum-dot level list, or a published table of levels — with the source,
+the licence and the exact table read recorded beside it. The sourcing rule is the one the
+DH inventory already uses: a row is written from a document that was read here, not from a
+recollection.
+
+What such a spectrum would test, and nothing synthetic can: missing levels, edge effects, a
+level density that is not a semicircle, and noise on the levels themselves.
+`detect_hidden_symmetry` and the count posterior take eigenvalues, so they run unchanged;
+`contamination_warning` needs the matrix and the commuting involution, so the empirical path
+is the spectrum-only one.
+
+What it would change: nothing about the synthetic measurements, which are statements about
+ensembles. What it would add is one case where the prediction was made before the
+measurement. If the measured spectrum falls below its floor for a reason that is not a
+symmetry, that is a second data point for the real-system over-flagging already reported in
+[`real_systems.md`](real_systems.md): the negative result gets stronger, not the method
+weaker.
+
+If no dataset can be redistributed, the honest fallback is a fetch script plus the extracted
+rows and a provenance note, and one sentence in the paper saying exactly that. Substituting
+the Riemann zeros is not an option: the paper's own framing is that it does not use them.
+
+### M2. What the symmetry-breaking curve does not cover
+
+The exactness of the symmetry is now measured. `symmetry_breaking.py` sweeps a
+dimensionless mixing strength in `H0 + g * Delta * V`, keeps the posterior fitted on exact
+sectors, and returns `g_c = 0.3` at 240 levels — the first grid point where the MAP accuracy
+falls below `0.5` or the 95% coverage below `0.8` — with a non-monotone plateau below `g =
+0.2` reported rather than smoothed ([`symmetry_breaking.md`](symmetry_breaking.md)). That
+curve is the result; its four stated limitations are the genuinely missing measurements, in
+the order that matters.
+
+- **Unequal sectors and GUE blocks are not swept.** The curve is two equal GOE sectors, and
+  [`mixed_sectors.md`](mixed_sectors.md) measures unequal sectors with an exact symmetry, so
+  the two axes have never been crossed. A dominant block plus a weak breaking is the case a
+  real device presents.
+- **The perturbation is a full GOE matrix.** A single matrix element or a local field breaks
+  a symmetry more efficiently at the same norm, so `g_c = 0.3` is an upper bound on the
+  tool's tolerance rather than a typical value.
+- **The size dependence is not measured.** The model is trained at 240 levels and the curve
+  is tied to that size, while the detection floor already scales with size. Whether `g_c`
+  moves with `n` is open.
+- **`g_c` depends on the stipulated thresholds** (`0.5` accuracy, `0.8` coverage). Other
+  thresholds give other numbers, and a paper quoting one should quote the curve with it.
+
+### M3. Independent reproduction
+
+The suite runs here, on one machine, with the versions in §7.2 of the manuscript. No third
+party has run it. The guard against drift is the reproducibility section itself — the
+commands, the dependency versions, and a figure per measured claim that is drawn at run time
+— but whether someone else's run reproduces the tables is an empirical question only someone
+else can answer.
+
+### M4. Review
+
+[`arxiv_submission.md`](arxiv_submission.md) says "prepared, not submitted", and that is
+still true. No journal has seen the manuscript, no referee has read it, and the licence and
+MSC fields are the author's to fill. This is the largest item on the list and it is not a
+coding task.
+
+### What is not missing
+
+So that the list does not grow by accretion, four things that are already settled and should
+not be re-opened as future work:
+
+- **more seeds, or a bigger gap**: the scatter is measured, and §5.3 shows the limit is the
+  ratio rather than the sample size;
+- **a better classifier**: [`boundary_map.md`](boundary_map.md) measures the boundary of
+  three statistics with one fixed classifier, and the boundary is a property of the
+  statistic;
+- **new Lean axioms**: the axiom list is checked, and
+  [`Boundary.lean`](../lean/RiemannFramework/Boundary.lean) exists because one claim on the
+  old list was false;
+- **the Riemann hypothesis itself**: every document here says the repository is a workbench,
+  and none of the above would change that.
+
 ## Priority 1: Correct the Model Contract
 
 ### 1.1 Enforce involution symmetry
