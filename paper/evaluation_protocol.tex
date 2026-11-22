@@ -290,8 +290,14 @@ $\Gamma\,x$, which is definitionally $\top$; \texttt{trivial} supplies it.
 Proposition~\ref{prop:vacuous} is machine-checked in the framework (\texttt{Dispute.lean},
 sorry-free for this fragment), and it is the checkable core of Nielsen's objection. It is not by
 itself an objection to any particular archive: an archive may contain vacuous predicates that no
-proof invokes. The decisive question is a dependency question, and it is not decided by the
-kernel.
+proof invokes. Three questions then separate, in increasing strength: whether the term typechecks
+under the declared axioms, which the kernel decides and reports as \verdict{validated (term)};
+whether a named definition is reachable from the term, which a transitive dependency trace decides;
+and whether a reachable definition is load-bearing, which a mutation probe decides by rewriting the
+definition and checking whether the theorem survives. Section~\ref{app:executed} implements the
+second and third questions and states the limit of both: neither decides whether a definition states
+the mathematics its name suggests.
+
 
 \subsection{The evidence chain}
 
@@ -355,6 +361,29 @@ mathematics their names suggest. No verdict asserts that a claim is true, and th
 \verdict{rejected} is not evidence for a claim.
 \end{definition}
 
+\paragraph{Aggregating several instruments.}
+\label{sec:aggregation}
+A claim is often evaluated by more than one instrument, and the panel's verdict is not the
+strongest verdict any single instrument reached but the strongest the panel supports. The rule is
+stated here, before the evaluations, so that Appendix~\ref{app:executed} implements it rather than
+introducing it. In order:
+\begin{enumerate}
+\item \verdict{rejected} dominates. A logical screen that fires ends the evaluation, because
+  nothing downstream converts an argument that proves a false analogue, or assumes what it claims
+  to prove, into a valid argument.
+\item When formal artefacts were supplied, the panel's answer is the best of \emph{their} verdicts.
+  A finite arithmetic check that passed alongside says nothing about the claim, and promoting it
+  would allow a consistency observation to stand in for the object of evaluation.
+\item A kernel pass counts as \verdict{validated (term)} for the \emph{panel} only together with a
+  dependency trace that returned clean; a kernel pass without a trace is \verdict{undetermined} by
+  construction. The same run remains \verdict{validated (term)} at the \emph{statement} level: the
+  two numbers describe one artefact, and neither revises the other.
+\item When no artefact was supplied, the strongest validated numerical verdict is the panel's
+  answer, since the panel has no other evidence.
+\item Otherwise \verdict{undetermined}, and the report carries the computations that would decide
+  it.
+\end{enumerate}
+
 \subsection{Pre-registered falsification criteria for this study}
 
 In the sense of Popper, a study that cannot fail is not a study. The present study is
@@ -402,8 +431,10 @@ benchmark, and Appendix~\ref{app:executed} states what would make it one.
 
 \begin{table}[t]
 \centering
-\caption{The corpus. Hashes are SHA-256 of the stored file; page counts are from the PDF page
-tree. The framework rows are work packages rather than external claims.}
+\caption{The census: seven rows, one per document or group. Hashes are SHA-256 of the stored
+file; page counts are from the PDF page tree. The framework row is work packages rather than external
+claims, and a row here is not an evaluation row: Table~\ref{tab:results} lists eleven evaluations,
+because an evaluation pairs an artefact with an instrument.}
 \label{tab:corpus}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{2.2cm}>{\raggedright\arraybackslash}p{2.45cm}>{\raggedright\arraybackslash}X@{}}
@@ -505,11 +536,15 @@ trace is no longer a name for a computation that was not performed.
 Appendix~\ref{app:executed} gives the implementation, the rule that a kernel pass without a trace is
 \verdict{undetermined} by construction, and two controls with known answers: a theorem of this
 repository that states the vacuity, whose closure contains the vacuous predicate, and a theorem beside
-it whose closure does not. The closure is computed twice, by two independent traversals of Lean's
-environment, and the report carries the difference when one exists (\S\ref{sec:crossval}). On the
+it whose closure does not. The closure is computed twice, by two independent traversals of Lean's environment, and the
+report carries the difference when one exists (\S\ref{sec:crossval}). Both traversals read the
+same environment, so their agreement corroborates the extraction logic and not the environment:
+\texttt{laud graph}, named by the specification as the second extractor, is not installed here,
+and no run has been made against the published archive, so environment-level corroboration
+remains open and is stated as open in Appendix~\ref{app:executed}. On the
 published archive the trace has not been run here, and the report states this in the finding rather
 than in a footnote: the archive is 931~MB of git blobs and 61.5~GB of export, it pins Lean v4.33.1
-against this repository's v4.34.0-rc2, and it is not held on this machine. The revision establishes
+against this repository's v4.34.0-rc2, and it is not held on this machine. The implementation establishes
 that the computation is executable, that its discriminating power is demonstrated on controls, and
 that \texttt{scripts/audit/trace\_archive.py} performs it on any checked-out archive: the driver
 validates the archive (lakefile, toolchain, target module), copies the trace module, runs both
@@ -667,42 +702,58 @@ instrument that returns \verdict{eligible} for the Masullo draft returns \verdic
 framework's own operator, which is the calibration on which the screen's discrimination depends.
 
 \subsection{Results}
+\label{sec:results}
+
+Table~\ref{tab:results} has eleven rows and Table~\ref{tab:corpus} seven, because an evaluation
+row is an artefact--instrument pair rather than a document. Three documents are split: the
+Alp\"oge release contributes the archive row and the argument row, and the Masullo draft
+contributes the statement row and the declared-inputs row. The two proportion papers contribute
+three rows, because their methods as routes to $\RH$ are evaluated separately from their
+certificates. The framework row of the census expands into three evaluation rows (flagship
+operator, DSH programme, and the finite-field and prime certificates), whose eight work-package
+verdicts appear in Table~\ref{tab:self}. By role the eleven rows are seven external claims, one
+objection, two controls and one diagnostic certificate.
 
 \begin{table}[t]
 \centering
-\caption{All verdicts, with the evidence class and the observation that would overturn the
-verdict. ``Validated'' is qualified in every row: finite means a finite statement, elementary
-means the elementary components of a theorem.}
+\caption{All verdicts by role, with the evidence class and the observation that would overturn the
+verdict. \emph{Role} separates external claims from the framework's own controls and diagnostic
+certificates, so that the aggregate counts in \S\ref{sec:results} are not distorted by split
+rows or self-tests. ``Validated'' is qualified in every row: finite means a finite statement,
+elementary means the elementary components of a theorem.}
 \label{tab:results}
 \footnotesize
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{1.05cm}>{\raggedright\arraybackslash}X@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{1.95cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{0.55cm}>{\raggedright\arraybackslash}X@{}}
 \toprule
-Work & Verdict & $E$ & Would be overturned by \\
+Work & Role & Verdict & $E$ & Would be overturned by \\
 \midrule
-Alp\"oge archive (term) & validated (term) & 3,4 & a rejected kernel replay, or a statement
-  mismatch \\
-Alp\"oge argument (as presented) & outside domain & 0,1 & a prose or machine-readable argument
-  that can be screened \\
-Nielsen objection & undetermined & 1,2 & the dependency trace, either way \\
-Masullo draft (theorems) & outside domain & 0,1 & a stated and proved Theorem 13.3.1.2 \\
-Masullo draft (declared inputs) & eligible & 1,2 & a misclassified inventory row \\
-Alp\"oge--Furman & validated (elementary) & 3 & a counterexample to Lemma 3.2, or a wrong
-  constant \\
-Lamzouri & validated (elementary) & 3 & a counterexample to Proposition 2.1 \\
-Both proportion methods as $\RH$ routes & rejected & 0,1 & an input that fails for DH \\
-Framework flagship operator & rejected & 1,2 & an input that fails for DH \\
-DSH programme & rejected & 3 & a sector class not inherited from the input \\
-Finite-field / prime certificates & validated (finite) & 3 & an exact counterexample \\
+Alp\"oge archive (term) & External claim & validated (term) & 3,4 & a rejected kernel replay, or a
+  statement mismatch \\
+Alp\"oge argument (as presented) & External claim & outside domain & 0,1 & a prose or
+  machine-readable argument that can be screened \\
+Nielsen objection & Objection & undetermined & 1,2 & the dependency trace, either way \\
+Masullo draft (theorems) & External claim & outside domain & 0,1 & a stated and proved Theorem
+  13.3.1.2 \\
+Masullo draft (declared inputs) & External claim & eligible & 1,2 & a misclassified inventory row \\
+Alp\"oge--Furman & External claim & validated (elementary) & 3 & a counterexample to Lemma 3.2, or
+  a wrong constant \\
+Lamzouri & External claim & validated (elementary) & 3 & a counterexample to Proposition 2.1 \\
+Both proportion methods as $\RH$ routes & External claim & rejected & 0,1 & an input that fails
+  for DH \\
+Framework flagship operator & Control & rejected & 1,2 & an input that fails for DH \\
+DSH programme & Control & rejected & 3 & a sector class not inherited from the input \\
+Finite-field / prime certificates & Diagnostic & validated (finite) & 3 & an exact counterexample \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Of the eleven entries, three are rejected: two methods rejected on their own evidence and
-the framework's flagship proposal. Two are outside every domain held, one is undetermined with a
-named decisive computation, one is eligible without being validated, and four are validated: one as
-a statement about a proof term, one as a finite statement, and two in the elementary sense, with
-their analytic inputs explicitly outside the validation. No entry is, or could be, a validated proof
-of $\RH$.
+Of the eleven rows, three are rejected: the row that reads both proportion methods as $\RH$ routes
+(one row covering two papers), the framework's flagship operator, and the DSH programme. Two are
+outside every domain held (the Alp\"oge argument and the Masullo theorems), one is undetermined
+with a named decisive computation (the Nielsen objection), one is eligible without being validated
+(the Masullo declared inputs), and four are validated: the Alp\"oge term, the finite-field and
+prime certificates, and the two proportion certificates. No entry is, or could be, a validated
+proof of $\RH$.
 
 \section{Threats to validity}
 
@@ -741,45 +792,29 @@ replication is the only adequate remedy and is not claimed.
 \paragraph{Archival dependence.} Hashes protect the bytes and not the availability of the
 source. \emph{Mitigation:} the three documents are stored in the repository rather than linked.
 
-\paragraph{Four limitations, restated after review.} A reader of the first version of this
-paper raised four objections, each of which was correct. They are restated here with the change this
-revision makes to each, because a limitation acknowledged only in the body must be reconstructed by
-the reader.
+\subsection{Four limits of this study}
+
+Each of the four is stated where it is used, and is collected here so that a reader need not
+reconstruct it.
 
 \begin{enumerate}
-\item \emph{The corpus is small and restricted by date.} The inclusion rule admits only works
-  released on or after 20 November 2026 and publicly attributed to a claimed proof of $\RH$ or
-  $\GRH$. That is defensible for a pilot study but is not a stress test: the long tail of
-  historical $\RH$ claims is untouched. Section~\ref{sec:corpus} states that ``all works of all
-  mathematicians'' is not a corpus; it does not state what a stress test would require.
-  Appendix~\ref{app:executed} supplies that, with the shape of the historical corpus and the one
-  class of claim, prose without a formalisation, for which the protocol's answer is already known
-  and inexpensive. The residual is a fact about this study and not about the protocol: no
-  historical claim is evaluated here, and no claim is made about the protocol's behaviour on such
-  material.
+\item \emph{The corpus is a pilot.} It admits works released from 20 November 2026 and holds four
+  documents and one self-application. The historical tail is untouched, no claim is made about the
+  protocol's behaviour on it, and Appendix~\ref{app:executed} states what a stress test would
+  require.
 \item \emph{The DH screen tests transfer, not circularity.} An argument that assumes an
-  $\RH$-equivalent hypothesis is screened as eligible for $\DHf$, because the equivalent fails for
-  $\DHf$: the screen can establish that the argument is not transferable and cannot establish that
-  it is circular. This revision adds the dual screen. A declared input is compared against an
-  equivalence table that is total over the inventory, and the one row that is an equivalence, Li's
-  criterion, is also a row that fails for $\DHf$. An argument that declares only that row is
-  therefore marked \verdict{eligible} for the same reason that it cannot be a proof of $\RH$:
-  eligibility and circularity become one fact about the argument, and the screen reports
-  \verdict{rejected} with that statement in the evidence.
-\item \emph{The dependency question is named but not resolved for Alp\"oge.} The paper named the
-  decisive computation and did not perform it, which is the substance of the objection. This
-  revision implements it, calibrates it against two theorems of this repository with known
-  closures, and states that it has still not been run on the published archive, for the reasons in
-  \S\ref{sec:alpoge}. The computation is no longer a statement of intent: it is code with controls,
-  and the record carries the command.
-\item \emph{The verdict on Alp\"oge is validated at term level, not proven.} The objection is
-  correct, and the revision makes that reading structurally unavailable. A kernel pass now counts
-  as \verdict{validated (term)} for the \emph{panel} only together with a dependency trace that
-  returned clean, so the claim's panel verdict is \verdict{undetermined} while its statement row
-  remains \verdict{validated (term)}. A reader seeking a definitive answer to ``is the Alp\"oge
-  proof valid?'' will not find one in this paper, and the report states the reason in its own line:
-  no instrument in this panel can answer that question without the trace.
+  $\RH$-equivalent hypothesis is admitted as eligible, because the equivalent fails for $\DHf$. The
+  circularity screen of \S\ref{sec:crossval} reads the same declaration from the other side and
+  reports a route that declares only that equivalence as \verdict{rejected}.
+\item \emph{The dependency trace has not been run on the published archive.} It is implemented,
+  calibrated on two theorems with known closures, and driven by a tested script; the archive is not
+  held here, so the headline panel verdict is \verdict{undetermined} while the statement row is
+  \verdict{validated (term)}.
+\item \emph{A term verdict is not a proof of the argument.} It is a scoped conditional on the
+  statement and on the definitions that statement invokes; Appendix~\ref{app:executed} states what
+  it establishes, and nothing in this paper promotes it further.
 \end{enumerate}
+
 
 \section{Related work}
 
@@ -832,7 +867,7 @@ Table~\ref{tab:hashes} are prefixes of the SHA-256 digests of the archived files
 determine whether the verdicts are correct; only the criteria in \S\ref{sec:protocol} can do that,
 and they are printed so that a reader may apply them to the author.
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{Archived documents: hash, length, pages. The index records provenance and the
 documents that cite each one.}
@@ -884,7 +919,7 @@ first place above $5$ and $(2-i)^{-1}$ at the second has local absolute values $
 $5^{+1}$, whose product is $1$: the norm is a unit at $5$ while neither component is.
 \end{quote}
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{Split primes in $\mathbb{Z}[i]$. Each row certifies $p=\pi_1\pi_2$ with both factors
 of norm $p$ and neither a unit, so the valuation pair $(+1,-1)$ has unit norm everywhere.}
@@ -939,7 +974,7 @@ trivial pole of $\zeta$ at $s=1$. It is therefore a property of $\zeta$ and not 
 test functions. In addition, $\sigma\to0$ is not the limit taken in \S1.4.3, which is
 $\varepsilon\to0$ and $h\to1$ on a compact $K$.
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{The supplied test compared with the exact value. The truncated integral is
 $M(\sigma,100)$; its exact value is $\tfrac12\pi^{-\sigma/2}\gamma(\sigma/2,100^2\pi)$. The
@@ -974,7 +1009,7 @@ define.
 
 \subsection{Five zeta values: a consistency check, not evidence}
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{$\zeta$ at the first five zero heights. The on-line column is a check of the
 evaluation: \texttt{mpmath.zetazero} returns zeros with real part $1/2$ by construction, so
@@ -1076,47 +1111,36 @@ their status, and says what was checked and by what.
 \section{The protocol, executed}
 \label{app:executed}
 
-Appendix~\ref{app:agent} described the agent that implements this paper's procedure. This
-appendix documents the two items that a reviewer identified as missing from the first version and
-that are now implemented: the verdict algebra that prevents a kernel pass from becoming a claim
-verdict, and the dependency trace that decides the vacuity question instead of naming it.
+Appendix~\ref{app:agent} describes the agent that implements this paper's procedure. This appendix
+documents its implementation: the verdict algebra that prevents a kernel pass from becoming a
+claim verdict, the dependency trace that answers the vacuity question, the second extractor that
+checks the closure, and the two executed panels.
 
 \subsection{Instruments, and the verdicts they can produce}
 
 Table~\ref{tab:panel} lists the instruments and the verdicts each is allowed to produce. The
 distinction that matters is not the status of a finding but its instrument: two findings can
-share a status and differ in what they license, and the aggregation rule of \S\ref{sec:algebra}
+share a status and differ in what they license, and the aggregation rule of \S\ref{sec:aggregation}
 reads the instrument rather than the prose.
 
 
 \subsection{The verdict algebra}
 \label{sec:algebra}
 
-The aggregation rule is five lines of code and one sentence of mathematics: \emph{the panel's
-verdict is the strongest verdict the panel supports, not the strongest any one instrument
-reached}. In order:
+The rule is stated in \S\ref{sec:aggregation}; this subsection records how it is implemented.
+\texttt{adjudicator.py} derives each probe's verdict from Table~\ref{tab:panel} rather than from its
+prose status, and reduces the findings with the five conditions in the stated order. Two
+implementation details are not visible in the statement of the rule. \verdict{rejected} is produced
+only by the two logical screens: a file that fails to compile, or that carries \texttt{sorryAx}, is
+\verdict{undetermined}, because \verdict{rejected} is reserved for a screen that reads an argument.
+And the kernel-and-trace condition is enforced at aggregation rather than inside the kernel probe,
+so a report shows the statement verdict and the panel verdict side by side.
 
-\begin{enumerate}
-\item \verdict{rejected} dominates. A logical screen that fired ends the evaluation, because nothing
-  downstream converts an argument that proves a false analogue, or assumes what it claims to prove,
-  into a valid argument.
-\item When formal artefacts were supplied, the panel's answer is the best of \emph{their} verdicts.
-  A finite arithmetic check that passed alongside says nothing about the claim, and promoting it
-  would allow a consistency observation to replace the object of evaluation.
-\item A kernel pass counts as \verdict{validated (term)} for the panel \emph{only} together with a
-  dependency trace that returned clean. Kernel and no trace is \verdict{undetermined} by
-  construction. This is the rule the review requested.
-\item When no artefact was supplied, the strongest validated numerical verdict is the panel's
-  answer, since the panel has no other evidence.
-\item Otherwise \verdict{undetermined}, and the report carries the computations that would decide
-  it.
-\end{enumerate}
-
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{The panel, as implemented. A finding carries a status (what happened) and a verdict
 (what follows); the instrument decides which verdicts are available, and the aggregation rule
-of \S\ref{sec:algebra} reads the instrument rather than the prose.}
+of \S\ref{sec:aggregation} reads the instrument rather than the prose.}
 \label{tab:panel}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X@{}}
@@ -1137,11 +1161,10 @@ reading & the record: sources, dates, objections & no verdict; the entry is reco
 \end{tabularx}
 \end{table}
 
-The consequence for the paper's first case is a correction: the published statement is
-\verdict{validated (term)} while the \emph{panel} verdict is \verdict{undetermined}, in the same
-report, because the trace has not run. Before this revision the term-level verdict was the closest
-approximation to a panel verdict that the report contained, and \S\ref{sec:alpoge} said the same in
-prose; the code now cannot report otherwise.
+The consequence for the paper's first case is visible in one report: the published statement is
+\verdict{validated (term)} while the \emph{panel} verdict is \verdict{undetermined}, because the
+trace has not run. The rule of \S\ref{sec:aggregation} requires the difference, and the code has no
+path that reports the two as one number.
 
 \subsection{The dependency trace}
 
@@ -1157,7 +1180,7 @@ the trace.
 \textbf{Two controls.} An instrument that has never been directed at a known answer cannot
 be trusted, so it is calibrated against two theorems whose closures are known in advance.
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{The trace, calibrated. Both theorems live in the same file as the disputed statement
 of \texttt{Dispute.lean}; only the first mentions the vacuous predicate.}
@@ -1175,12 +1198,21 @@ Theorem & Expected & Observed \\
 \end{tabularx}
 \end{table}
 
-\textbf{The limit of the trace.} A hit is \emph{syntactic reachability}: the term mentions
-the definition. Whether the definition's content is load-bearing is a further question, and a
-definition can be reached through an unused hypothesis. A hit is therefore evidence that the
-objection's route exists and not proof that the conclusion follows it. Absence is the stronger case:
-a name outside the closure cannot have contributed to the term. Every trace finding carries this
-statement, so a reader of the report does not have to locate this paragraph.
+\textbf{Three levels of formal assurance, and which of them the trace reaches.} A formal
+artefact of this kind supports three questions, in increasing strength.
+\begin{enumerate}
+\item \emph{Type-checking.} The kernel decides that the term inhabits the stated type under the
+  declared axioms. That is \verdict{validated (term)} and nothing more.
+\item \emph{Reachability.} The closure decides whether a named definition is mentioned by the term.
+  \texttt{\#deps} and \texttt{\#depsm} answer it, and a hit shows that the objection's route exists.
+\item \emph{Load-bearingness.} The mutation probe decides whether a reachable definition is
+  essential: a vacuous-truth rewrite that the theorem survives was not load-bearing, and one that
+  kills it was.
+\end{enumerate}
+A hit is therefore evidence that the route exists and not proof that the conclusion travels it, and
+absence is the stronger half: a name outside the closure cannot have contributed to the term.
+Neither probe decides whether a reachable definition states the mathematics its name suggests; that
+is the semantic fidelity of \S\ref{sec:alpoge}, and the instrument for it is named below.
 
 \textbf{The archive.} The trace has not been run on the published archive here. The
 archive is 931~MB of git blobs and 61.5~GB of export; it pins Lean v4.33.1 while this repository's
@@ -1190,7 +1222,8 @@ described: the driver validates the archive, copies the trace module, generates 
 imports it and the target, runs both extractors with the archive's own \texttt{lake}, and writes a
 record whose status is \emph{ran} or a reason for \emph{not run}. Its plan, its precondition
 failures and the shape of its record are covered by tests, so the only input it lacks here is the
-archive. The version gap is an identified risk rather than an
+archive; the export is not on this machine, and no number in this paper is taken from a run on
+it. The version gap is an identified risk rather than an
 obstruction, because the module uses only \texttt{Lean} core and requires no Mathlib; this paper
 does not discharge that risk, and the distinction between calibrated and run on the archive is the
 distinction between the two paragraphs above.
@@ -1258,8 +1291,7 @@ over the inventory}: one row is an $\RH$-equivalence (Li's criterion), and the o
 recorded as not equivalent, each with its reason, so that ``not flagged'' means ``considered
 and rejected'' rather than ``not thought about''.
 
-The decisive case is the double status of one row, and it addresses the second point of
-the review. Li's criterion \emph{fails} for Davenport--Heilbronn, so an argument that declares only
+The decisive case is the double status of one row. Li's criterion \emph{fails} for Davenport--Heilbronn, so an argument that declares only
 it is marked \verdict{eligible} by the filter. Li's criterion is also \emph{equivalent} to $\RH$, so
 the same declaration is what makes the argument circular. Eligibility and circularity are then one
 fact about the argument, and the report states it in one sentence. The verdict is
@@ -1276,7 +1308,7 @@ claim came back \verdict{rejected}, a verdict obtained from a fixture rather tha
 The role parameter of the audit is the repair, implemented as a parameter rather than as a special
 case for the control.
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{The panel on the published archive. One row is decided (the kernel replay) and every
 other row is withheld with the computation that would decide it. The aggregated verdict is the
@@ -1303,7 +1335,7 @@ Probe & Verdict & What would change it \\
 \end{tabularx}
 \end{table}
 
-\begin{table}[!ht]
+\begin{table}[htbp]
 \centering
 \caption{The panel on the repository's live control, which states the claimant's position with
 \texttt{sorry} and proves the structural core of the objection without one. The mutation and trace
@@ -1337,15 +1369,14 @@ Probe & Verdict & Evidence \\
 \textbf{What the archive panel establishes.} The kernel row is \verdict{validated (term)}
 and nothing else is. The mutant cannot run, the census cannot read, and the trace has not been
 executed, so the panel is \verdict{undetermined} and every withheld row carries the computation that
-would decide it. Before this revision the report contained no panel verdict beyond the term
-verdict.
+would decide it.
 
 \textbf{What the control panel establishes.} The mutation probe's \verdict{validated
 (term)} is a genuine calibration rather than a formality: the flip kills the theorem that states the
 vacuity, leaves the theorem beside it alone, and the vacuous-truth rewrite kills the theorem that
 uses its hypothesis. The trace probe reaches the vacuous predicate from one theorem and none from
 the other, with both closures corroborated. The kernel row withholds because the file contains the
-two \texttt{sorry}s it is built to contain, and the review withholds for the same reason: a term
+two \texttt{sorry}s it is built to contain, and the proof-review probe withholds for the same reason: a term
 that is absent has not been refuted, and \verdict{rejected} is reserved for screens.
 
 \textbf{What a term verdict establishes.} \verdict{validated (term)} is a scoped
@@ -1374,8 +1405,7 @@ found by further review of the prose, which is the argument for executing the pr
 
 \subsection{What a corpus stress test would require}
 
-The first point of the review concerns the corpus, and it is not one that this revision
-can address by writing code. The inclusion rule admits works released on or after 20 November 2026,
+The corpus is a pilot, and its scale is not something that code can repair. The inclusion rule admits works released on or after 20 November 2026,
 so the long tail is untouched. A stress test would require the following, in increasing order of
 cost:
 
@@ -1392,7 +1422,7 @@ cost:
   calibrated in Appendix~\ref{app:agent}; one is not a corpus.
 \item \emph{Historical claims with a modern re-formalisation.} This is the only class that would
   test the trace against uncurated material, and it requires the archive of each claim to be
-  obtainable and buildable, which is a research programme rather than a revision.
+  obtainable and buildable, which is a research programme rather than a further revision of this paper.
 \end{itemize}
 
 Until such a corpus exists, the statement in \S\ref{sec:corpus} applies: the protocol is
@@ -1401,41 +1431,54 @@ unmeasured.
 
 \begin{thebibliography}{99}
 
-\bibitem{alpoge} L.~Alp\"oge, \emph{Remark}, 20 November 2026. Archived as
-  \texttt{references/alpoge\_remark\_2026-11-20.pdf}.
+\bibitem{alpoge} L.~Alp\"oge, \emph{Remark}, 20 November 2026, 13:52. Author's announcement,
+four pages; archived as \path{references/alpoge_remark_2026-11-20.pdf} (SHA-256
+\texttt{3fc97784\ldots}), the copy quoted here.
 
-\bibitem{leanmathlib} Lean and Mathlib communities, \emph{Lean verification of the Riemann
-  Hypothesis}, 21 November 2026.
+\bibitem{leanmathlib} Lean and Mathlib communities, \emph{Joint statement on the verification of
+  the Riemann hypothesis}, 21 November 2026. Announced with the release; the mechanical audit is
+  documented in \cite{sutherland}.
 
 \bibitem{sutherland} A.~Sutherland, \emph{Verification files for the Lean proof of the Riemann
-  Hypothesis}, MIT, updated 21 November 2026, 12:55 UTC.
+  hypothesis}, MIT, updated 21 November 2026, 12:55 UTC. \url{https://math.mit.edu/~drew/grh/},
+  accessed 22 November 2026; archival copy \path{references/sutherland_grh_checks_2026-11-22.html}.
 
 \bibitem{nielsen} J.~L.~Nielsen, \emph{The Invalidity of Alp\"oge's Proposed Proof of the
-  Riemann Hypothesis}, PhilArchive NIEIOT-2, 20 November 2026.
+  Riemann Hypothesis}, PhilArchive NIEIOT-2, 20 November 2026 (PDF dated 21 November 2026, 16:50);
+  archived as \path{references/nielsen_invalidity_2026-11-20.pdf}. Not peer reviewed; cited as the
+  objection under evaluation.
 
 \bibitem{chu} F.~Chu, \emph{GRH proof's geometry is \texttt{fun \_ \_ \_ => True}, in 24
-  files}, 22 November 2026 (third-party audit of the code claims).
+  files}, 22 November 2026. Third-party code audit, cited as reported: the document was not
+  retrieved here, and \S\ref{sec:alpoge} records its claim as one side of a conflict that this
+  paper does not resolve.
 
-\bibitem{masullo} A.~M.~Masullo, \emph{The Music of the Primes}, 940 pp., 20 November 2026.
-  Archived as \texttt{references/masullo\_music\_of\_the\_primes\_2026-11-20.pdf}.
+\bibitem{masullo} A.~M.~Masullo, \emph{The Music of the Primes}, 940 pp., 20 November 2026,
+  19:13; archived as \path{references/masullo_music_of_the_primes_2026-11-20.pdf} (SHA-256
+  \texttt{e039d3f6\ldots}), the copy quoted here.
 
 \bibitem{alpogefurman} L.~Alp\"oge and R.~Furman, \emph{More than two thirds of the zeros of
-  the Riemann zeta function are simple and on the critical line}, arXiv:2608.13637, 2026.
+  the Riemann zeta function are simple and on the critical line}, arXiv:2608.13637, 2026. Identifier
+  as recorded in the framework's inventory; the preprint text was not retrieved here.
 
 \bibitem{lamzouri} Y.~Lamzouri, \emph{A new proof that more than $2/3$ of the zeros are simple
-  and on the critical line}, arXiv:2609.02882, 2026.
+  and on the critical line}, arXiv:2609.02882, 2026. Identifier as recorded in the framework's
+  inventory; the preprint text was not retrieved here.
 
 \bibitem{leclair} A.~LeClair and G.~Mussardo, on the absence of an Euler product for the
-  Davenport--Heilbronn function, as recorded in the framework's DH inventory.
+  Davenport--Heilbronn function. Cited from the framework's DH inventory, which records the statement
+  and its context; bibliographic details were not retrieved here.
 
-\bibitem{vorsos} A.~Voros, on Li's criterion reacting to the Davenport--Heilbronn zeros, as
-  recorded in the framework's DH inventory.
+\bibitem{vorsos} A.~Voros, on Li's criterion reacting to the Davenport--Heilbronn zeros.
+  Cited from the framework's DH inventory; bibliographic details were not retrieved here.
 
 \bibitem{franca} G.~Fran\c{c}a and A.~LeClair, on the functional equation of the
-  Davenport--Heilbronn function.
+  Davenport--Heilbronn function. Cited from the framework's DH inventory; bibliographic details were
+  not retrieved here.
 
-\bibitem{xena} The Xena Project's four criteria for a formalisation (statement, statement
-  match, axiom audit, independent replay), as applied in \cite{leanmathlib}.
+\bibitem{xena} The Xena Project, four criteria for a formalisation (statement, statement
+  match, axiom audit, independent replay). Project criterion list, as applied in \cite{leanmathlib};
+  no formal publication was retrieved here.
 
 \end{thebibliography}
 
