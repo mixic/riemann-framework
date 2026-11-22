@@ -262,6 +262,39 @@ for the same reason. `test_no_package_module_imports_sympy` now scans import
 statements by AST rather than by substring, since two modules mention sympy in
 prose to explain its removal.
 
+**The same defect recurred where that guard did not look, and CI caught it.** The
+first CI run after the audit work failed with
+`ModuleNotFoundError: No module named 'sympy'` in
+`tests/test_idele_split_lean.py`. The chain is exactly this section's chain, one
+directory over: `scripts/audit/three_checks.py` imported `factorint` from sympy
+(a name it never used, which is why no local run noticed), and the Lean test
+imports that script to compare the split-prime certificate with
+`RiemannFramework.IdeleSplit`. sympy 1.14.0 is installed on the author's disk and
+absent from the CI job, which installs `python/requirements.txt` and nothing
+else. `test_no_package_module_imports_sympy` scans `riemann_framework/` only, and
+`test_packaging.py` compares the *package's* imports against `pyproject.toml`, so
+neither could see a script. Locally, before the fix: 1403 tests passed. In CI:
+1365 passed, 1 failed, 37 skipped.
+
+Three repairs. The unused import is deleted. `scripts/audit/masullo_idele_strata.py`
+used `primerange` and `legendre_symbol`; both are replaced by ten lines of
+arithmetic (`primes_below`, a sieve, and `legendre_symbol`, Euler's criterion),
+and the replacement was checked against sympy rather than asserted: identical
+prime list, identical symbol on 2,644 (a, p) pairs, identical classification on
+1,377 (d, p) pairs, and a byte-identical JSON record and printed table. The one
+dependency that is genuinely optional, `zstandard` in
+`scripts/audit/decompress_export.py`, keeps its import but reports the package
+name instead of raising a bare `ModuleNotFoundError`, and its absence is
+exercised by a test rather than assumed.
+
+`test_declared_dependencies.py` closes the class rather than the instance: every
+third-party import in `riemann_framework/`, `tests/`, `examples/` and `scripts/`
+must appear in `python/requirements.txt`; the file must agree with
+`pyproject.toml`, so the two lists cannot drift; an allowlist entry needs a
+reason and is checked for its stated behaviour; and the scanner is driven into
+failing on the sympy import that broke CI. That last check is the one that makes
+the first three worth something: a guard that has never fired is a comment.
+
 **`dimension_tower` crashed for most inputs.** Covered in section 1: it started at
 the element's dimension instead of its ambient length, and the guard tested the
 same wrong quantity. 81 of the first 100 integers raised.

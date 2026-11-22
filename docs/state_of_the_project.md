@@ -349,9 +349,9 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | Lean modules built | 13 | 12 library modules, six of them `sorry`-free, plus
   `DependencyTrace.lean`, the audit metaprogram, which contains no proofs to be
   `sorry`-free about | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`, `Boundary`, `IdeleSplit` |
-| tests passing | 1403 | `python/tests/` |
+| tests passing | 1409 | `python/tests/` |
 | documents | 48 | `docs/` |
-| negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
+| negative results on record | 20 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
 | manuscripts | 2 | [`desymmetrisation_paper.md`](desymmetrisation_paper.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) |
 
@@ -359,7 +359,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
 
 | document | what it is |
 |:---|:---|
-| [`lessons_learned.md`](lessons_learned.md) | the negative results and the methodological lessons, §1–§19 |
+| [`lessons_learned.md`](lessons_learned.md) | the negative results and the methodological lessons, §1–§20 |
 | [`central_hypothesis.md`](central_hypothesis.md) | the DSH as proposed, and its abandonment in the same document (§10) |
 | [`m5_verdict.md`](m5_verdict.md) | the decisive test, with the defects and the numbers |
 | [`desymmetrisation.md`](desymmetrisation.md), [`desymmetrisation_paper.md`](desymmetrisation_paper.md) | the diagnostic, and its manuscript |
@@ -468,7 +468,7 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1403 passed`; `lake build` → 13 modules
+**Last verified:** `python -m pytest tests/ -q` → `1409 passed`; `lake build` → 13 modules
 compile, the 6 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.

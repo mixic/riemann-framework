@@ -10,10 +10,20 @@ jobs:
   python-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # v5/v6 run on Node 24; v4/v5 were the targets of the runner's
+      # "Node.js 20 is deprecated" annotation.
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      # Exactly this file, nothing else: `python/requirements.txt`. The first CI
+      # run after the suite grew failed here and not on the author's machine,
+      # because `scripts/audit/three_checks.py` imported sympy (which happens to
+      # be installed locally) and `test_idele_split_lean.py` imports that
+      # script. `tests/test_declared_dependencies.py` now compares every import
+      # in the package, the tests, the examples and the scripts against this
+      # list, so that class of red-on-CI/green-locally failure is caught before
+      # the push.
       - name: Install dependencies
         run: pip install -r python/requirements.txt
       # The whole suite, not just the numerical core. Running only
@@ -28,7 +38,7 @@ jobs:
   lean-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Installs the toolchain pinned in `lean-toolchain`, caches `.lake`, and
       # fetches the Mathlib olean cache (`lake exe cache get`) because this

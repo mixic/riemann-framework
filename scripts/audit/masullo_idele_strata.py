@@ -28,20 +28,64 @@ so the identification as stated is false, by an exact integer computation with
 no numerical error.  The ramified case is checked as the control: there the
 local norms multiply, N_{F_v/Q_p}(g) = g^2, so a unit norm forces a unit, and
 no such cancellation exists.
+
+The number theory is self-contained. This file used `primerange` and
+`legendre_symbol` from sympy, which is not a declared dependency of the
+repository, so on a clean checkout it raised `ModuleNotFoundError` before doing
+any arithmetic. `primes_below` and `legendre_symbol` below replace them, and
+both were checked against sympy's output on the whole grid the audit uses.
 """
 
 from __future__ import annotations
 
 import json
 from fractions import Fraction
+from math import isqrt
 from pathlib import Path
-
-from sympy import legendre_symbol, primerange
 
 OUT = Path(r"C:\Users\Milan\Projects\riemann-audit\out")
 
+
+def primes_below(limit: int) -> list[int]:
+    """Primes p < limit, by a sieve of Eratosthenes.
+
+    Stands in for `sympy.primerange`, which this file used until the dependency
+    audit found that sympy is not declared in `python/requirements.txt`, so the
+    script raised `ModuleNotFoundError` on a clean checkout. The sieve is
+    checked against `sympy.primerange(2, 60)` over its whole output, not
+    asserted by inspection.
+    """
+    if limit <= 2:
+        return []
+    sieve = bytearray(b"\x01") * limit
+    sieve[0:2] = b"\x00\x00"
+    for n in range(2, isqrt(limit - 1) + 1):
+        if sieve[n]:
+            sieve[n * n :: n] = bytes(len(range(n * n, limit, n)))
+    return [n for n in range(limit) if sieve[n]]
+
+
+def legendre_symbol(a: int, p: int) -> int:
+    """The Legendre symbol (a/p), in {-1, 0, 1}, for an odd prime p.
+
+    Euler's criterion: a^((p-1)/2) is congruent to (a/p) modulo p, so a value of
+    1 is a quadratic residue, p - 1 a non-residue, and 0 the case p | a. This
+    replaces `sympy.legendre_symbol`, which rejects p = 2 outright; the branch
+    below makes the helper total instead of raising, and `splitting_behaviour`
+    never reaches it (it returns for p = 2 before calling this). The two agree on
+    2,644 (a, p) pairs: every odd prime below 60, every residue class from
+    -3p to 3p. That comparison, not inspection, is why the substitution is safe.
+    """
+    if p == 2:  # unreachable from the audit; kept so the helper is total
+        return 0 if a % 2 == 0 else 1
+    residue = pow(a % p, (p - 1) // 2, p)
+    if residue == 0:
+        return 0
+    return 1 if residue == 1 else -1
+
+
 # The first rational primes, for the T_k strata.
-PRIMES = list(primerange(2, 60))
+PRIMES = primes_below(60)
 
 
 def splitting_behaviour(d: int, p: int) -> str:

@@ -29,8 +29,11 @@ from fractions import Fraction
 from pathlib import Path
 
 import mpmath as mp
-from sympy import factorint
 
+# This file imported `factorint` from sympy until CI caught it: sympy is not a
+# declared dependency of this repository, and the name was never used here. The
+# import alone made the whole module unimportable in CI, which is what
+# `tests/test_declared_dependencies.py` now prevents.
 OUT = Path(r"C:\Users\Milan\Projects\riemann-audit\out")
 mp.mp.dps = 30
 

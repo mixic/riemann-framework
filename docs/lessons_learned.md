@@ -761,4 +761,56 @@ commutes with a symmetry that commutes with `ρ` and `H`, and so does one Euler 
 (`DynamicalDesymmetrisation.lean`, `sorry`-free, axioms `[propext]` only). Small, and
 exactly as large as the claim.
 
+## 20. A Suite That Passes Only Where the Undeclared Package Is Installed
+
+The first CI run after the audit work failed in the Python job with
+
+```
+ModuleNotFoundError: No module named 'sympy'
+scripts/audit/three_checks.py:32: from sympy import factorint
+```
+
+and 1 failed, 1365 passed, 37 skipped. On the author's machine, the same tree was
+1403 passed. Nothing about the mathematics had changed between the two runs; the
+environment had.
+
+The chain is worth stating exactly, because each link is a common one. The name
+`factorint` was imported and never used, so no behavioural test could have failed.
+The module holding the import is a script, not part of the package, so the existing
+`test_no_package_module_imports_sympy` did not scan it. The test that failed imports
+the script *by path* to compare its split-prime certificate with
+`RiemannFramework.IdeleSplit`, so the suite's dependency graph contains an edge that
+no file declares: a test depends on a script, and the script depends on the
+environment. And sympy 1.14.0 is installed here, which is the whole reason the run
+was green.
+
+| what was claimed | what was true |
+|:---|:---|
+| `test_packaging.py` checks every third-party import in the tree | it scans `python/riemann_framework/` and compares against `pyproject.toml` only |
+| `test_no_package_module_imports_sympy` guards against sympy | it scans the package, by AST, and says nothing about `scripts/`, `examples/` or `tests/` |
+| the suite uses only declared dependencies | it uses whatever is on the machine that runs it |
+
+The third row is the failure, and the first two are why it survived: a document
+asserting an invariant the code does not enforce is the same defect as a stale count,
+with a worse consequence, because it is read as coverage.
+
+Three repairs, and one that closes the class rather than the instance. The unused
+import is gone. `scripts/audit/masullo_idele_strata.py` used `primerange` and
+`legendre_symbol` from sympy; both are replaced with a sieve and Euler's criterion,
+checked against sympy on 2,644 `(a, p)` pairs, 1,377 `(d, p)` classifications and a
+byte-identical record, so the substitution is verified rather than asserted. The one
+genuinely optional tool, `zstandard`, keeps its import but names the package to
+install when it is missing. `test_declared_dependencies.py` then compares every
+third-party import of the package, the tests, the examples and the scripts against
+`python/requirements.txt` (the file CI installs), checks that file against
+`pyproject.toml`, and is driven into failing on the sympy import itself.
+
+**The lesson.** A green run is evidence about a tree *and* an environment, and the
+environment is part of the claim. The suite had no way to say which packages it
+needed; now it does, and the full suite was re-run with sympy and `zstandard`
+unimportable to show the restriction is true. The limit of that check is stateable:
+it reads imports statically, so a dynamic `importlib.import_module("sympy")`, a
+subprocess, or a module that only works when a package *is* installed would still
+slip through. Static is not complete, but it covers the way this one happened.
+
 

@@ -1,4 +1,11 @@
-"""Stream-decompress a .ndjson.zst export (no zstd CLI needed on this machine)."""
+"""Stream-decompress a .ndjson.zst export (no zstd CLI needed on this machine).
+
+`zstandard` is an optional tool, not a declared dependency: this script ran once
+against the 61.5 GB export recorded in `docs/verification_report.md`, and nothing
+in the test suite needs it. The import is therefore guarded, so the module still
+imports on a checkout that does not have it (CI, for one) and the failure names
+the package to install instead of a bare `ModuleNotFoundError`.
+"""
 
 from __future__ import annotations
 
@@ -6,12 +13,21 @@ import sys
 import time
 from pathlib import Path
 
-import zstandard as zstd
+try:  # optional: `pip install zstandard`
+    import zstandard as zstd
+except ImportError:  # pragma: no cover - exercised only where it is absent
+    zstd = None  # type: ignore[assignment]
 
 CHUNK = 1 << 24
 
 
 def decompress(src: Path, dst: Path) -> None:
+    if zstd is None:
+        raise SystemExit(
+            "zstandard is not installed, so the export cannot be decompressed. "
+            "Install it with `pip install zstandard`; it is deliberately not in "
+            "python/requirements.txt because no test needs it."
+        )
     # The export is written with `zstd -19 --long=30`, i.e. a 1 GiB window;
     # python-zstandard refuses that unless the window budget is raised.
     dctx = zstd.ZstdDecompressor(max_window_size=1 << 31)
