@@ -66,20 +66,21 @@ Instrument Domains, Evidence Classes, and an\\ Evaluation of the 2026 Corpus}
 
 \begin{abstract}
 \noindent
-Claims of a proof of the Riemann hypothesis are now produced faster than they can be read,
-and the instruments available to check them answer different questions: a proof assistant
-checks a term, a numerical experiment checks an instance, a logical screen checks a class.
-Conflating the three produces verdicts that look decisive and are not. This paper makes the
-distinction operational. We give a protocol that routes a claimed proof to the instruments
-whose input domain it actually occupies, attaches an evidence class to every verdict, and
-uses a six-verdict vocabulary that contains no word meaning ``true''. We then apply the protocol
-to a defined, dated, hash-archived corpus: the 2026 Alp\"oge Lean release and its objection,
-the 2026 Masullo typescript, the two proportion theorems of Alp\"oge--Furman and Lamzouri, and
-the eleven work packages of the screening framework itself. Every verdict is reported with the
-evidence it rests on and with the single observation that would overturn it. The framework
-rejects one of its own proposals outright and returns ``outside the domain'' for the two
-largest claims in the corpus, which is the result the protocol is designed to make visible
-rather than to hide. The Riemann hypothesis remains open.
+Claims of a proof of the Riemann hypothesis are now produced more rapidly than they can be
+assessed, and the instruments available for assessment test different propositions: a proof
+assistant checks a proof term, a numerical computation checks a single instance, and a logical
+screen checks membership in a class of arguments already known to fail. Treating these
+instruments as interchangeable yields verdicts that appear decisive and are not. This paper
+makes the distinction operational. We describe a protocol that assigns a claimed proof to the
+instruments whose input domains it occupies, attaches an evidence class to every verdict, and
+draws its verdicts from a six-term vocabulary in which no term means ``true''. We apply the
+protocol to a defined, dated and hash-archived corpus: the 2026 Alp\"oge Lean release and its
+objection, the 2026 Masullo typescript, the proportion theorems of Alp\"oge--Furman and
+Lamzouri, and the eleven work packages of the screening framework itself. Every verdict is
+reported with the evidence on which it rests and with the single observation that would
+overturn it. The framework rejects one of its own proposals and returns ``outside the domain''
+for the two largest claims in the corpus; both outcomes follow from the protocol's definitions
+and are not treated as exceptions to them. The Riemann hypothesis remains open.
 \end{abstract}
 
 \tableofcontents
@@ -88,73 +89,77 @@ rather than to hide. The Riemann hypothesis remains open.
 
 \subsection{The verification gap}
 
-Three kinds of check are routinely described as ``verifying a proof'', and they establish
-different things.
+Three classes of check are commonly described as verifying a proof. They establish
+different propositions.
 
-A \emph{kernel} check establishes that a term inhabits a type. It is decisive about the term
-and silent about the definitions the term is written against. When the type is Mathlib's own
-\texttt{RiemannHypothesis}, a kernel check establishes that the statement is the intended one
-and that the proof term has it; that is an achievement, and it is not the same achievement as establishing
-that the argument's internal objects carry the mathematics their names suggest.
+A \emph{kernel} check establishes that a term inhabits a type. It decides a question
+about the term and says nothing about the definitions against which the term is written. When
+the type is Mathlib's \texttt{RiemannHypothesis}, a kernel check establishes that the statement
+is the intended one and that the proof term has that type; this is a substantial result, and it
+is not the same result as establishing that the internal objects of the argument carry the
+mathematics their names suggest.
 
-A \emph{reading} establishes that a human can follow an argument from stated hypotheses to a
-stated conclusion. It is decisive about the argument as written and silent about whether the
-argument, transcribed, still says the same thing.
+A \emph{reading} establishes that a reader can follow an argument from stated
+hypotheses to a stated conclusion. It decides a question about the argument as written and says
+nothing about whether a transcription preserves the argument's meaning.
 
-A \emph{logical screen} establishes that an argument does not belong to a class already known
-to fail. It is decisive in one direction only: it can reject, and it cannot confirm.
+A \emph{logical screen} establishes that an argument does not belong to a class already
+known to fail. It decides in one direction only: it can reject an argument and cannot confirm
+one.
 
-The 2026 claims make the gap concrete. Alp\"oge released a Lean archive and no prose proof,
-saying that it would be ``obviously inappropriate to attempt to post some massive unreadable
-travesty of `slop'\,'', so that ``I decided to only present Lean'' \cite{alpoge}. A Lean and
-Mathlib joint statement certified the statement and the term \cite{leanmathlib}; a verification
-page recorded the audit trail \cite{sutherland}. Within a day, Nielsen argued that the archive
-discharges its geometric obligations vacuously \cite{nielsen}. Both positions can be true at
-once, because the kernel check and the objection are about different objects: the first about
-a term, the second about what the term's definitions mean. No amount of re-running the first
-answers the second, and no amount of reading the second contradicts the first.
+The 2026 claims make the distinction concrete. Alp\"oge released a Lean archive and no
+prose proof, stating that it would be ``obviously inappropriate to attempt to post some massive
+unreadable travesty of `slop'\,'', and that ``I decided to only present Lean'' \cite{alpoge}. A
+joint statement by the Lean and Mathlib communities certified the statement and the term
+\cite{leanmathlib}, and a verification page recorded the audit trail \cite{sutherland}. Within a
+day Nielsen argued that the archive discharges its geometric obligations vacuously \cite{nielsen}.
+The two positions can hold simultaneously because the kernel check and the objection concern
+different objects: the first concerns a term, the second the meaning of the term's definitions.
+Repeating the first does not answer the second, and reading the second does not contradict the
+first.
 
 \subsection{What an evaluation can be}
 
-This paper does not ask whether a claimed proof is \emph{true}. It asks a question that has
-an answer: \emph{which instrument has this claim as an input, and what is the strongest thing
-that instrument can say?} The answers are drawn from a fixed vocabulary
+This paper does not ask whether a claimed proof is \emph{true}. It asks a question that
+has a determinate answer: \emph{which instrument accepts this claim as input, and what is the
+strongest conclusion that instrument supports?} The answers are drawn from a fixed vocabulary
 (Definition~\ref{def:verdicts}): a claim can be \emph{rejected} by a logical screen, declared
 \emph{outside the domain} of every instrument held, left \emph{undetermined} with a named
 computation that would decide it, or \emph{validated} only in the finite, elementary or
-term-level sense that an instrument actually supports. The qualification ``term-level'' is a
-warning as much as a result, since a term can inhabit a type whose internal definitions carry no
-mathematics.
-There is deliberately no verdict ``true'', and no verdict ``promising''.
+term-level sense that an instrument supports. The qualification ``term-level'' limits the
+conclusion as much as it reports a result, since a term can inhabit a type whose internal
+definitions carry no mathematics. The vocabulary contains no verdict ``true'' and no verdict
+``promising''.
 
 \subsection{Contributions}
 
 \begin{enumerate}
 \item A table of instrument domains (Table~\ref{tab:instruments}): for each instrument in a
-  working screening framework, the input it accepts, the conclusion it licenses, the conclusion
-  it does not license, and its characteristic failure mode.
+  working screening framework, the input it accepts, the conclusion it supports, the conclusion
+  it does not support, and its characteristic failure mode.
 \item A protocol (Section~\ref{sec:protocol}) that assigns each claim an evidence class and a
   verdict, with a pre-registered list of observations that would falsify the study itself.
 \item An evaluation of a defined corpus (Section~\ref{sec:evaluations}): the 2026 Alp\"oge
   archive and its objection, the 2026 Masullo typescript, the proportion theorems of
-  Alp\"oge--Furman and Lamzouri, and the framework's own eleven work packages, the last as a
-  control, because a protocol that cannot reject its author's proposal is not a protocol.
+  Alp\"oge--Furman and Lamzouri, and the eleven work packages of the framework itself, the last
+  as a control, since a protocol that cannot reject its author's proposal provides no evidence of
+  discrimination.
 \item A calibration of the Davenport--Heilbronn screen (Section~\ref{sec:calibration}): the
   screen returns ``eligible'' for three of the nine candidate records in the framework's own
-  archive, which shows that eligibility is cheap and that the screen's value lies entirely in
-  what it rejects.
+  archive, so eligibility is common and the information the screen carries lies in the records
+  it rejects.
 \item A reproducibility appendix: every artefact cited is stored with a SHA-256 hash, every
-  number is produced by a committed test, and the commands are one line each.
+  number is produced by a committed test, and each command is a single line.
 \end{enumerate}
 
 \subsection{Scope, stated before the results}
 
-``All works of all mathematicians'' is not a corpus. There is no sampling frame for it: the
-population is unbounded, unbounded in time, and, decisively, not observable, because most
-arguments exist only as prose that no instrument in this paper can take as input. A study that
-claimed to evaluate it would be reporting on the works that happened to be machine-readable
-while describing itself as reporting on the works. Section~\ref{sec:corpus} therefore fixes an
-inclusion rule in advance, and the census it yields is stated with its exclusions.
+``All works of all mathematicians'' is not a corpus. No sampling frame exists for it:
+the population is unbounded in time and, decisively, not observable, because most arguments exist
+only as prose that no instrument in this paper accepts as input. A study claiming to evaluate that
+population would in fact report on the works that happen to be machine-readable.
+Section~\ref{sec:corpus} therefore fixes an inclusion rule in advance, and the census it yields is
+stated together with its exclusions.
 
 \section{The instrument panel}
 \label{sec:instruments}
@@ -163,8 +168,8 @@ inclusion rule in advance, and the census it yields is stated with its exclusion
 
 \begin{table}[t]
 \centering
-\caption{Instruments, their input domains, and what each one does \emph{not} license.
-``Yields'' is the strongest conclusion the instrument supports, not a claim about truth.}
+\caption{Instruments, their input domains, and the conclusions they do not support. ``Yields''
+names the strongest conclusion the instrument supports; it is not a claim about truth.}
 \label{tab:instruments}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.55cm}>{\raggedright\arraybackslash}p{3.05cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.5cm}@{}}
@@ -200,16 +205,16 @@ Archive with hashes & a document & that the bytes quoted are the bytes stored, a
 \end{tabularx}
 \end{table}
 
-Table~\ref{tab:instruments} is the paper's central object; the protocol in
-Section~\ref{sec:protocol} is a procedure for reading it. Two rows deserve commentary because
-they are the ones most often mistaken for each other.
+Table~\ref{tab:instruments} is the central object of the paper; the protocol in
+Section~\ref{sec:protocol} is a procedure for applying it. Two rows are frequently conflated and
+are discussed below.
 
-\subsection{The DH contrapositive, and why eligibility is cheap}
+\subsection{The DH contrapositive and the meaning of eligibility}
 \label{sec:calibration}
 
-Let $f$ be a Dirichlet series with a functional equation but no Euler product, whose zeros are
-known not all to lie on the critical line; the Davenport--Heilbronn function is the standard
-example \cite{leclair,vorsos}. Then:
+Let $f$ be a Dirichlet series with a functional equation but no Euler product, whose
+zeros are known not all to lie on the critical line; the Davenport--Heilbronn function is the
+standard example \cite{leclair,vorsos}. Then:
 
 \begin{proposition}[contrapositive screen]
 \label{prop:dh}
@@ -222,53 +227,53 @@ $\RH$ for $\DHf$, which is false. A valid argument with true premisses cannot ha
 conclusion.
 \end{proof}
 
-The screen is only as good as its inventory, and the inventory must be sourced rather than
-assumed. The framework's implementation classifies nine inputs, each with a citation and, where
-possible, a computation: three transfer to $\DHf$ (the functional equation, real coefficients,
-zero symmetry), three fail for it (the Euler product, the prime side of the explicit formula,
-Li positivity), and three are left unsourced rather than filled in from expectation (the
-Hadamard order, the zero-counting asymptotic, GUE pair correlation). Three of the nine are
-verified by computation inside the repository, including the single arithmetic fact that
-settles the Euler-product row: for the DH coefficients $b$, $b(2)b(3)=-\kappa^{2}\neq b(6)=1$,
-so the coefficients are not multiplicative.
+The screen is sound only if its inventory is sourced rather than assumed. The
+framework's implementation classifies nine inputs, each with a citation and, where possible, a
+computation: three transfer to $\DHf$ (the functional equation, real coefficients, zero
+symmetry), three fail for it (the Euler product, the prime side of the explicit formula, Li
+positivity), and three are left unsourced rather than assigned by expectation (the Hadamard
+order, the zero-counting asymptotic, GUE pair correlation). Three of the nine are verified by
+computation in the repository, among them the arithmetic fact that decides the Euler-product row:
+for the DH coefficients $b$, $b(2)b(3)=-\kappa^{2}\neq b(6)=1$, so the coefficients are not
+multiplicative.
 
-Now the calibration. The framework's own archive holds nine candidate records. Screen all nine
-and the dead list has \emph{one} entry: the framework's own flagship proposal, which declares
-only the functional equation and the zero symmetry, both of which $\DHf$ has. Three records are
-\verdict{eligible}, five are \verdict{unscreened}. Eligibility is therefore not scarce: any
-argument that touches the prime side of an explicit formula qualifies, which is most of
-analytic number theory. The screen's epistemic value is concentrated in the dead list, and a
-paper that reported only ``three of nine pass'' would be reporting the wrong statistic.
+The calibration follows. The framework's archive holds nine candidate records. Screening
+all nine leaves \emph{one} record on the dead list: the framework's flagship proposal, which
+declares only the functional equation and the zero symmetry, both of which $\DHf$ possesses. Three
+records are \verdict{eligible} and five are \verdict{unscreened}. Eligibility is therefore not
+scarce: any argument that invokes the prime side of an explicit formula qualifies, which includes
+most of analytic number theory. The information the screen carries lies in the dead list; a report
+of ``three of nine pass'' would describe the wrong quantity.
 
-A second limit is sharper and is stated here because it applies directly to
-Section~\ref{sec:masullo}. The screen tests \emph{transfer}, not \emph{circularity}. An
-argument that assumes an $\RH$-equivalent hypothesis (Li's criterion, say) is screened as
-\verdict{eligible} for DH, because Li's criterion fails for DH. The screen cannot tell
-discrimination from circularity. Passing it is necessary and nowhere near sufficient.
+A second limitation bears directly on Section~\ref{sec:masullo} and is stated here. The
+screen tests \emph{transfer}, not \emph{circularity}. An argument that assumes an
+$\RH$-equivalent hypothesis, Li's criterion for example, is screened as \verdict{eligible} for
+DH, because Li's criterion fails for DH. The screen cannot distinguish an argument that would
+transfer from one that is circular. Eligibility is necessary and not sufficient.
 
 \subsection{Finite and universal}
 
-The framework contains two proofs that a computation \emph{is} a proof, because the statements
-are finite and exactly decidable: a certified sieve establishes $p_{1{,}000{,}000}=15{,}485{,}863$
-with no gap below it, and exact integer arithmetic establishes the Riemann hypothesis for
-individual curves over finite fields: 942 elliptic curves over $\mathbb{F}_{5},\dots,
-\mathbb{F}_{19}$, 324 smooth genus-$2$ curves over $\mathbb{F}_{3}$, and 10{,}000 over
-$\mathbb{F}_{5}$, with zero failures. Neither is a numerical sample; both are finite claims
-decided exactly.
+The framework contains two proofs that a computation constitutes a proof, because the
+statements are finite and exactly decidable: a certified sieve establishes
+$p_{1{,}000{,}000}=15{,}485{,}863$ with no gap below it, and exact integer arithmetic establishes
+the Riemann hypothesis for individual curves over finite fields: 942 elliptic curves over
+$\mathbb{F}_{5},\dots,\mathbb{F}_{19}$, 324 smooth genus-$2$ curves over $\mathbb{F}_{3}$, and
+10{,}000 over $\mathbb{F}_{5}$, with no failures. Neither is a numerical sample; both are finite
+claims decided exactly.
 
 The hypothesis over $\Q$ is universal, and no finite computation establishes a universal
-statement. This is not a limitation of effort. It is the reason the rows of
-Table~\ref{tab:instruments} are not interchangeable, and the reason a ``verified to height
-$T$'' result is evidence about the height and not about the zeros.
+statement. This is a property of the statement, not a limit of effort. It is why the rows of
+Table~\ref{tab:instruments} are not interchangeable, and why a result verified to height $T$ is
+evidence about the height and not about the zeros.
 
 \subsection{What formal verification can and cannot see}
 
-The 2026 archive raises the point in its sharpest form. A kernel replay, an axiom audit and a
-statement comparison answer, respectively: does the term typecheck; which axioms does it use;
-is the theorem the intended statement. None of the three answers the question whether an
+The 2026 archive gives the clearest instance of this question. A kernel replay, an axiom
+audit and a statement comparison answer, respectively, whether the term typechecks, which axioms
+it uses, and whether the theorem is the intended statement. None of the three answers whether an
 internal definition says what its name says. If a predicate is defined as
-\texttt{fun \_ \_ \_ => True}, then a certificate built from it is a valid term, and every
-downstream step that consumes the certificate typechecks. Formally:
+\texttt{fun \_ \_ \_ => True}, a certificate built from it is a valid term, and every downstream
+step that consumes the certificate typechecks. Formally:
 
 \begin{proposition}[vacuous discharge]
 \label{prop:vacuous}
@@ -282,20 +287,20 @@ Immediate by the constructor and $\beta$-reduction: the constructor's argument i
 $\Gamma\,x$, which is definitionally $\top$; \texttt{trivial} supplies it.
 \end{proof}
 
-Proposition~\ref{prop:vacuous} is machine-checked in the framework
-(\texttt{Dispute.lean}, sorry-free for this fragment), and it is the
-checkable core of Nielsen's objection. It is also, by itself, not an objection to any
-particular archive: an archive may contain vacuous predicates that no proof calls. The decisive
-question is a dependency question, and it is not a kernel question.
+Proposition~\ref{prop:vacuous} is machine-checked in the framework (\texttt{Dispute.lean},
+sorry-free for this fragment), and it is the checkable core of Nielsen's objection. It is not by
+itself an objection to any particular archive: an archive may contain vacuous predicates that no
+proof invokes. The decisive question is a dependency question, and it is not decided by the
+kernel.
 
 \subsection{The evidence chain}
 
-Every document this paper evaluates is stored byte for byte with a SHA-256 hash and a page
-count, in the repository's \texttt{references/} directory. This is not bookkeeping. Two of the
-three documents are being actively revised by their authors, and a hash is what makes a silent
-revision detectable; the third is served from a personal site and from an archive that answers
-automated retrieval with a challenge, so a citation without stored bytes is a citation no
-future reader can check.
+Every document evaluated in this paper is stored byte for byte with a SHA-256 hash and a
+page count in the repository's \texttt{references/} directory. This is a requirement of the method
+rather than record-keeping. Two of the three documents are being revised by their authors, and a
+hash makes a silent revision detectable; the third is served from a personal site and from an
+archive that answers automated retrieval with a challenge, so a citation without stored bytes
+cannot be checked by a later reader.
 
 \section{Protocol}
 \label{sec:protocol}
@@ -312,9 +317,9 @@ reproducible computation);
 $E4$: an independent party has reproduced a check on it.
 \end{definition}
 
-The classes are nested in cost, not in strength. A claim at $E3$ with no $E1$ (a formalisation
-whose theorem is not stated in prose) is not better off than one at $E1$; it is differently
-situated, and the protocol's job is to say how.
+The classes are ordered by cost, not by strength. A claim at $E3$ with no $E1$ (a
+formalisation whose theorem is not stated in prose) is not better supported than one at $E1$; the
+two are supported differently, and the protocol's function is to state the difference.
 
 \subsection{Decision procedure}
 
@@ -352,8 +357,8 @@ mathematics their names suggest. No verdict asserts that a claim is true, and th
 
 \subsection{Pre-registered falsification criteria for this study}
 
-In the sense of Popper, a study that cannot fail is not a study. This paper is refuted by any
-one of the following:
+In the sense of Popper, a study that cannot fail is not a study. The present study is
+refuted by any one of the following:
 \begin{enumerate}
 \item a claim recorded as \verdict{rejected} whose declared-input set is shown to include an
   input that fails for DH, i.e.\ a misclassification in the inventory;
@@ -368,17 +373,17 @@ one of the following:
 
 \subsection{Why ``all works'' is not a corpus}
 
-A census needs a frame: a rule that decides membership before the results are seen, and that
-could in principle be applied to every candidate. For claims about $\RH$ there is no such rule
+A census requires a frame: a rule that decides membership before the results are seen and
+that could in principle be applied to every candidate. For claims about $\RH$ no such rule exists
 at the scale of the literature, for three reasons. The population is open: new claims appear
-daily. The claim type is heterogeneous: a claim may be a paper, a formalisation, a lecture, or
-a file; the instruments here accept only some of these. And the observable subset is
-unrepresentative by construction: an argument with no formalisation and no certificate cannot
-be screened by anything in this paper, so a census restricted to screenable claims measures the
+daily. The claim type is heterogeneous: a claim may be a paper, a formalisation, a lecture or a
+file, and the instruments used here accept only some of these. And the observable subset is
+unrepresentative by construction: an argument with no formalisation and no certificate cannot be
+screened by anything in this paper, so a census restricted to screenable claims measures the
 availability of artefacts, not the state of the subject.
 
-The honest object is therefore a \emph{defined corpus with a stated inclusion rule}, and the
-results are about that corpus. The rule used here:
+The object studied is therefore a \emph{defined corpus with a stated inclusion rule}, and
+the results concern that corpus. The rule used here:
 
 \begin{quote}
 A work is in the corpus if (i) a primary document is available for archival, (ii) it was
@@ -387,8 +392,9 @@ $\GRH$ or to a check of such a claim, and (iii) its declared inputs or its finit
 identified from the document itself.
 \end{quote}
 
-Clause (ii) is a date. It is there because the framework's evaluation machinery is itself dated,
-and comparing it to arguments written before the machinery existed would confound the two.
+Clause (ii) restricts the corpus by date. The restriction is imposed because the
+evaluation machinery is itself dated, and comparing it with arguments written before the machinery
+existed would confound the two.
 
 \subsection{The census}
 
@@ -421,12 +427,12 @@ Framework: eleven work packages & 2026 & 13 Lean modules, 1409 tests &
 
 \subsection{Exclusions}
 
-Excluded, with what their inclusion would require: arguments available only as prose without a
-PDF (needs transcription and archival, and then only the DH screen applies); claims about
-$\RH$ over function fields (out of scope: $\RH$ is a theorem there, so the analogue of the
-question is different); and the 2026 PhilArchive critique of the Masullo draft, which is
-reported but was not retrieved; it is named in the repository's record and is not counted as
-evidence anywhere in this paper.
+Excluded, with the requirement for inclusion: arguments available only as prose without a
+PDF (which would require transcription and archival, and would then be subject only to the DH
+screen); claims about $\RH$ over function fields (out of scope because $\RH$ is a theorem there, so
+the analogue of the question differs); and the 2026 PhilArchive critique of the Masullo draft, which
+is reported but was not retrieved; it is named in the repository's record and is not counted as
+evidence in this paper.
 
 \section{Evaluations}
 \label{sec:evaluations}
@@ -440,7 +446,7 @@ in 175{,}187 modules, with a stated dependency on Mathlib alone. The Lean and Ma
 communities certified the statement and the term \cite{leanmathlib}, and Sutherland's
 verification page records the mechanical audit in detail \cite{sutherland}: at the snapshot
 archived with this paper, all 175{,}187 modules compile; \texttt{\#print axioms} for the five
-headline theorems returns exactly \texttt{propext}, \texttt{Classical.choice} and
+principal theorems returns exactly \texttt{propext}, \texttt{Classical.choice} and
 \texttt{Quot.sound}; the 15 axioms in the environment are all in \texttt{Init}; Mathlib's
 compiled artefacts are byte-identical to the official cache; a sandboxed rebuild with no
 network and a read-only source tree reproduces the 61{,}570{,}595{,}788-byte export byte for
@@ -451,155 +457,154 @@ independent kernels accept the export --- \texttt{nanoda}, and \texttt{con-leche
 solution''. At the time of the snapshot the \texttt{lake comparator} run and the paranoid-kernel
 replay of the export were still in progress, and the page says so.
 
-\textbf{What the audit does not settle, in the page's own words.} Its closing caveat is that a
-passing check ``relies on those kernels and on Mathlib's definitions being what they are
-intended to be''. That is the definitional-fidelity assumption no kernel discharges, and it is
-where the fifth question of \S\ref{sec:protocol} sits. The page also fixes the scope:
-``GRH'' there means Dirichlet $L$-functions, all moduli and all characters, and ``Dedekind zeta
-functions, Hecke $L$-functions and automorphic $L$-functions in general are not among the
-statements that were checked''. The claim's own prose says the method ``easily extends much
-further, resolving the so-called Generalized Riemann Hypothesis'' \cite{alpoge}; the
-formalised GRH is the Dirichlet case, so the general statement is outside what was checked.
-That is a scope limit recorded, not a defect found, and it is the kind of limit a verification
-page states more readily than the claim it verifies.
+\textbf{What the audit does not settle.} The page's closing caveat is that a passing
+check ``relies on those kernels and on Mathlib's definitions being what they are intended to be''.
+This is the definitional-fidelity assumption that no kernel discharges, and it is the location of
+the fifth question of \S\ref{sec:protocol}. The page also fixes the scope: ``GRH'' there denotes
+Dirichlet $L$-functions, for all moduli and all characters, and ``Dedekind zeta functions, Hecke
+$L$-functions and automorphic $L$-functions in general are not among the statements that were
+checked''. The claim's own prose states that the method ``easily extends much further, resolving
+the so-called Generalized Riemann Hypothesis'' \cite{alpoge}; the formalised GRH is the Dirichlet
+case, so the general statement lies outside what was checked. This is a scope limit recorded by the
+page and not a defect identified in the archive.
 
-\textbf{What the instruments say.} The statement is Mathlib's \texttt{RiemannHypothesis}; the
-term has that type; the axiom set is the standard one. In the vocabulary of
-Definition~\ref{def:verdicts}, that is a \verdict{validated} verdict about a \emph{term}, and
-that verdict is not available for reuse as a verdict about the \emph{argument}, because no
-argument is written down. The author says why: a prose write-up would be a ``massive unreadable
+\textbf{What the instruments establish.} The statement is Mathlib's
+\texttt{RiemannHypothesis}; the term has that type; the axiom set is the standard one. In the
+vocabulary of Definition~\ref{def:verdicts} this is a \verdict{validated} verdict about a
+\emph{term}, and it cannot be reused as a verdict about the \emph{argument}, because no argument is
+written down. The author states the reason: a prose write-up would be a ``massive unreadable
 travesty of `slop'\,'' \cite{alpoge}.
 
-\textbf{The objection, and its status.} Nielsen's 13-page reading of the source \cite{nielsen}
-argues that the hypothesis bundle is inhabited through vacuous witnesses: a geometry predicate
-defined as \texttt{fun \_ \_ \_ => True}; a degenerate model whose positivity fields are
-$\top$ and whose index types are empty; a map from lattices to sections that is the zero map; a
-lattice identification that holds by \texttt{rfl}; and a height equation that holds because the
-height was assigned to be its own formula. Her Section~8 collects the findings; her Section~9
-lists four checks that would settle the matter, of which the decisive one is a transitive
-dependency trace from the final theorem to the definitions that discharge the geometric
-obligations; and her Section~10 states the limits of her own method: about 70 files read of
-175{,}187, no build, no axiom print, no compiled trace.
+\textbf{The objection.} Nielsen's 13-page reading of the source \cite{nielsen} argues
+that the hypothesis bundle is inhabited through vacuous witnesses: a geometry predicate defined as
+\texttt{fun \_ \_ \_ => True}; a degenerate model whose positivity fields are $\top$ and whose
+index types are empty; a map from lattices to sections that is the zero map; a lattice
+identification that holds by \texttt{rfl}; and a height equation that holds because the height was
+assigned to be its own formula. Her Section~8 collects the findings; her Section~9 lists four
+checks that would settle the matter, the decisive one being a transitive dependency trace from the
+final theorem to the definitions that discharge the geometric obligations; and her Section~10
+states the limits of her own method: approximately 70 files read out of 175{,}187, no build, no
+axiom print, and no compiled trace.
 
 The protocol's verdict on the objection is \verdict{undetermined}, with the decisive
-computation named: the dependency trace. The protocol's verdict on the certification is
-\verdict{validated (term)}, together with the observation that a term verdict is a scoped
-conditional --- \emph{this} term inhabits \emph{this} statement under \emph{this} axiom set ---
-and that both antecedents sit outside its scope: the statement may not be the intended one, and
-the definitions it invokes may carry no mathematics. This is the paper's central worked example
-of the gap in Section~1.1, and it is why the framework stores the logical core of the objection
-as a proved lemma (Proposition~\ref{prop:vacuous}) while refusing to state the objection itself
-as a theorem about \texttt{RiemannHypothesis}: a claim about source code cannot be expressed as
-a Lean proposition about $\RH$, and pretending otherwise would be an equivocation.
+computation named: the dependency trace. Its verdict on the certification is
+\verdict{validated (term)}, together with the statement that a term verdict is a scoped
+conditional: \emph{this} term
+inhabits \emph{this} statement under \emph{this} axiom set, and both antecedents lie outside its
+scope, since the statement may not be the intended one and the definitions it invokes may carry no
+mathematics. This is the principal worked example of the gap described in
+Section~\ref{sec:instruments}, and it is why the framework stores the logical core of the objection
+as a proved lemma (Proposition~\ref{prop:vacuous}) while not stating the objection itself as a
+theorem about \texttt{RiemannHypothesis}: a claim about source code cannot be expressed as a Lean
+proposition about $\RH$.
 
-\textbf{The trace, implemented and calibrated; not run on the archive.} The dependency trace is
-no longer a named computation and nothing more. Appendix~\ref{app:executed} gives the
-implementation, the rule that a kernel pass without a trace is \verdict{undetermined} by
-construction, and two controls with known answers: a theorem of this repository that states
-the vacuity and whose closure therefore contains the vacuous predicate, and a theorem beside it
-whose closure does not. The closure is computed twice, by two independent traversals of Lean's
-environment, and the report carries the difference when there is one
-(\S\ref{sec:crossval}). On the published archive the trace has \emph{not} been run here, and
-the report says so in the finding rather than in a footnote: the archive is 931~MB of git blobs
-and 61.5~GB of export, it pins Lean v4.33.1 against this repository's v4.34.0-rc2, and it is
-not held on this machine. What changed in this revision is that the computation is executable,
-its discriminating power is demonstrated, and the exact command that would settle the dispute is
-printed in the record. The panel verdict for the claim is \verdict{undetermined}: the term is
-\verdict{validated (term)}, and the panel does not promote the term verdict to the claim.
+\textbf{The trace: implemented and calibrated, not run on the archive.} The dependency
+trace is no longer a name for a computation that was not performed.
+Appendix~\ref{app:executed} gives the implementation, the rule that a kernel pass without a trace is
+\verdict{undetermined} by construction, and two controls with known answers: a theorem of this
+repository that states the vacuity, whose closure contains the vacuous predicate, and a theorem beside
+it whose closure does not. The closure is computed twice, by two independent traversals of Lean's
+environment, and the report carries the difference when one exists (\S\ref{sec:crossval}). On the
+published archive the trace has not been run here, and the report states this in the finding rather
+than in a footnote: the archive is 931~MB of git blobs and 61.5~GB of export, it pins Lean v4.33.1
+against this repository's v4.34.0-rc2, and it is not held on this machine. The revision establishes
+that the computation is executable, that its discriminating power is demonstrated on controls, and
+that the command which would settle the dispute is printed in the record. The panel verdict for the
+claim is \verdict{undetermined}: the term is \verdict{validated (term)}, and the panel does not
+promote a term verdict to a claim verdict.
 
-\textbf{One open, decidable item.} Nielsen names four identifiers for the degenerate model
-(\texttt{geoDegenerate}, \texttt{algDegenerate}, \texttt{padDegenerate},
-\texttt{mdlJunk}) as ``the release's own''. A third-party audit reports that every
-\texttt{degenerate} hit in the tree is the ordinary word \texttt{nondegenerate} \cite{chu}.
-One of the two is wrong, and the test is a single case-sensitive search over the archive. The
-framework records the conflict and does not resolve it: it does not hold the 61.5~GB export. A
-case-sensitive search for \texttt{degenerate} would not match \texttt{geoDegenerate}, which is
-a plausible mechanism for the discrepancy; that hypothesis is itself checkable and is not
-checked here.
+\textbf{An open item with a decidable test.} Nielsen names four identifiers of the
+degenerate model (\texttt{geoDegenerate}, \texttt{algDegenerate}, \texttt{padDegenerate},
+\texttt{mdlJunk}) as ``the release's own''. A third-party audit reports that every occurrence of
+\texttt{degenerate} in the tree is the ordinary word \texttt{nondegenerate} \cite{chu}. One of the
+two reports is incorrect, and the test is a single case-sensitive search over the archive. The
+framework records the conflict and does not resolve it, because it does not hold the 61.5~GB
+export. A case-sensitive search for \texttt{degenerate} would not match \texttt{geoDegenerate},
+which is a plausible mechanism for the discrepancy; that hypothesis is checkable and is not checked
+here.
 
 \subsection{The Masullo draft: no statement to screen}
 \label{sec:masullo}
 
-\textbf{Evidence.} A 940-page typescript \cite{masullo}, archived with its hash. Its
-acknowledgements describe a draft: ``the math is complete, and only filling in some writing
-remains'', ``the introduction itself is unfinished'', and ``several glitches here and there that
-I was in the process of addressing''. The file was created on 2026-11-20 at 19:13, six hours
-after Alp\"oge's remark.
+\textbf{Evidence.} The document under review is a 940-page typescript \cite{masullo},
+archived with the hash recorded in Table~\ref{tab:hashes}. The file is dated 2026-11-20 19:13 in
+its metadata, and its acknowledgements describe the text as a draft in progress: ``the math is
+complete, and only filling in some writing remains'', ``the introduction itself is unfinished'', and
+``several glitches here and there that I was in the process of addressing''.
 
-\textbf{The statement is a placeholder.} Chapter~13, ``Zeros of Hecke $L$-functions'', occupies
-pp.~521--522. Its Section~13.3 is titled \emph{Main Theorems on the location of the zeros}.
-Theorem~13.3.1.1 (Trace Formula) is stated. The text then reads ``Upon combining Theorem
-13.3.1.1 and Theorem ??, we obtain the following:''. Theorem~13.3.1.2, \emph{Divisor of
-$L(s,\chi)$}, is printed with its number and title and no statement at all; the footnotes on
-that page read ``Correct statement.'', ``Insert statement.'', and ``State and prove the Main
-Theorems, also explaining how to deduce them by approximation
-$\varphi\to e^{-s|\log t|}$ as $\mathrm{Re}(s)>1$.'' The GRH content is attributed to that
-theorem one chapter later, at p.~528, under the author's own footnote ``Correct this
-subsection.''
+\textbf{Theorem~13.3.1.2 has no statement.} Chapter~13, ``Zeros of Hecke
+$L$-functions'' (pp.~521--522), contains Section~13.3, \emph{Main Theorems on the location of the
+zeros}, in which Theorem~13.3.1.1 (Trace Formula) is stated in full. The text then reads ``Upon
+combining Theorem 13.3.1.1 and Theorem ??, we obtain the following:'', and the theorem,
+\emph{Divisor of $L(s,\chi)$}, appears as a number and a title only, with no statement attached.
+The three footnotes on that page are the author's and read ``Correct statement.'', ``Insert
+statement.'', and ``State and prove the Main Theorems, also explaining how to deduce them by
+approximation $\varphi\to e^{-s|\log t|}$ as $\mathrm{Re}(s)>1$.'' One chapter later, at p.~528,
+the text attributes the GRH conclusion to that theorem, under a footnote by the author reading
+``Correct this subsection.''
 
-In the protocol's terms this is a finding at step~2, and it bounds the evaluation: a theorem
-that is not stated is not screened, and a verdict about it would be a verdict about a name.
-The correct output is \verdict{outside domain} for every instrument except one.
+This is a finding at step~2 of the protocol, and it bounds the evaluation: a theorem that
+is not stated cannot be screened, and a verdict about it would describe its number rather than its
+content. The protocol's output is therefore \verdict{outside domain} for every instrument but
+one.
 
-\textbf{The one instrument that applies.} The draft's declared inputs can be read off its own
-sections: the Euler product (\S1.4.7, \S14.1.2, where partial Euler products are used); the
-prime side of Weil's explicit formula (\S3.4, Appendix B.4; the stated trace formula carries an
-explicit sum over finite places weighted by $\log q_v$); and the functional equation
-(\S14.1.1, Appendix B.4). Run the DH screen on that declaration and the verdict is
-\verdict{eligible}: the two arithmetic inputs fail for DH, so the contrapositive of
-Proposition~\ref{prop:dh} does not fire. The screen's calibration
-(Section~\ref{sec:calibration}) applies with full force: three of nine records in the
-framework's archive are also eligible, and eligibility is permission, not promise.
+\textbf{The instrument that applies.} The draft's declared inputs can be read from its
+sections: the Euler product (\S1.4.7, \S14.1.2, where partial Euler products are used); the prime
+side of Weil's explicit formula (\S3.4, Appendix B.4; the stated trace formula carries an explicit
+sum over finite places weighted by $\log q_v$); and the functional equation (\S14.1.1, Appendix
+B.4). Applied to that declaration the DH screen returns \verdict{eligible}, because the two
+arithmetic inputs fail for DH and the contrapositive of Proposition~\ref{prop:dh} does not fire.
+The screen's calibration (Section~\ref{sec:calibration}) applies: three of the nine records in the
+framework's archive are also eligible, and eligibility is permission rather than evidence.
 
-Two absences from the declaration are as informative as its contents. The draft says at
-\S1.4.6 that Weil's positivity criterion is \emph{not} used; declared, it would have misstated
+Two absences from the declaration are informative. The draft states at \S1.4.6 that
+Weil's positivity criterion is not used; had it been declared, the declaration would have misstated
 the paper and would not have strengthened the verdict, since Li's criterion fails for DH and the
-screen would have read \verdict{eligible} from an $\RH$-equivalent input. And the trace formula
-is proved only for test functions with $\varphi(C_F^{1})=0$, a restriction the text says twice
-``cannot be removed before GRH is proved'' (pp.~30, 35). The removal step is exactly what the
-missing Chapter~13 would supply. The draft therefore describes a strategy whose two load-bearing
-steps are, on its own account, not yet carried out.
+screen would have returned \verdict{eligible} on an $\RH$-equivalent input. The trace formula is
+proved only for test functions with $\varphi(C_F^{1})=0$, a restriction that the text states twice
+``cannot be removed before GRH is proved'' (pp.~30, 35). The removal step is precisely what the
+missing Chapter~13 would supply. The draft thus describes a strategy whose two load-bearing steps
+are, on its own account, not yet carried out.
 
-\textbf{Verdicts.} \verdict{outside domain} for the numerical instruments (there is no
-spectrum), for the kernel (there is no formalisation), and for the mathematics as posted,
-because the theorem is not stated. Once Theorem~13.3.1.2 is stated and proved the verdict
-becomes \verdict{undetermined}, with the decisive observations already named: the statement
-itself, and the removal of the test-function restriction. The DH screen returns
-\verdict{eligible} for the declared inputs, and the protocol records that this is the weakest
-positive label in its vocabulary.
+\textbf{Verdicts.} \verdict{outside domain} for the numerical instruments (no spectrum is
+supplied), for the kernel (no formalisation is supplied), and for the mathematics as posted,
+because the theorem is not stated. If Theorem~13.3.1.2 were stated and proved, the verdict would
+become \verdict{undetermined}, with the decisive observations already identified: the statement
+itself and the removal of the test-function restriction. The DH screen returns \verdict{eligible}
+for the declared inputs, which the protocol records as its weakest positive label.
 
 \subsection{The proportion theorems: what an elementary certificate can and cannot do}
 
-\textbf{Evidence.} Alp\"oge--Furman \cite{alpogefurman} prove that more than two thirds of the
-non-trivial zeros are simple and on the critical line ($0.6725$ with the Montgomery--Taylor
+\textbf{Evidence.} Alp\"oge--Furman \cite{alpogefurman} prove that more than two thirds of
+the non-trivial zeros are simple and on the critical line ($0.6725$ with the Montgomery--Taylor
 window), and Lamzouri \cite{lamzouri} proves the same for more than five sixths ($0.83625$
-distinct). Both are proportion theorems and both say so.
+distinct). Both are proportion theorems.
 
-\textbf{The certificates.} The framework implements the elementary parts: a rank--trace
-inequality, a multiset inequality for conjugation-invariant multisets, the constant chain
-$2-R(\psi)$ and $(3-R(\psi))/2$, and the admissibility of the kernel used. The tests weight the
-explicit tight cases above random search, because a Monte Carlo search cannot prove an
-inequality; it can only fail to find a counterexample. Measured: the rank--trace inequality
-held in 20{,}000 random admissible cases with worst margin $0.096$; the multiset inequality
-held in 3{,}000 conjugation-invariant multisets with tightest margin $0.0$: the tight case
-again, which is what pins the normalisation; and the constants evaluate to
-$0.6725007037$ and $0.8362503518$, matching both papers.
+\textbf{The certificates.} The framework implements the elementary components: a
+rank--trace inequality, a multiset inequality for conjugation-invariant multisets, the constant
+chain $2-R(\psi)$ and $(3-R(\psi))/2$, and the admissibility of the kernel used. The tests
+emphasise the explicit tight cases over random search, because a Monte Carlo search cannot prove an
+inequality and can only fail to find a counterexample. Measured: the rank--trace inequality held in
+20{,}000 random admissible cases with worst margin $0.096$; the multiset inequality held in
+3{,}000 conjugation-invariant multisets with tightest margin $0.0$, which is the tight case and
+fixes the normalisation; and the constants evaluate to $0.6725007037$ and $0.8362503518$, matching
+both papers.
 
 \textbf{Verdict.} \verdict{validated (elementary)} for those components, with the analytic
 inputs named and outside the validation: Weil's explicit formula, the unconditional prime-side
-second moment, Montgomery--Vaughan, Chebyshev--Mertens, Stirling. And a \verdict{rejected}
-verdict for the stronger reading, on the papers' own evidence: their inputs hold for
-Davenport--Heilbronn and Epstein zeta functions, for which the analogue of $\RH$ is false, so
-by Proposition~\ref{prop:dh} the method cannot reach $\RH$. That is not a caveat attached to
-the result; it is a proof that this method has a ceiling, and it is the cleanest example in the
-corpus of a paper being right about what it does not do.
+second moment, Montgomery--Vaughan, Chebyshev--Mertens, and Stirling. A \verdict{rejected} verdict
+applies to the stronger reading on the papers' own evidence: their inputs hold for
+Davenport--Heilbronn and Epstein zeta functions, for which the analogue of $\RH$ is false, so by
+Proposition~\ref{prop:dh} the method cannot reach $\RH$. The rejection does not qualify the result;
+it establishes the limit of the method and is the clearest instance in the corpus of a paper that
+states the limit of its own argument.
 
 \subsection{The framework's own work packages: the control}
 
 \begin{table}[t]
 \centering
 \caption{Self-application. The framework's own proposals are screened with the same protocol;
-one is rejected by the screen it was built to survive, and the programme is abandoned by its own
+one is rejected by the screen it was designed to survive, and the programme is abandoned by its own
 pre-registered criteria.}
 \label{tab:self}
 \footnotesize
@@ -631,13 +636,12 @@ elementary certificates & \verdict{validated (elementary)} & 20{,}000 and 3{,}00
 \end{tabularx}
 \end{table}
 
-Section~\ref{sec:evaluations} would be worthless if the protocol could only reject other
-people's work. Table~\ref{tab:self} is the control. The framework's flagship proposal is the
+Section~\ref{sec:evaluations} would provide no evidence if the protocol could only reject
+the work of others. Table~\ref{tab:self} is the control. The framework's flagship proposal is the
 single entry on the dead list; its sector programme was abandoned by criteria fixed before the
-measurements; and its negative results are retained as findings rather than quietly dropped.
-The same instrument that returns \verdict{eligible} for the Masullo draft returns
-\verdict{rejected} for the framework's own operator, which is the only calibration of a screen
-that matters.
+measurements; and its negative results are retained as findings rather than withdrawn. The same
+instrument that returns \verdict{eligible} for the Masullo draft returns \verdict{rejected} for the
+framework's own operator, which is the calibration on which the screen's discrimination depends.
 
 \subsection{Results}
 
@@ -670,120 +674,121 @@ Finite-field / prime certificates & validated (finite) & 3 & an exact counterexa
 \end{tabularx}
 \end{table}
 
-The distribution is the paper's headline result, and it is deliberately unflattering to the
-corpus. Of eleven entries, three are rejected: two of them methods rejected on their own
-evidence, one of them the framework's flagship proposal. Two are outside every domain held,
-one is undetermined with a named decisive computation, one is eligible without being validated,
-and four are validated: one as a statement about a proof term, one as a finite statement, and
-two in the elementary sense, with their analytic inputs explicitly outside the validation. Not
-one entry is, or could be, a validated proof of $\RH$.
+Of the eleven entries, three are rejected: two methods rejected on their own evidence and
+the framework's flagship proposal. Two are outside every domain held, one is undetermined with a
+named decisive computation, one is eligible without being validated, and four are validated: one as
+a statement about a proof term, one as a finite statement, and two in the elementary sense, with
+their analytic inputs explicitly outside the validation. No entry is, or could be, a validated proof
+of $\RH$.
 
 \section{Threats to validity}
 
-\paragraph{Instrument validity.} The DH screen rejects only when every declared input transfers,
-and it accepts only declaration sets. An author who omits an input, or names one the inventory
-cannot classify, moves the verdict without changing the argument. \emph{Mitigation:} inputs are
-declared in a file with the section reference that shows them in use; an unknown key degrades to
-\verdict{unscreened} rather than passing; and the record and the module are compared by test so
-they cannot drift apart. \emph{Residual:} a deliberate omission is not detectable by the screen.
+\paragraph{Instrument validity.} The DH screen rejects only when every declared input
+transfers, and it accepts only declaration sets. An author who omits an input, or names one the
+inventory cannot classify, changes the verdict without changing the argument. \emph{Mitigation:}
+inputs are declared in a file with the section reference that shows them in use; an unknown key
+degrades to \verdict{unscreened} rather than passing; and the record and the module are compared by
+test, so the two cannot diverge. \emph{Residual:} a deliberate omission cannot be detected by the
+screen.
 
 \paragraph{Screen calibration.} Three of nine records are eligible, so eligibility is weak
-evidence. \emph{Mitigation:} the paper reports the dead list, not the eligible list, as the
-screen's output. \emph{Residual:} readers may still quote the label.
+evidence. \emph{Mitigation:} the paper reports the dead list rather than the eligible list as the
+screen's output. \emph{Residual:} readers may cite the label without its qualification.
 
-\paragraph{Corpus bias.} The inclusion rule requires a machine-readable or archival document.
-That selects for claims made by people who write formalisations, which is not a random sample of
-claims. \emph{Mitigation:} the rule is stated before the results, and the exclusions are listed
-with what would be needed to include them. \emph{Residual:} the census cannot be extrapolated.
+\paragraph{Corpus bias.} The inclusion rule requires a machine-readable or archival
+document, which selects for claims made by authors who write formalisations and is not a random
+sample of claims. \emph{Mitigation:} the rule is stated before the results, and the exclusions are
+listed with the requirement for inclusion. \emph{Residual:} the census cannot be extrapolated.
 
-\paragraph{Evidence-class inflation.} A claim with a formalisation may be treated as better
-supported than a claim with a reading, whereas the two are differently supported. \emph{Mitigation:}
-the verdict vocabulary has no ordering, and Table~\ref{tab:results} prints the evidence class
-next to the verdict rather than folding them together.
+\paragraph{Evidence-class inflation.} A claim accompanied by a formalisation may be treated
+as better supported than a claim accompanied by a reading, whereas the two are supported
+differently. \emph{Mitigation:} the verdict vocabulary has no ordering, and
+Table~\ref{tab:results} prints the evidence class next to the verdict rather than combining
+them.
 
-\paragraph{Author position.} The framework's author conducts the evaluation, including of his
-own proposals. \emph{Mitigation:} the self-application table is a pre-registered control, the
-criteria for abandoning the flagship programme were fixed before the measurements, and the
-sentences that could be self-serving (``eligible'', ``undetermined'') are the weakest in the
+\paragraph{Author position.} The author of the framework conducts the evaluation,
+including of his own proposals. \emph{Mitigation:} the self-application table is a pre-registered
+control, the criteria for abandoning the flagship programme were fixed before the measurements, and
+the verdicts that could be self-serving (``eligible'', ``undetermined'') are the weakest in the
 vocabulary, with the strongest reserved for the finite statements. \emph{Residual:} independent
-replication is the only real remedy and is not claimed.
+replication is the only adequate remedy and is not claimed.
 
-\paragraph{Archival dependence.} Hashes protect the bytes, not the availability of the source.
-\emph{Mitigation:} the three documents are stored in the repository, not merely linked.
+\paragraph{Archival dependence.} Hashes protect the bytes and not the availability of the
+source. \emph{Mitigation:} the three documents are stored in the repository rather than linked.
 
-\paragraph{Four limitations, restated after review.}
-A reader of the first version of this paper objected to four things, and the objection was
-correct about each. They are restated here with what this revision did to them, because a
-limitation that is only acknowledged in the body is a limitation a reader has to reconstruct.
+\paragraph{Four limitations, restated after review.} A reader of the first version of this
+paper raised four objections, each of which was correct. They are restated here with the change this
+revision makes to each, because a limitation acknowledged only in the body must be reconstructed by
+the reader.
 
 \begin{enumerate}
-\item \emph{The corpus is small and date-restricted by design.} The inclusion rule admits only
-  works released on or after 20 November 2026 and publicly attributed to a claimed proof of
-  $\RH$ or $\GRH$. That is defensible for a pilot and it is not a stress test: the long tail of
-  historical $\RH$ claims is untouched. Section~\ref{sec:corpus} already says that ``all works
-  of all mathematicians'' is not a corpus; what it does not say is what a stress test would
-  cost. Appendix~\ref{app:executed} says it, with the shape of the historical corpus and the
-  one class of claim, prose without a formalisation, for which the protocol's answer is already
-  known and cheap. The residual is unchanged and is a fact about the study, not about the
-  protocol: no historical claim is evaluated here, and none of the protocol's behaviour on one
-  is claimed.
+\item \emph{The corpus is small and restricted by date.} The inclusion rule admits only works
+  released on or after 20 November 2026 and publicly attributed to a claimed proof of $\RH$ or
+  $\GRH$. That is defensible for a pilot study but is not a stress test: the long tail of
+  historical $\RH$ claims is untouched. Section~\ref{sec:corpus} states that ``all works of all
+  mathematicians'' is not a corpus; it does not state what a stress test would require.
+  Appendix~\ref{app:executed} supplies that, with the shape of the historical corpus and the one
+  class of claim, prose without a formalisation, for which the protocol's answer is already known
+  and inexpensive. The residual is a fact about this study and not about the protocol: no
+  historical claim is evaluated here, and no claim is made about the protocol's behaviour on such
+  material.
 \item \emph{The DH screen tests transfer, not circularity.} An argument that assumes an
-  $\RH$-equivalent hypothesis is screened as eligible for $\DHf$, because the equivalent fails
-  for $\DHf$: the screen can tell that the argument is not transferable and cannot tell that it
-  is circular. This revision adds the dual screen. A declared input is compared against an
-  equivalence table that is total over the inventory, and the one row that is an equivalence,
-  Li's criterion, is also a row that fails for $\DHf$. An argument that declares only it is
-  therefore marked \verdict{eligible} for exactly the reason it cannot be a proof of $\RH$:
-  eligibility and circularity become the same fact about the argument, and the screen reports
-  \verdict{rejected} with that sentence in the evidence.
-\item \emph{The dependency question is named but not resolved for Alp\"oge.} The paper named
-  the decisive computation and did not perform it, which is what the objection says. This
+  $\RH$-equivalent hypothesis is screened as eligible for $\DHf$, because the equivalent fails for
+  $\DHf$: the screen can establish that the argument is not transferable and cannot establish that
+  it is circular. This revision adds the dual screen. A declared input is compared against an
+  equivalence table that is total over the inventory, and the one row that is an equivalence, Li's
+  criterion, is also a row that fails for $\DHf$. An argument that declares only that row is
+  therefore marked \verdict{eligible} for the same reason that it cannot be a proof of $\RH$:
+  eligibility and circularity become one fact about the argument, and the screen reports
+  \verdict{rejected} with that statement in the evidence.
+\item \emph{The dependency question is named but not resolved for Alp\"oge.} The paper named the
+  decisive computation and did not perform it, which is the substance of the objection. This
   revision implements it, calibrates it against two theorems of this repository with known
-  closures, and states plainly that it has still not been run on the published archive, for the
-  reasons in \S\ref{sec:alpoge}. What is no longer true is that the computation is a promissory
-  note: it is code with controls, and the record carries the command.
-\item \emph{The verdict on Alp\"oge is validated at term level, not proven.} Correct, and the
-  revision makes it structurally impossible to read otherwise. A kernel pass now counts as
-  \verdict{validated (term)} for the \emph{panel} only together with a dependency trace that
-  came back clean, so the claim's panel verdict is \verdict{undetermined} while its statement
-  row remains \verdict{validated (term)}. A reader looking for a definitive answer to ``is the
-  Alp\"oge proof valid?'' will not find one here, and the report says why in its own line: no
-  instrument in this panel can answer that without the trace.
+  closures, and states that it has still not been run on the published archive, for the reasons in
+  \S\ref{sec:alpoge}. The computation is no longer a statement of intent: it is code with controls,
+  and the record carries the command.
+\item \emph{The verdict on Alp\"oge is validated at term level, not proven.} The objection is
+  correct, and the revision makes that reading structurally unavailable. A kernel pass now counts
+  as \verdict{validated (term)} for the \emph{panel} only together with a dependency trace that
+  returned clean, so the claim's panel verdict is \verdict{undetermined} while its statement row
+  remains \verdict{validated (term)}. A reader seeking a definitive answer to ``is the Alp\"oge
+  proof valid?'' will not find one in this paper, and the report states the reason in its own line:
+  no instrument in this panel can answer that question without the trace.
 \end{enumerate}
 
 \section{Related work}
 
-The Xena Project's four criteria \cite{xena} are criteria about statements and terms; this paper
-adopts them as one row of Table~\ref{tab:instruments} and adds the rows they do not cover. The
-Lean and Mathlib statement \cite{leanmathlib} and Sutherland's verification files
-\cite{sutherland} supply the mechanical audit whose scope is analysed in \S\ref{sec:instruments}.
-Nielsen's analysis \cite{nielsen} is the corpus's clearest instance of a reading-based objection
-to a kernel-certified term, and her Section~10 limits are quoted rather than paraphrased away.
-The proportion theorems \cite{alpogefurman,lamzouri} are the corpus's clearest instance of a
-paper stating its own ceiling; the Davenport--Heilbronn literature \cite{leclair,vorsos,franca}
-supplies the counterexample class that makes the ceiling a theorem. The framework's own negative
-results are collected in a lessons-learned document that this paper treats as data.
+The Xena Project's four criteria \cite{xena} concern statements and terms; this paper
+adopts them as one row of Table~\ref{tab:instruments} and adds the rows they do not cover. The Lean
+and Mathlib statement \cite{leanmathlib} and Sutherland's verification files \cite{sutherland}
+supply the mechanical audit whose scope is analysed in \S\ref{sec:instruments}. Nielsen's analysis
+\cite{nielsen} is the corpus's clearest instance of a reading-based objection to a kernel-certified
+term, and the limits she states in Section~10 are quoted rather than paraphrased. The proportion
+theorems \cite{alpogefurman,lamzouri} are the corpus's clearest instance of a paper stating the
+limit of its own method; the Davenport--Heilbronn literature \cite{leclair,vorsos,franca} supplies
+the counterexample class that makes the limit a theorem. The framework's negative results are
+collected in a lessons-learned document that this paper treats as data.
 
 \section{Conclusion}
 
-The instruments answer different questions, and the discipline that matters is not running more
-of them but assigning each claim to the one whose input domain it occupies, and saying
-``outside domain'' when there is none. Applied to the 2026 corpus, the protocol yields three
-rejections, two claims outside every domain, one undetermined entry with a named decisive
-computation, one eligible-but-unvalidated declaration, and four validated statements none of
-which is a proof of the Riemann hypothesis. The two largest claims in the corpus are the two
-that cannot be evaluated: one has no prose argument, the other has no statement yet. That is an
-uncomfortable result for a paper about evaluation, and it is the correct one.
+The instruments answer different questions. The relevant discipline is not to run more of
+them but to assign each claim to the instrument whose input domain it occupies and to record
+``outside domain'' when no such instrument exists. Applied to the 2026 corpus, the protocol yields
+three rejections, two claims outside every domain, one undetermined entry with a named decisive
+computation, one eligible but unvalidated declaration, and four validated statements, none of which
+is a proof of the Riemann hypothesis. The two largest claims in the corpus are the two that cannot
+be evaluated: one has no prose argument and the other has no statement. The result is unfavourable
+to the corpus and is the one the evidence supports.
 
-The Riemann hypothesis remains open. Nothing in this paper is evidence for or against it, and
-no verdict in Table~\ref{tab:results} would change if it were settled tomorrow, except the
-\verdict{undetermined} entry, which would stop being interesting.
+The Riemann hypothesis remains open. Nothing in this paper is evidence for or against it,
+and no verdict in Table~\ref{tab:results} would change if the hypothesis were settled, except the
+\verdict{undetermined} entry, which would cease to be of interest.
 
 \appendix
 \section{Reproducibility}
 
-All commands run from the repository root; the Python interpreter is the one the project
-pins, and every number quoted above is produced by a committed test.
+All commands are run from the repository root; the Python interpreter is the version the
+project pins, and every number quoted above is produced by a committed test.
 
 \begin{verbatim}
 python -m pytest python/tests -q            # 1409 passed
@@ -794,13 +799,13 @@ python -m pytest python/tests/test_reference_archive.py -q
 \end{verbatim}
 
 The paper is itself guarded, on the principle that a document about verification should be
-verifiable. \texttt{python/tests/test\_evaluation\_paper.py} extracts this PDF's text layer and
-checks four things: that the page and character counts are the compiled article's; that the
-sentence keeping the hypothesis open is present; that none of the six phrases asserting a proof
-appears; and that the sixteen-hex-digit hashes printed in Table~\ref{tab:hashes} are prefixes of
-the SHA-256 digests of the archived files. It cannot check whether the verdicts are right; only
-the criteria in \S\ref{sec:protocol} can do that, and they are printed in the paper for a reader
-to apply against the author.
+verifiable. \texttt{python/tests/test\_evaluation\_paper.py} extracts the text layer of this PDF and
+checks four properties: that the page and character counts are those of the compiled article; that
+the sentence stating that the hypothesis remains open is present; that none of the six phrases
+asserting a proof appears; and that the sixteen-hex-digit hashes printed in
+Table~\ref{tab:hashes} are prefixes of the SHA-256 digests of the archived files. The check cannot
+determine whether the verdicts are correct; only the criteria in \S\ref{sec:protocol} can do that,
+and they are printed so that a reader may apply them to the author.
 
 \begin{table}[h]
 \centering
@@ -828,13 +833,14 @@ the property of their authors and are stored for verification only.
 \section{Three computations from the corpus, and what each one tests}
 \label{app:three}
 
-The evaluations of Section~\ref{sec:evaluations} are claims about claims. The computations
-recorded here are claims about computations, and they are kept for the reason the protocol
-exists: a number is evidence only for the quantity it actually computes. All three were run at
-30 significant digits by \texttt{scripts/audit/three\_checks.py}, which prints the JSON these
-tables summarise; the counterexample of \S\ref{app:split} is also formalised in Lean
-(\S\ref{app:split}). Of the three, one supplies a counterexample, one measures a different
-quantity from the one it names, and one is a consistency check that cannot be evidence.
+The evaluations of Section~\ref{sec:evaluations} are claims about claims. The
+computations recorded here are claims about computations, and they are retained because of the
+principle on which the protocol rests: a number is evidence only for the quantity it actually
+computes. All three were run at 30 significant digits by
+\texttt{scripts/audit/three\_checks.py}, which writes the JSON these tables summarise; the
+counterexample of \S\ref{app:split} is also formalised in Lean (\S\ref{app:split}). Of the three
+computations, one supplies a counterexample, one measures a quantity different from the one it
+names, and one is a consistency check that cannot serve as evidence.
 
 \subsection{The split-prime certificate}
 \label{app:split}
@@ -890,27 +896,27 @@ One correction to the record: in $\mathbb{Q}(\sqrt{5})$ the prime $5$ is ramifie
 field where $5$ splits, such as $\mathbb{Q}(i)$; in the ramified case the local norm is $g^2$
 and unit norm forces a unit component, so the phenomenon is exactly a split-prime phenomenon.
 
-\subsection{The Archimedean test, and the quantity it actually measures}
+\subsection{The Archimedean test, and the quantity it measures}
 
 A verification script supplied for this paper integrates
 \[
   M(\sigma,T)=\int_0^T e^{-\pi x^2}x^{\sigma-1}\,dx
 \]
 and reads the growth of $\Gamma_{\mathbb{R}}(\sigma)=\pi^{-\sigma/2}\Gamma(\sigma/2)$ as
-$\sigma\to0^{+}$ as a failure of the uniform bound that Masullo \S1.4.3 (= \S1.8.4.3) asserts.
-The integral is elementary: substituting $u=\pi x^2$,
+$\sigma\to0^{+}$ as a failure of the uniform bound asserted in Masullo \S1.4.3 (= \S1.8.4.3).
+The integral is elementary: with the substitution $u=\pi x^2$,
 \[
   M(\sigma,T)=\tfrac12\,\pi^{-\sigma/2}\,\gamma\!\left(\tfrac{\sigma}{2},\pi T^2\right)
   \longrightarrow \tfrac12\,\Gamma_{\mathbb{R}}(\sigma),
 \]
-so it converges for every $\sigma>0$ and its growth is the pole of $\Gamma$ at $0$, which is the
-trivial pole of $\zeta$ at $s=1$: a fact about $\zeta$ that no test-function family can avoid.
-It is not a statement about $\varphi$, and $\sigma\to0$ is not the limit that \S1.4.3 takes,
-which is $\varepsilon\to0$ and $h\to1$ on a compact $K$.
+so it converges for every $\sigma>0$, and its growth is the pole of $\Gamma$ at $0$, which is the
+trivial pole of $\zeta$ at $s=1$. It is therefore a property of $\zeta$ and not of any family of
+test functions. In addition, $\sigma\to0$ is not the limit taken in \S1.4.3, which is
+$\varepsilon\to0$ and $h\to1$ on a compact $K$.
 
 \begin{table}[h]
 \centering
-\caption{The supplied test on the left of the exact value. The truncated integral is
+\caption{The supplied test compared with the exact value. The truncated integral is
 $M(\sigma,100)$; its exact value is $\tfrac12\pi^{-\sigma/2}\gamma(\sigma/2,100^2\pi)$. The
 last two rows of the supplied table are quadrature error near the $x^{\sigma-1}$ endpoint, not
 divergence, and the growth that remains is the pole of $\Gamma$.}
@@ -964,33 +970,32 @@ $k$ & $t_k$ & $|\zeta(\tfrac12+it_k)|$ & $|\zeta(0.6+it_k)|$ \\
 \end{tabular}
 \end{table}
 
-The values are correct and they carry no evidential weight. In the protocol's vocabulary the
-finite statement ``these five evaluations vanish to $10^{-30}$'' is
-\verdict{validated (finite)}, and the universal statement is untouched: a finite list of zeros
-cannot decide a universal sentence, and the zeros listed were located on the line before they
-were checked. The table is useful for exactly one thing, which is to show that the arithmetic
-agrees with the term that Alpöge's archive proves about Mathlib's $\zeta$; it is not a test of
-$\RH$ and it is not counted as one anywhere in this paper.
+The values are correct and carry no evidential weight. In the vocabulary of
+Definition~\ref{def:verdicts} the finite statement ``these five evaluations vanish to
+$10^{-30}$'' is \verdict{validated (finite)}, and the universal statement is untouched: a finite
+list of zeros cannot decide a universal statement, and the zeros listed were located on the line
+before they were checked. The table serves one purpose: to show that the arithmetic agrees with the
+term that Alp\"oge's archive proves about Mathlib's $\zeta$. It is not a test of $\RH$ and is not
+counted as one in this paper.
 
 \subsection{Two further checks that cannot fail}
 
-Two more simulations were supplied. The first computes, for several primes $p$, the multiplicity
-of the roots of $F(X)=(X^p-X)^2$ on $\mathbb{F}_p$ and reports that the total multiplicity
-$2p$ does not exceed $\deg F=2p$. The inequality holds with equality for every $p$ because
-$X^p-X$ is the product of the linear factors over $\mathbb{F}_p$; the check has no failing case
-and says nothing about Stepanov's method, whose content is a polynomial of \emph{low} degree in
-the $X^p$ blocks together with a multiplicity count that is made to exceed the degree. The
-second chooses a decay factor $X^{-1/(2\lfloor\sqrt X\rfloor)}$ and raises it to the power
+Two further simulations were supplied. The first computes, for several primes $p$, the
+multiplicity of the roots of $F(X)=(X^p-X)^2$ on $\mathbb{F}_p$ and reports that the total
+multiplicity $2p$ does not exceed $\deg F=2p$. The inequality holds with equality for every $p$
+because $X^p-X$ is the product of the linear factors over $\mathbb{F}_p$; the check has no failing
+case and says nothing about Stepanov's method, whose content is a polynomial of \emph{low} degree in
+the $X^p$ blocks together with a multiplicity count that is made to exceed the degree. The second
+chooses a decay factor $X^{-1/(2\lfloor\sqrt X\rfloor)}$ and raises it to the power
 $\lfloor\sqrt X\rfloor$, obtaining $X\cdot X^{-1/2}=\sqrt X$ and reporting a match with the
-``$\sqrt X$ bound''. That is the definition of the exponent, not a property of a theta lift. A
-check whose output is fixed in advance is not evidence, by the same criterion this paper applies
-to everything else (Definition~\ref{def:verdicts} and the criteria of
-Section~\ref{sec:protocol}).
+``$\sqrt X$ bound''. This is the definition of the exponent and not a property of a theta lift. A
+check whose output is fixed in advance is not evidence, by the criterion this paper applies to
+everything else (Definition~\ref{def:verdicts} and the criteria of Section~\ref{sec:protocol}).
 
-\paragraph{What the appendix establishes.} One supplied computation is a genuine counterexample
+\paragraph{What the appendix establishes.} One supplied computation is a counterexample
 and is formalised; one measures a different quantity and is recorded as mis-specified; one is a
 consistency check; two cannot fail. The protocol applies to the tools as well as to the claims,
-which is the reason these negatives are printed rather than dropped.
+which is the reason these negative results are printed rather than omitted.
 
 \section{An audit agent for claimed proofs}
 \label{app:agent}
@@ -1000,44 +1005,43 @@ repository carries an agent that takes a claimed proof as a record, runs the thr
 emits a report whose every line names what it rests on. It implements this paper's method and
 extends nothing: no output of it changes a verdict above, and it has no verdict on $\RH$.
 
-\textbf{Three levels, kept apart.} A numerical check can refute a quantitative claim and can
-never confirm one, so a claim that asserts the existence of a proof enters no instrument in
+\textbf{Three levels, kept apart.} A numerical check can refute a quantitative claim and
+cannot confirm one, so a claim that asserts the existence of a proof enters no instrument in
 Table~\ref{tab:instruments}, and the agent reports \verdict{outside domain} from the inventory
-rather than from a sentence in a document. A formal check is decided by a kernel and answers a
-narrower question than it appears to. Institutional status is not a mathematical question at
-all. Merging the three is how a report comes to mean something it did not establish.
+rather than from a statement in a document. A formal check is decided by a kernel and answers a
+narrower question than it appears to. Institutional status is not a mathematical question. A report
+that merges the three can assert more than any of them establishes.
 
-\textbf{Five formal questions.} Does it compile; is it free of \texttt{sorry}; are its axioms
-among \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}; is the statement
-Mathlib's \texttt{RiemannHypothesis}; and are the definitions it routes through non-vacuous.
-The first four are decided mechanically, the fourth exactly when the target is a proposition
-(\texttt{example : target = RiemannHypothesis := rfl}) and by comparing printed types
-otherwise, which is weaker and is labelled as weaker. The fifth is \emph{not} decided, and the
-code has no branch returning a verdict for it: it can locate the shapes an objection names, a
-predicate defined as \texttt{fun \_ \_ \_ => True} or a value fixed by \texttt{rfl}, and
-locating is not a dependency trace. That gap is exactly the question left open in
-Section~\ref{sec:evaluations}.
+\textbf{Five formal questions.} Does it compile; is it free of \texttt{sorry}; are its
+axioms among \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}; is the statement
+Mathlib's \texttt{RiemannHypothesis}; and are the definitions it routes through non-vacuous. The
+first four are decided mechanically, the fourth exactly when the target is a proposition
+(\texttt{example : target = RiemannHypothesis := rfl}) and by comparing printed types otherwise,
+which is weaker and is labelled as weaker. The fifth is not decided, and the code has no branch
+returning a verdict for it: it can locate the shapes an objection names, a predicate defined as
+\texttt{fun \_ \_ \_ => True} or a value fixed by \texttt{rfl}, and locating is not a dependency
+trace. That gap is the question left open in Section~\ref{sec:evaluations}.
 
-\textbf{The first case.} The agent's first record is the 2026 Alp\"oge claim, and its report
-holds two rows a reader will want to collapse: the published term is \verdict{validated
-(term)}, on the replay of the kernel evidence, and the definitional question is
-\verdict{undetermined}, because Nielsen's objection~\cite{nielsen} is consistent with every
-kernel fact and nothing here decides it. Both are reported, about the same artefact, because
-both are true. The record also carries a live negative control, this repository's
-\texttt{Dispute.lean}, in which the claimant's position is stated with \texttt{sorry} and the
-structural core of the objection is proved without one: asked the five questions, the agent
-finds the file compiles, contains exactly the two \texttt{sorry}s the record says it contains,
-carries \texttt{sorryAx} in its axiom list, is definitionally equal to
-\texttt{RiemannHypothesis} in its statement, and is undecided on non-vacuity. A checker that
-gets a known file wrong cannot be trusted on an unknown one.
+\textbf{The first case.} The agent's first record is the 2026 Alp\"oge claim, and its
+report holds two rows that a reader may wish to collapse: the published term is
+\verdict{validated (term)}, on the replay of the kernel evidence, and the definitional question is
+\verdict{undetermined}, because Nielsen's objection~\cite{nielsen} is consistent with every kernel
+fact and nothing in the audit decides it. Both are reported, about the same artefact, because both
+hold. The record also carries a live negative control, this repository's \texttt{Dispute.lean}, in
+which the claimant's position is stated with \texttt{sorry} and the structural core of the
+objection is proved without one: asked the five questions, the agent finds the file compiles,
+contains exactly the two \texttt{sorry}s the record says it contains, carries \texttt{sorryAx} in
+its axiom list, is definitionally equal to \texttt{RiemannHypothesis} in its statement, and is
+undecided on non-vacuity. A checker that returns an incorrect result on a known file provides no
+assurance on an unknown one.
 
-\textbf{Controls against overclaiming.} The verdict vocabulary is the six words of
+\textbf{Controls against overclaiming.} The verdict vocabulary is the six terms of
 Definition~\ref{def:verdicts}, with no seventh meaning ``true'', and a test reads this paper's
-source to keep the two identical. Every report carries the sentence that $\RH$ is open; a
-report whose own prose asserts a proof raises rather than being written, while quoted material
-is exempt and rendered as a quotation; and an absent artefact is reported as \emph{not run}
-with the date of the record it replays, never as \verdict{undetermined}, because a status
-suggesting that something had been asked would be the same noise in a new place.
+source to keep the two identical. Every report carries the sentence that $\RH$ is open; a report
+whose own prose asserts a proof raises rather than being written, while quoted material is exempt
+and rendered as a quotation; and an absent artefact is reported as \emph{not run} with the date of
+the record it replays, never as \verdict{undetermined}, because a status implying that a question
+had been posed would misdescribe the record.
 
 \textbf{What it cannot do.} It does not read the proof, it cannot resolve non-vacuity, it
 cannot decide peer review, and it cannot turn a numerical check into evidence, which is why the
@@ -1048,9 +1052,9 @@ their status, and says what was checked and by what.
 \label{app:executed}
 
 Appendix~\ref{app:agent} described the agent that implements this paper's procedure. This
-appendix documents the two things a reviewer found missing from the first version, both of
-which are now code: the verdict algebra that stops a kernel pass from becoming a claim verdict,
-and the dependency trace that decides the vacuity question instead of naming it.
+appendix documents the two items that a reviewer identified as missing from the first version and
+that are now implemented: the verdict algebra that prevents a kernel pass from becoming a claim
+verdict, and the dependency trace that decides the vacuity question instead of naming it.
 
 \subsection{Instruments, and the verdicts they can produce}
 
@@ -1068,19 +1072,19 @@ verdict is the strongest verdict the panel supports, not the strongest any one i
 reached}. In order:
 
 \begin{enumerate}
-\item \verdict{rejected} dominates. A logical screen that fired ends the evaluation, because
-  nothing downstream turns an argument that proves a false analogue, or assumes what it claims
-  to prove, into an argument that does not.
-\item When formal artefacts were supplied, the panel's answer is the best of \emph{their}
-  verdicts. A finite arithmetic check that passed alongside says nothing about the claim, and
-  promoting it would let a consistency observation stand in for the thing under evaluation.
-\item A kernel pass is \verdict{validated (term)} for the panel \emph{only} together with a
-  dependency trace that came back clean. Kernel and no trace is \verdict{undetermined} by
-  construction. This is the rule the review asked for.
+\item \verdict{rejected} dominates. A logical screen that fired ends the evaluation, because nothing
+  downstream converts an argument that proves a false analogue, or assumes what it claims to prove,
+  into a valid argument.
+\item When formal artefacts were supplied, the panel's answer is the best of \emph{their} verdicts.
+  A finite arithmetic check that passed alongside says nothing about the claim, and promoting it
+  would allow a consistency observation to replace the object of evaluation.
+\item A kernel pass counts as \verdict{validated (term)} for the panel \emph{only} together with a
+  dependency trace that returned clean. Kernel and no trace is \verdict{undetermined} by
+  construction. This is the rule the review requested.
 \item When no artefact was supplied, the strongest validated numerical verdict is the panel's
-  answer, because that is all the panel has.
-\item Otherwise \verdict{undetermined}, and the report carries the computations that would
-  decide it.
+  answer, since the panel has no other evidence.
+\item Otherwise \verdict{undetermined}, and the report carries the computations that would decide
+  it.
 \end{enumerate}
 
 \begin{table}[!ht]
@@ -1108,11 +1112,11 @@ reading & the record: sources, dates, objections & no verdict; the entry is reco
 \end{tabularx}
 \end{table}
 
-The consequence for this paper's first case is the honest one, and it is a correction: the
-published statement is \verdict{validated (term)} and the \emph{panel} verdict is
-\verdict{undetermined}, in the same report, because the trace has not run. Before this
-revision the term-level verdict was the closest thing to a panel verdict the report had, and
-\S\ref{sec:alpoge} said the same in prose; now the code cannot say it differently.
+The consequence for the paper's first case is a correction: the published statement is
+\verdict{validated (term)} while the \emph{panel} verdict is \verdict{undetermined}, in the same
+report, because the trace has not run. Before this revision the term-level verdict was the closest
+approximation to a panel verdict that the report contained, and \S\ref{sec:alpoge} said the same in
+prose; the code now cannot report otherwise.
 
 \subsection{The dependency trace}
 
@@ -1125,9 +1129,8 @@ geometry predicate is \texttt{fun \_ \_ \_ => True} uses none beyond the standar
 vacuous definitions are definitions, so they are invisible to the axiom audit and visible to
 the trace.
 
-\textbf{Two controls.} An instrument that has never been pointed at a known answer is one
-nobody should trust, so it is calibrated against two theorems whose closures are known in
-advance.
+\textbf{Two controls.} An instrument that has never been directed at a known answer cannot
+be trusted, so it is calibrated against two theorems whose closures are known in advance.
 
 \begin{table}[!ht]
 \centering
@@ -1147,95 +1150,95 @@ Theorem & Expected & Observed \\
 \end{tabularx}
 \end{table}
 
-\textbf{The limit, stated where it bites.} A hit is \emph{syntactic reachability}: the term
-mentions the definition. Whether the definition's content is load-bearing is a further
-question, and a definition can be reached through an unused hypothesis. So a hit is evidence
-that the objection's route exists, not proof that the conclusion travels it. Absence is the
-stronger half: a name outside the closure cannot have contributed to the term at all. Every
-trace finding carries that sentence, so a reader of the report does not have to find this
-paragraph.
+\textbf{The limit of the trace.} A hit is \emph{syntactic reachability}: the term mentions
+the definition. Whether the definition's content is load-bearing is a further question, and a
+definition can be reached through an unused hypothesis. A hit is therefore evidence that the
+objection's route exists and not proof that the conclusion follows it. Absence is the stronger case:
+a name outside the closure cannot have contributed to the term. Every trace finding carries this
+statement, so a reader of the report does not have to locate this paragraph.
 
-\textbf{The archive.} The trace has not been run on the published archive here. The archive is
-931~MB of git blobs and 61.5~GB of export; it pins Lean v4.33.1 while this repository's
+\textbf{The archive.} The trace has not been run on the published archive here. The
+archive is 931~MB of git blobs and 61.5~GB of export; it pins Lean v4.33.1 while this repository's
 toolchain is v4.34.0-rc2; and it is not held on this machine. The record therefore reports
 \emph{not run} and prints the driver, and its command list carries the whole sequence: copy the
-trace module into the archive, emit a three-line driver that imports it and the target, run it
-with the archive's own \texttt{lake}. The version gap is a nameable risk rather than a blocker,
-because the module uses only \texttt{Lean} core and needs no Mathlib; it is a risk that this
-paper does not discharge, and the difference between "calibrated" and "run on the archive" is
-the difference between the two paragraphs above.
+trace module into the archive, emit a three-line driver that imports it and the target, and run it
+with the archive's own \texttt{lake}. The version gap is an identified risk rather than an
+obstruction, because the module uses only \texttt{Lean} core and requires no Mathlib; this paper
+does not discharge that risk, and the distinction between calibrated and run on the archive is the
+distinction between the two paragraphs above.
 
 \subsection{The closure, computed twice}
 \label{sec:crossval}
 
-A closure is a claim about a term, and a claim that rests on one traversal of one API rests on an
-unexamined premise. The premise is not hypothetical: if the collector skipped one constructor,
-every closure in the report would be short, every ``reaches none'' would be cheap, and nothing in
-the report would say so. The specification behind this appendix answers with a second extractor,
-and this repository implements the rule rather than the tool it names.
+A closure is a claim about a term, and a claim that rests on one traversal of one API
+rests on an unexamined premise. The premise is not hypothetical: if the collector skipped one
+constructor, every closure in the report would be short, every ``reaches none'' would be
+uninformative, and nothing in the report would record the defect. The specification behind this
+appendix answers with a second extractor, and this repository implements the rule rather than the
+tool it names.
 
 \textbf{Two traversals.} \texttt{\#deps} collects constants with Lean's own
 \texttt{Expr.getUsedConstants}; \texttt{\#depsm} collects them with \texttt{usedConstantsManual},
 the same relation written out case by case as a structural recursion in the same file; and
-\texttt{\#depscmp} prints the symmetric difference so that a person can read it. The agent runs
-both, always. Identical closures corroborate the extraction; a difference leaves the probe
-\verdict{undetermined} with the reconciliation named and both name lists in the record; if one
+\texttt{\#depscmp} prints the symmetric difference so that a reader can inspect it. The agent always
+runs both. Identical closures corroborate the extraction; a difference leaves the probe
+\verdict{undetermined} with the reconciliation named and both name lists in the record; and if one
 extractor fails, the other supplies the closure and the failure is recorded as a fallback rather
-than as agreement. A difference is never averaged, never resolved in favour of the first
-extractor, and never dropped because the two agree on the suspects: the closure is the object
-being certified, so its bounds have to agree, and not only its intersection with a list a person
-wrote.
+than as agreement. A difference is never averaged, never resolved in favour of the first extractor,
+and never dropped because the two agree on the suspects: the closure is the object being certified,
+so its bounds have to agree, and not only its intersection with a list a person wrote.
 
-\textbf{What it yields on the controls.} On the two theorems of \texttt{Dispute.lean} the two
-extractors return the same $4$ and $5$ names respectively, so the calibrated closures of
-Table~\ref{tab:trace} are not artefacts of one API call. On the two live trace requests they
-agree on all $4$ names of \texttt{geometry\_is\_vacuous} and all $5$ of
-\texttt{closed\_false\_impossible}. That is what a correct implementation of the relation should
-give, so it is a self-consistency result rather than a discovery, and the paper reports it as
-one.
+\textbf{What it yields on the controls.} On the two theorems of \texttt{Dispute.lean} the
+two extractors return the same $4$ and $5$ names respectively, so the calibrated closures of
+Table~\ref{tab:trace} are not artefacts of one API call. On the two live trace requests they agree
+on all $4$ names of \texttt{geometry\_is\_vacuous} and all $5$ of
+\texttt{closed\_false\_impossible}. This is the result a correct implementation of the relation
+should produce, so it is a self-consistency result rather than a discovery, and the paper reports it
+as one.
 
-\textbf{What it does not close.} Both extractors read the same environment, so their agreement
-rules out a defect in \emph{this} module's traversal and not a defect in Lean's environment or in
-Mathlib's definitions. The specification named \texttt{laud graph} as the second extractor; that
-tool is not installed here, is not version-pinned here, and nothing in this paper claims to have
-run it. The substitution is stated in the module docstring, in
+\textbf{What it does not close.} Both extractors read the same environment, so their
+agreement rules out a defect in \emph{this} module's traversal and not a defect in Lean's
+environment or in Mathlib's definitions. The specification named \texttt{laud graph} as the second
+extractor; that tool is not installed here, is not version-pinned here, and nothing in this paper
+claims to have run it. The substitution is stated in the module docstring, in
 \texttt{docs/claim\_verification\_agent.md}, and here: the second extractor is a native
 implementation over the same environment, a narrower instrument than the one specified, and the
-narrower claim is the true one. What remains after it is the assumption the MIT verification page
-also states for its own checks --- that the definitions the closure passes through are what they
-are intended to be --- and no computation in this repository addresses that assumption.
+narrower claim is the one the evidence supports. What remains after it is the assumption that the
+MIT verification page also states for its own checks, that the definitions the closure passes
+through are what they are intended to be, and no computation in this repository addresses that
+assumption.
 
-\subsection{The circularity screen, which is the dual of the $\DHf$ screen}
+\subsection{The circularity screen, the dual of the $\DHf$ screen}
 
 The $\DHf$ screen asks whether an argument would also prove a statement that is false. The
 circularity screen asks whether it already assumes a statement that is true, and the two are
-dual: both are cheap, neither is sufficient, and an argument can pass one while failing the
+dual: neither is sufficient, and an argument can pass one while failing the
 other. The screen compares a declared input against an equivalence table that is \emph{total
 over the inventory}: one row is an $\RH$-equivalence (Li's criterion), and the other eight are
 recorded as not equivalent, each with its reason, so that ``not flagged'' means ``considered
 and rejected'' rather than ``not thought about''.
 
-The sharp case is that one row's double status, and it answers the review's second point
-exactly. Li's criterion \emph{fails} for Davenport--Heilbronn, so an argument that declares
-only it is marked \verdict{eligible} by the filter. Li's criterion is also \emph{equivalent} to
-$\RH$, so the same declaration is what makes the argument circular. Eligibility and circularity
-are then the same fact about the argument, and the report says so in one sentence. The verdict
-is \verdict{rejected}, and the limit is stated with it: this rejects the argument as a route to
-the hypothesis, not the hypothesis, not the input, and not the claimant. An argument that
-declares nothing is unscreened, not circular, because the screen reads a declaration.
+The decisive case is the double status of one row, and it addresses the second point of
+the review. Li's criterion \emph{fails} for Davenport--Heilbronn, so an argument that declares only
+it is marked \verdict{eligible} by the filter. Li's criterion is also \emph{equivalent} to $\RH$, so
+the same declaration is what makes the argument circular. Eligibility and circularity are then one
+fact about the argument, and the report states it in one sentence. The verdict is
+\verdict{rejected}, and the limit is recorded with it: this rejects the argument as a route to the
+hypothesis, not the hypothesis, not the input, and not the claimant. An argument that declares
+nothing is unscreened rather than circular, because the screen reads a declaration.
 
 \subsection{The panel, executed}
 
-The panel was run end to end on the 2026 record, once per artefact, and the two reports are kept
-apart because a panel is about one artefact. The first execution pooled them: the record's live
-control contains two deliberate \texttt{sorry}s, the kernel probe read both targets, and the claim
-came back \verdict{rejected} --- a verdict obtained from a fixture rather than from the claim. The
-role parameter of the audit is the fix, and it is a parameter rather than a special case for the
-control.
+The panel was run end to end on the 2026 record, once per artefact, and the two reports
+are kept apart because a panel concerns one artefact. The first execution pooled them: the record's
+live control contains two deliberate \texttt{sorry}s, the kernel probe read both targets, and the
+claim came back \verdict{rejected}, a verdict obtained from a fixture rather than from the claim.
+The role parameter of the audit is the repair, implemented as a parameter rather than as a special
+case for the control.
 
 \begin{table}[!ht]
 \centering
-\caption{The panel on the published archive. One row is decided --- the kernel replay --- and every
+\caption{The panel on the published archive. One row is decided (the kernel replay) and every
 other row is withheld with the computation that would decide it. The aggregated verdict is the
 panel's, not the kernel's.}
 \label{tab:executed}
@@ -1291,68 +1294,70 @@ Probe & Verdict & Evidence \\
 \end{tabularx}
 \end{table}
 
-\textbf{What the archive panel establishes.} The kernel row is \verdict{validated (term)} and
-nothing else is. The mutant cannot run, the census cannot read, and the trace has not been
-executed, so the panel is \verdict{undetermined} and every withheld row carries the computation
-that would decide it. That is the review's correction made by the code rather than by a paragraph:
-before this revision the term verdict was the closest thing to a panel verdict the report had.
+\textbf{What the archive panel establishes.} The kernel row is \verdict{validated (term)}
+and nothing else is. The mutant cannot run, the census cannot read, and the trace has not been
+executed, so the panel is \verdict{undetermined} and every withheld row carries the computation that
+would decide it. Before this revision the report contained no panel verdict beyond the term
+verdict.
 
-\textbf{What the control panel establishes.} The mutation probe's \verdict{validated (term)} is a
-real calibration, not a formality: the flip kills the theorem that states the vacuity, leaves the
-theorem beside it alone, and the vacuous-truth rewrite kills the theorem that uses its hypothesis.
-The trace probe reaches the vacuous predicate from one theorem and none from the other, with both
-closures corroborated. The kernel row withholds because the file contains the two \texttt{sorry}s
-it is built to contain, and the review withholds for the same reason: a term that is not there has
-not been refuted, and \verdict{rejected} is reserved for screens.
+\textbf{What the control panel establishes.} The mutation probe's \verdict{validated
+(term)} is a genuine calibration rather than a formality: the flip kills the theorem that states the
+vacuity, leaves the theorem beside it alone, and the vacuous-truth rewrite kills the theorem that
+uses its hypothesis. The trace probe reaches the vacuous predicate from one theorem and none from
+the other, with both closures corroborated. The kernel row withholds because the file contains the
+two \texttt{sorry}s it is built to contain, and the review withholds for the same reason: a term
+that is absent has not been refuted, and \verdict{rejected} is reserved for screens.
 
-\textbf{What a term verdict yields, exactly.} \verdict{validated (term)} is a scoped conditional:
-\emph{this} term inhabits \emph{this} statement under \emph{this} axiom set. Both antecedents sit
-outside its scope. The statement may not be the intended one --- the de Bruijn gap, which the
-statement-identity check narrows and cannot close; the definitions it invokes may carry no
-mathematics --- the vacuity question, which the trace addresses for the names it is given; and the
-axiom set may be larger than advertised --- the audit narrows this, and the interpretive question
-of whether the declared axioms are acceptable is not a kernel question at all. It also does not
-certify that the argument is the argument claimed: a proof can reach a conclusion through a route
-the paper describes as something else, and a term verdict says nothing about that. The framework
-therefore neither promotes a term verdict to a verdict on $\RH$ nor says that a kernel-checked
-faithful statement is unproved: for a faithful statement under a sound kernel, inhabitation of the
-proposition is a derivation of the proposition relative to the definitions the statement uses.
-Both overclaims are refused in the same sentence, and that sentence is printed in every report.
+\textbf{What a term verdict establishes.} \verdict{validated (term)} is a scoped
+conditional: \emph{this} term inhabits \emph{this} statement under \emph{this} axiom set. Both
+antecedents lie outside its scope. The statement may not be the intended one (the de Bruijn gap,
+which the statement-identity check narrows and cannot close); the definitions it invokes may carry
+no mathematics (the vacuity question, which the trace addresses for the names it is given); and the
+axiom set may be larger than advertised (the audit narrows this, and the interpretive question of
+whether the declared axioms are acceptable is not a kernel question). It also does not certify that
+the argument is the argument claimed: a proof can reach a conclusion through a route the paper
+describes as something else, and a term verdict says nothing about that. The framework therefore
+neither promotes a term verdict to a verdict on $\RH$ nor states that a kernel-checked faithful
+statement is unproved: for a faithful statement under a sound kernel, inhabitation of the proposition
+is a derivation of the proposition relative to the definitions the statement uses. Both overclaims
+are refused in the same sentence, which is printed in every report.
 
-\textbf{Three defects the first execution found.} The panel found three bugs in itself, and they
-are recorded because an agent that reports only its successes is making the mistake it audits.
-Every mutant came back ``survived'': the attribution counted newlines in the source up to an offset
-taken from the compiler's output, which put every error on line 1 or 2. The claim's own negative
-control set the claim's verdict, because the probes did not distinguish artefacts. And an absent
-artefact read as ``nothing found'', because a census that could not scan returned an empty flag set
-that the probe scored as clean. Each is now pinned by a test with a known answer --- a kill, a
-role-scoped panel, and a \texttt{scanned: false} record --- and each is the kind of defect that no
-amount of prose review of the code would have found, which is the argument for running it.
+\textbf{Three defects the first execution found.} The panel found three defects in its own
+implementation, recorded here because an agent that reports only its successes repeats the error it
+is designed to detect. Every mutant came back ``survived'': the attribution counted newlines in the
+source up to an offset taken from the compiler's output, which placed every error on line 1 or 2.
+The claim's own negative control set the claim's verdict, because the probes did not distinguish
+artefacts. And an absent artefact read as ``nothing found'', because a census that could not scan
+returned an empty flag set that the probe scored as clean. Each is now pinned by a test with a known
+answer (a kill, a role-scoped panel, and a \texttt{scanned: false} record), and none would have been
+found by further review of the prose, which is the argument for executing the protocol.
 
 \subsection{What a corpus stress test would require}
 
-The review's first point is about the corpus, and it is the one this revision cannot fix by
-writing code. The inclusion rule admits works released on or after 20 November 2026, so the
-long tail is untouched. What a stress test would take, in increasing cost:
+The first point of the review concerns the corpus, and it is not one that this revision
+can address by writing code. The inclusion rule admits works released on or after 20 November 2026,
+so the long tail is untouched. A stress test would require the following, in increasing order of
+cost:
 
 \begin{itemize}
-\item \emph{Prose-only claims.} The cheapest class, and the protocol already answers it: no
+\item \emph{Prose-only claims.} The least expensive class, and the protocol already answers it: no
   formal artefact means the four kernel questions are \verdict{not applicable}, $E3$ is never
-  reached, and the $\DHf$ and circularity screens still classify declared inputs. A corpus of
-  such claims would exercise the screens and nothing else, which is worth knowing and is not a
-  test of the protocol's formal half.
-\item \emph{Claims with a refuted formalisation.} These exercise the failure paths that the
-  2026 corpus, by construction, does not: a statement that does not match, a term that does not
-  compile, an axiom audit that fails. The repository's own \texttt{Dispute.lean} is one such
-  artefact and is calibrated in Appendix~\ref{app:agent}; one is not a corpus.
-\item \emph{Historical claims with a modern re-formalisation.} This is the only class that
-  would test the trace against material nobody curated, and it requires the archive of each
-  claim to be obtainable and buildable, which is a research programme rather than a revision.
+  reached, and the $\DHf$ and circularity screens still classify declared inputs. A corpus of such
+  claims would exercise the screens and nothing else, which is informative and is not a test of the
+  protocol's
+  formal half.
+\item \emph{Claims with a refuted formalisation.} These exercise the failure paths that the 2026
+  corpus, by construction, does not: a statement that does not match, a term that does not compile,
+  an axiom audit that fails. The repository's own \texttt{Dispute.lean} is one such artefact and is
+  calibrated in Appendix~\ref{app:agent}; one is not a corpus.
+\item \emph{Historical claims with a modern re-formalisation.} This is the only class that would
+  test the trace against uncurated material, and it requires the archive of each claim to be
+  obtainable and buildable, which is a research programme rather than a revision.
 \end{itemize}
 
-Until such a corpus exists, the honest statement is the one in \S\ref{sec:corpus}: the protocol
-is stress-tested against four documents and one self-application, and its behaviour on the
-historical tail is unmeasured.
+Until such a corpus exists, the statement in \S\ref{sec:corpus} applies: the protocol is
+tested against four documents and one self-application, and its behaviour on the historical tail is
+unmeasured.
 
 \begin{thebibliography}{99}
 
