@@ -49,26 +49,32 @@ from riemann_framework import claim_audit, dh_filter, proportion_certificates, z
 from riemann_framework.claim_audit import (
     FORBIDDEN_ASSERTIONS,
     LEAN_QUESTIONS,
+    NOT_RH_EQUIVALENT,
     PROBES,
+    RH_EQUIVALENT_INPUTS,
     STANDING_POSITION,
     Claim,
     ClaimReport,
     Document,
     Finding,
     FormalTarget,
+    Instrument,
     LeanQuestion,
     Level,
     Status,
     Verdict,
     audit_claim,
     normalise_statement,
+    panel_verdict,
     parse_axioms,
+    parse_deps,
     sorry_census,
+    suspect_reachable,
+    target_verdict,
     split_sections,
     strip_lean_comments,
     vacuity_census,
 )
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CLAIMS_DIR = REPO_ROOT / "claims"
 ALPOGE = CLAIMS_DIR / "alpoge_2026.json"
@@ -580,3 +586,196 @@ def test_the_alpoge_report_reports_the_unscreened_filter(offline_report: ClaimRe
     )
     assert "needs_sourcing" in screen.evidence
     assert screen.verdict is Verdict.UNDETERMINED
+
+
+# ============================================================
+# The verdict algebra: kernel alone is not a term verdict
+# ============================================================
+
+def kernel_finding(verdict: Verdict = Verdict.VALIDATED_TERM) -> Finding:
+    return Finding(
+        level=Level.FORMAL, check="a target: is the theorem the Riemann hypothesis",
+        status=Status.CHECKED_OK, verdict=verdict,
+        instrument="Lean, via `lake env lean`", evidence="kernel accepted",
+        limits="a kernel check is not a dependency trace",
+        instrument_class=Instrument.KERNEL,
+    )
+
+
+def trace_finding_with(status: Status, verdict: Verdict) -> Finding:
+    return Finding(
+        level=Level.FORMAL, check="a target: dependency trace of `t`",
+        status=status, verdict=verdict,
+        instrument="`#deps` over Lean's environment", evidence="closure measured",
+        limits="syntactic reachability, not semantic dependence",
+        instrument_class=Instrument.DEPENDENCY_TRACE,
+    )
+
+
+def test_a_kernel_pass_without_a_trace_is_capped_at_undetermined() -> None:
+    """The paper's central rule, as an assertion."""
+    assert target_verdict(True, []) is Verdict.UNDETERMINED
+
+
+def test_a_kernel_pass_with_a_clean_trace_earns_the_term_verdict() -> None:
+    assert target_verdict(True, [Status.CHECKED_OK]) is Verdict.VALIDATED_TERM
+
+
+def test_a_trace_that_reached_a_flagged_definition_keeps_it_undetermined() -> None:
+    assert target_verdict(True, [Status.CHECKED_FAILED]) is Verdict.UNDETERMINED
+
+
+def test_a_trace_that_did_not_run_keeps_it_undetermined() -> None:
+    assert target_verdict(True, [Status.NOT_RUN]) is Verdict.UNDETERMINED
+
+
+def test_no_kernel_pass_means_no_term_verdict() -> None:
+    assert target_verdict(False, [Status.CHECKED_OK]) is Verdict.UNDETERMINED
+
+
+def test_the_panel_requires_the_trace_for_a_term_verdict() -> None:
+    findings = [kernel_finding()]
+    assert panel_verdict(findings, [Verdict.UNDETERMINED]) is Verdict.UNDETERMINED
+    both = [kernel_finding(), trace_finding_with(Status.CHECKED_OK,
+                                                 Verdict.VALIDATED_TERM)]
+    assert panel_verdict(both, [Verdict.VALIDATED_TERM]) is Verdict.VALIDATED_TERM
+
+
+def test_rejection_dominates_the_panel() -> None:
+    """A logical screen that fired is not outvoted by a kernel pass."""
+    rejected = Finding(
+        level=Level.NUMERICAL, check="the declared inputs", status=Status.CHECKED_FAILED,
+        verdict=Verdict.REJECTED, instrument="the circularity screen",
+        evidence="an RH-equivalent input", limits="rejects the argument, not the input",
+        instrument_class=Instrument.CIRCULARITY,
+    )
+    findings = [kernel_finding(), rejected]
+    assert panel_verdict(findings, [Verdict.VALIDATED_TERM]) is Verdict.REJECTED
+
+
+def test_a_finite_check_cannot_promote_a_claim_that_has_an_artefact() -> None:
+    """A passing arithmetic check must not stand in for the thing under evaluation."""
+    finite = Finding(
+        level=Level.NUMERICAL, check="the first zeros", status=Status.CHECKED_OK,
+        verdict=Verdict.VALIDATED_FINITE, instrument="zeros", evidence="on the line",
+        limits="a finite check", instrument_class=Instrument.NUMERICAL,
+    )
+    assert panel_verdict([finite], [Verdict.UNDETERMINED]) is Verdict.UNDETERMINED
+
+
+def test_a_claim_with_no_artefact_falls_back_to_its_numerical_verdict() -> None:
+    finite = Finding(
+        level=Level.NUMERICAL, check="the first zeros", status=Status.CHECKED_OK,
+        verdict=Verdict.VALIDATED_FINITE, instrument="zeros", evidence="on the line",
+        limits="a finite check", instrument_class=Instrument.NUMERICAL,
+    )
+    assert panel_verdict([finite], []) is Verdict.VALIDATED_FINITE
+
+
+def test_every_finding_names_its_instrument_class(offline_report: ClaimReport) -> None:
+    for finding in offline_report.findings:
+        assert isinstance(finding.instrument_class, Instrument), finding.as_dict()
+        assert finding.instrument_class is not Instrument.READING or (
+            finding.level is Level.INSTITUTIONAL
+        ), finding.as_dict()
+
+
+# ============================================================
+# The circularity screen: the dual of the DH screen
+# ============================================================
+
+def test_the_equivalence_table_covers_the_whole_inventory() -> None:
+    """Total over the inventory, so "not flagged" means "considered and rejected"."""
+    inventory = set(dh_filter.DH_INPUTS)
+    classified = set(RH_EQUIVALENT_INPUTS) | set(NOT_RH_EQUIVALENT)
+    assert inventory == classified, inventory ^ classified
+    assert not set(RH_EQUIVALENT_INPUTS) & set(NOT_RH_EQUIVALENT)
+
+
+def test_lis_criterion_is_the_inventory_row_that_is_rh_equivalent() -> None:
+    assert set(RH_EQUIVALENT_INPUTS) == {"li_positivity"}
+    assert dh_filter.DH_INPUTS["li_positivity"].status is dh_filter.InputStatus.FAILS
+    assert "RH-equivalent" in dh_filter.DH_INPUTS["li_positivity"].description
+
+
+def test_the_circularity_screen_fires_on_lis_criterion() -> None:
+    finding = claim_audit.probe_circularity(
+        make_claim(declared_inputs=("li_positivity",))
+    )
+    assert finding.status is Status.CHECKED_FAILED
+    assert finding.verdict is Verdict.REJECTED
+    assert finding.instrument_class is Instrument.CIRCULARITY
+    # the sharp case: the same input is what makes the DH screen say `eligible`
+    assert "eligible" in finding.evidence
+
+
+def test_the_circularity_screen_does_not_fire_on_a_neutral_input() -> None:
+    finding = claim_audit.probe_circularity(
+        make_claim(declared_inputs=("euler_product",))
+    )
+    assert finding.status is Status.CHECKED_OK
+    assert finding.verdict is Verdict.NOT_ASSESSED
+
+
+def test_an_undeclared_claim_is_unscreened_not_circular() -> None:
+    finding = claim_audit.probe_circularity(make_claim(declared_inputs=()))
+    assert finding.status is Status.NOT_APPLICABLE
+    assert finding.verdict is Verdict.NOT_ASSESSED
+    assert "unscreened" in finding.evidence
+
+
+def test_the_circularity_screen_refuses_inputs_outside_the_inventory() -> None:
+    with pytest.raises(ValueError, match="not in the DH inventory"):
+        claim_audit.probe_circularity(make_claim(declared_inputs=("invented_input",)))
+
+
+# ============================================================
+# The dependency trace: parsing and matching
+# ============================================================
+
+def test_parse_deps_attributes_blocks_to_their_theorem() -> None:
+    output = "\n".join([
+        "DEPS_BEGIN A.one",
+        "DEPS_COUNT 3",
+        "A.one",
+        "A.vacuous",
+        "Nat",
+        "DEPS_END",
+        "DEPS_BEGIN A.two",
+        "DEPS_COUNT 2",
+        "A.two",
+        "A.clean",
+        "DEPS_END",
+    ])
+    blocks = parse_deps(output)
+    assert blocks["A.one"] == {"A.one", "A.vacuous", "Nat"}
+    assert blocks["A.two"] == {"A.two", "A.clean"}
+
+
+def test_parse_deps_on_a_failed_run_is_empty() -> None:
+    assert parse_deps("unknown identifier 'nope'") == {}
+
+
+def test_suspects_match_short_and_qualified_names() -> None:
+    closure = {"Development.Abelian.anyGeometry", "Nat", "Mathlib.RiemannHypothesis"}
+    assert suspect_reachable(closure, "anyGeometry") == (
+        "Development.Abelian.anyGeometry"
+    )
+    assert suspect_reachable(closure, "Development.Abelian.anyGeometry") == (
+        "Development.Abelian.anyGeometry"
+    )
+    assert suspect_reachable(closure, "geoDegenerate") is None
+    # a suffix match must respect the dot, not a bare string suffix
+    assert suspect_reachable({"A.notanyGeometry"}, "anyGeometry") is None
+
+
+def test_the_alpoge_record_declares_the_traces() -> None:
+    claim = Claim.from_json(ALPOGE)
+    roles = {target.role: target for target in claim.formal}
+    published = roles["the published archive (absent from this machine by default)"]
+    assert published.trace, "the decisive trace must be declared, even if not run"
+    assert published.trace[0].theorem == "riemannHypothesis"
+    assert "anyGeometry" in published.trace[0].suspects
+    calibration = roles["this repository's recording of the dispute (live)"]
+    assert len(calibration.trace) == 2, "one positive and one negative control"
+

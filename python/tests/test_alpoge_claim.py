@@ -92,6 +92,17 @@ def report() -> ClaimReport:
     return audit_claim(Claim.from_json(ALPOGE), REPO_ROOT, live_lean=True, timeout=1800)
 
 
+@pytest.fixture(scope="module")
+def offline_report() -> ClaimReport:
+    """The same record with every formal check replayed: no Lean, no compile.
+
+    Used for the assertions about what the report says when a computation has *not* been
+    run, which is the state of the published archive's trace on every machine that does
+    not hold it.
+    """
+    return audit_claim(Claim.from_json(ALPOGE), REPO_ROOT, live_lean=False)
+
+
 def formal(report: ClaimReport, role: str, question: LeanQuestion):
     matches = [
         finding for finding in report.findings
@@ -289,6 +300,108 @@ def test_the_command_writes_both_reports(scratch: Path) -> None:
     assert STANDING_POSITION in markdown
     assert payload["claim"]["id"] == "alpoge_2026"
     assert payload["evidence_classes"] == "E0, E1, E4"
+
+
+# ============================================================
+# The decisive computation: the dependency trace, with both controls
+# ============================================================
+
+def trace_findings(report: ClaimReport) -> list:
+    return [
+        finding for finding in report.findings
+        if "dependency trace" in finding.check
+    ]
+
+
+@requires_lean
+def test_the_trace_positive_control_reaches_the_vacuous_definition(
+    report: ClaimReport,
+) -> None:
+    """`geometry_is_vacuous` states the vacuity, so its closure must contain it.
+
+    A trace that reported "clean" here would be broken, and the whole instrument would be
+    worthless on the archive nobody can check. This is the calibration.
+    """
+    finding = next(
+        item for item in trace_findings(report)
+        if "geometry_is_vacuous" in item.check
+    )
+    assert finding.status is Status.CHECKED_FAILED, finding.evidence
+    assert finding.verdict is Verdict.UNDETERMINED
+    assert "vacuousGeometry" in finding.evidence
+    assert "reaches 1 flagged" in finding.evidence
+
+
+@requires_lean
+def test_the_trace_negative_control_avoids_it(report: ClaimReport) -> None:
+    """A theorem that does not mention the vacuous predicate must come back clean."""
+    finding = next(
+        item for item in trace_findings(report)
+        if "closed_false_impossible" in item.check
+    )
+    assert finding.status is Status.CHECKED_OK, finding.evidence
+    assert finding.verdict is Verdict.VALIDATED_TERM
+    assert "reaches none" in finding.evidence
+
+
+@requires_lean
+def test_the_trace_reports_the_size_of_what_it_measured(report: ClaimReport) -> None:
+    """`not reached` is only meaningful next to the size of what was searched."""
+    for finding in trace_findings(report):
+        if finding.status is Status.CHECKED_OK:
+            assert "closure" in finding.evidence
+
+
+def test_the_published_trace_is_pending_and_carries_its_command(
+    offline_report: ClaimReport,
+) -> None:
+    """The reviewer's third point: the decisive computation is named, not performed."""
+    finding = next(
+        item for item in trace_findings(offline_report)
+        if "riemannHypothesis" in item.check
+    )
+    assert finding.status is Status.NOT_RUN
+    assert finding.verdict is Verdict.NOT_ASSESSED
+    assert "#deps riemannHypothesis" in finding.evidence
+    assert "anyGeometry" in finding.evidence or "pending" in finding.evidence
+
+
+def test_the_panel_verdict_is_undetermined_not_validated(offline_report: ClaimReport) -> None:
+    """A term verdict and a panel verdict are different objects.
+
+    The published statement row is `validated (term)`; the panel is `undetermined`,
+    because the trace that would make the term verdict a panel verdict has not run and
+    the vacuity objection is therefore still live. Collapsing the two would be the
+    overclaim the review names.
+    """
+    assert offline_report.panel is Verdict.UNDETERMINED, offline_report.panel
+    term_rows = [
+        finding for finding in offline_report.findings
+        if finding.verdict is Verdict.VALIDATED_TERM
+    ]
+    assert term_rows, "the replayed kernel evidence should still earn the term verdict"
+    assert all("dependency trace" not in row.check for row in term_rows)
+
+
+def test_the_report_states_why_the_panel_is_weaker_than_the_term(
+    offline_report: ClaimReport,
+) -> None:
+    markdown = offline_report.render_markdown()
+    assert "Panel verdict" in markdown
+    assert "undetermined" in markdown
+    assert "without a trace is `undetermined` by construction" in markdown
+
+
+def test_the_circularity_screen_reports_an_unscreened_claim(
+    offline_report: ClaimReport,
+) -> None:
+    """The release states no prose inputs, so the dual screen cannot read it either."""
+    finding = next(
+        item for item in offline_report.findings
+        if "equivalent to the Riemann hypothesis" in item.check
+    )
+    assert finding.status is Status.NOT_APPLICABLE
+    assert "unscreened" in finding.evidence
 
 
 def test_the_command_is_strict_when_asked(scratch: Path) -> None:

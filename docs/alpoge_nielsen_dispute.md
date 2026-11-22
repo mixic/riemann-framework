@@ -173,6 +173,20 @@ Nielsen's §9 lists four checks, each runnable by anyone with a build of the rel
 Check 2 is the one this note would run first, and neither the 61 GB export nor four independent
 checkers can answer it. Reading the exported dependency graph can.
 
+**Check 2 is now code, and still not run on this archive.**
+`lean/RiemannFramework/DependencyTrace.lean` implements it: `#deps <theorem>` prints the
+transitive closure of a constant over Lean's environment, and `python/riemann_framework/
+claim_audit.py` intersects that closure with the identifiers an objection names, so the
+question becomes a status rather than a paragraph. It imports nothing but `Lean` core, so it
+needs no Mathlib and no recompilation to be used on a foreign project. It is calibrated on two
+theorems of `Dispute.lean` whose closures are known: `geometry_is_vacuous` reaches
+`vacuousGeometry` (closure of 4), and `closed_false_impossible` does not (closure of 5). What
+this note still cannot do is run it on the released archive: 931 MB of git blobs and 61.5 GB of
+export are not held here, and the archive pins Lean v4.33.1 against this repository's
+v4.34.0-rc2. The recipe is in [`claim_verification_agent.md`](claim_verification_agent.md) §2
+and in the claim record's `commands`, and the audit report prints the driver while marking the
+finding `not_run`. That is a weaker claim than "settled", and it is the accurate one.
+
 ## 6. This repository's position
 
 Recorded, not adjudicated, and with no change to any claim of this repository:

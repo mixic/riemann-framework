@@ -160,6 +160,6 @@ def test_the_paper_names_the_repository_it_was_computed_from(paper_text: str) ->
     directory its records live in: a paper that described the procedure and not its input
     would be describing a method with nothing to run on.
     """
-    for token in ("pythonscripts/run_dh_filter.py", "1329tests", "references/",
+    for token in ("pythonscripts/run_dh_filter.py", "1357tests", "references/",
                   "ideas/", "claims/"):
         assert token.replace(" ", "") in paper_text.replace(" ", ""), token

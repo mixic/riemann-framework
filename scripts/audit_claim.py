@@ -134,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
             print(markdown)
         print(
             f"wrote {arguments.out / (claim.id + '.md')}: "
+            f"panel `{report.panel.value}`, "
             f"{len(report.findings)} findings, {len(failed)} failed",
             file=sys.stderr,
         )

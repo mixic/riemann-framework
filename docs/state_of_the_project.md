@@ -346,8 +346,10 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks closed as negative | 3 | DSH, shift-zeta, DSIN |
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
-| `sorry`-free Lean modules | 6 of 12 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`, `Boundary`, `IdeleSplit` |
-| tests passing | 1329 | `python/tests/` |
+| Lean modules built | 13 | 12 library modules, six of them `sorry`-free, plus
+  `DependencyTrace.lean`, the audit metaprogram, which contains no proofs to be
+  `sorry`-free about | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`, `Boundary`, `IdeleSplit` |
+| tests passing | 1357 | `python/tests/` |
 | documents | 48 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
@@ -466,7 +468,7 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1329 passed`; `lake build` → 12 modules
+**Last verified:** `python -m pytest tests/ -q` → `1357 passed`; `lake build` → 13 modules
 compile, the 6 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.

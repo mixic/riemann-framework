@@ -80,9 +80,90 @@ The last row is the design. `_non_vacuity_finding` has no branch that returns an
 than `undetermined`; what it can do is locate the definitional shapes an objection names
 (`fun _ _ _ => True`, a proposition defined as an alias, a structure field fixed by `rfl`)
 in the module's source, so a reader knows where to look. Locating is not proving dependence,
-and the absence of a located shape is not a proof of the opposite. A dependency walk of the
-exported term is what would settle it, and it is named as the decisive check in
-[`alpoge_nielsen_dispute.md`](alpoge_nielsen_dispute.md) §5.
+and the absence of a located shape is not a proof of the opposite.
+
+### The dependency trace: the fifth question, decided
+
+The vacuity question is not a kernel question and it is not a reading question. It is a
+question about the compiled term: **is a definition the objection names reachable from the
+theorem?** `lean/RiemannFramework/DependencyTrace.lean` answers it. `#deps <name>` walks
+`Environment.find?` over the constant's type and value, collects everything reachable
+transitively, and prints the closure between two markers. `dependency_trace` in the agent
+wraps it, intersects the closure with the names the record declares, and reports one of three
+things:
+
+| outcome | status | verdict | what it means |
+|:---|:---|:---|:---|
+| a flagged name is in the closure | `checked_failed` | undetermined | the objection's route exists in this term |
+| no flagged name is in the closure | `checked_ok` | validated (term) | the term does not pass through those definitions |
+| the trace did not run | `not_run` | not assessed | nothing was asked; the driver is printed |
+
+The distinction between the first two rows is the difference between Nielsen and Alpöge, and
+it is now mechanical. What it still does not give you is *semantic* dependence: a flagged
+definition can appear in the closure because an unused hypothesis mentions it. A hit is
+therefore evidence that the route exists, not proof that the conclusion uses it; the
+`limits` line on every trace finding says so.
+
+**Both controls are in the record.** A checker that has never been driven at a known answer is
+a checker nobody should trust, so the record traces two theorems whose closures are known:
+
+| theorem | expected | observed |
+|:---|:---|:---|
+| `RiemannFramework.geometry_is_vacuous` | reaches `vacuousGeometry` | closure of 4, reaches 1 flagged definition |
+| `RiemannFramework.closed_false_impossible` | reaches it not | closure of 5, reaches none |
+
+The first is the positive control: a theorem that *states* the vacuity must have the vacuous
+predicate in its closure. The second is the negative control: a theorem about the same
+inductive, which never mentions the predicate, must come back clean. Both are asserted in
+`test_alpoge_claim.py`.
+
+**On the published archive the trace has not been run here, and the report says so.** The
+archive is 931 MB of git blobs and 61.5 GB of export, it pins Lean v4.33.1 against this
+repository's v4.34.0-rc2, and it is not held on this machine. The finding is `not_run`, its
+evidence carries the exact driver a reader can run, and the record's `commands` list the whole
+sequence. The trace module imports only `Lean` core, so it needs no Mathlib and the version
+gap is a nameable risk rather than a blocker; it is stated rather than assumed away. This is
+the one place where the agent's report is weaker than a full audit, and it is the place the
+paper's own §5.2 verdict (`undetermined`) already reflected.
+
+### The circularity screen: the dual of the Davenport–Heilbronn screen
+
+The DH screen asks whether an argument would also prove a statement that is false. This asks
+whether it already assumes a statement that is true: is a declared input **equivalent** to RH?
+The two are duals, and an argument can pass one and fail the other, which is the reviewer's
+point about transfer versus circularity made concrete.
+
+The table is total over the inventory: `RH_EQUIVALENT_INPUTS` holds the one row that is an
+equivalence (`li_positivity`, Li's criterion), and `NOT_RH_EQUIVALENT` records why each of the
+other eight is not. A test asserts the two sets partition `dh_filter.DH_INPUTS`, so "not
+flagged" means "considered and rejected", never "not thought about".
+
+The sharp case is that row's double status. `li_positivity` **fails for Davenport–Heilbronn**,
+so an argument that declares only it is marked `eligible` by the filter, and `eligible` is
+supposed to be permission to continue. It is *also* equivalent to RH, so the same declaration
+is what makes the argument circular. Eligibility and circularity are then the same fact about
+the argument, and the report says so in one sentence. The verdict is `rejected`, with the limit
+spelled out: this rejects the argument as a route to the hypothesis, not the hypothesis, not
+the input, and not the claimant.
+
+### The verdict algebra
+
+`Verdict` is the paper's six words. `Instrument` says which part of the panel produced a
+finding, and the aggregation rule reads the instrument, not the prose:
+
+1. `rejected` dominates. A logical screen that fired ends the evaluation.
+2. When formal artefacts were supplied, the panel's answer is the best of *their* verdicts.
+3. A kernel pass counts as `validated (term)` **only** together with a dependency trace that
+   came back clean. Kernel and no trace is `undetermined` by construction. This is the rule
+   the review asked for, and it has its own tests.
+4. When no artefact was supplied, the strongest validated numerical verdict is the panel's
+   answer, because that is all the panel has.
+5. Otherwise `undetermined`, with the computations that would decide it.
+
+The consequence for the first case is the honest one: the published statement is
+`validated (term)` **and** the panel verdict is `undetermined`, in the same report, because
+the trace has not run. Before this revision the report's term-level verdict was the closest
+thing to a panel verdict it had, and that was too strong.
 
 **Replay is not a run.** When the artefact is not on the machine, the four decidable
 questions are replayed from the claim record, and their instrument line says
@@ -109,24 +190,30 @@ this commit:
 |:---|:---|:---|:---|
 | 1 | the claim enters an instrument's domain | `not_applicable` | outside domain |
 | 1 | the declared inputs survive the Davenport–Heilbronn substitution | `checked_ok`: `needs_sourcing` | undetermined |
+| 1 | the declared inputs are not RH-equivalent restatements | `not_applicable`: the record declares no inputs | not assessed |
 | 1 | the first three non-trivial zeros are zeros and on the line | `checked_ok` | validated (finite) |
 | 2 | the published archive compiles | `checked_ok`, replayed | not assessed |
 | 2 | it is free of `sorry` | `checked_ok`, replayed: 5 `sorry`, all in the Comparator's `Challenge.lean` | not assessed |
 | 2 | its axioms are the standard three | `checked_ok`, replayed: no `sorryAx`, 1,468,418 declarations accepted | not assessed |
 | 2 | the theorem is the Riemann hypothesis | `checked_ok`, replayed: `con-leche --compare` | validated (term) |
 | 2 | its definitions are non-vacuous | `undetermined` | undetermined |
+| 2 | the dependency trace reaches `anyGeometry` etc. | `not_run`: the archive is not here; the driver is printed | not assessed |
 | 3 | peer review | `recorded`: no journal article exists; the primary document is four pages and states no mathematics | not assessed |
 | 3 | community statement | `recorded`, 2026-11-21 | not assessed |
 | 3 | independent replay | `recorded`: `con-leche` exit 0, negative control exit 2 with `sorryAx` | not assessed |
 | 3 | Clay status | `recorded`: unsolved, prize unawarded | not assessed |
 
-Two facts about that table are the point of the whole exercise. The term is `validated
-(term)` **and** the fifth question is `undetermined`, at the same time, about the same
-artefact. A kernel can certify a term of Mathlib's `RiemannHypothesis` and be silent about
-whether the library's internal definitions carry any mathematics; Nielsen's objection is
-consistent with every row above, and so is the joint statement of the Lean and Mathlib
-communities. The agent does not choose between them, because nothing it runs bears on the
-choice.
+**Panel verdict: `undetermined`.** Per artefact: the published archive `undetermined`, this
+repository's recording `undetermined`.
+
+Three facts about that table are the point of the whole exercise. The term is `validated
+(term)` **and** the fifth question is `undetermined`, **and** the panel is `undetermined`,
+at the same time, about the same artefact. A kernel can certify a term of Mathlib's
+`RiemannHypothesis` and be silent about whether the library's internal definitions carry any
+mathematics; Nielsen's objection is consistent with every row above, and so is the joint
+statement of the Lean and Mathlib communities. The agent does not choose between them,
+because nothing it runs bears on the choice, and the panel verdict refuses to promote the
+kernel's answer to the panel's.
 
 The record also carries a **live negative control**: `lean/RiemannFramework/Dispute.lean`,
 this repository's own encoding of the dispute, in which Alpöge's position is stated with
@@ -140,11 +227,15 @@ questions on it come out as
 | axioms justified | `checked_failed` | `RiemannFramework.alpoge_position: sorryAx is present` |
 | the statement is RH | `checked_ok` | `RiemannFramework.RiemannHypothesisStatement = RiemannHypothesis` closed by `rfl` |
 | definitions non-vacuous | `undetermined` | `True`-bodied: `vacuousGeometry` |
+| dependency trace of `geometry_is_vacuous` | `checked_failed` | closure of 4, reaches `RiemannFramework.vacuousGeometry` |
+| dependency trace of `closed_false_impossible` | `checked_ok` | closure of 5, reaches none |
 
 That is a file whose contents are known, and the agent's answers match: the calibration is
 the reason to trust the replay on the other target, which nobody can run here. It also shows
 the verdict discipline: a statement that is definitionally equal to `RiemannHypothesis`
 earns `undetermined`, not `validated (term)`, because the term it belongs to carries a hole.
+And the two trace rows are the calibration of the decisive instrument itself, one positive
+and one negative.
 
 ## 4. The overclaiming controls
 
@@ -179,12 +270,17 @@ These are mechanical, and each has a test that fails if it stops working.
   weaker: two statements differing only in layout compare equal, and a statement differing
   mathematically will not. `con-leche --compare` is the stronger instrument, and the record
   names it where it was used.
-- **It cannot resolve non-vacuity.** See §2. This is the residual limit, and it is the one
-  that matters for the 2026 claim.
+- **It cannot resolve non-vacuity semantically.** The dependency trace decides *syntactic*
+  reachability: does the compiled term mention the definition. Whether the definition's
+  content is load-bearing is a further question, and a definition can be reached through an
+  unused hypothesis. See §2.
 - **It cannot decide peer review.** A claim is `recorded` as peer-reviewed or not, on the
   strength of a citation. Whether a referee read the paper is not something a test can see.
 - **It cannot make a numerical check into evidence.** The zero check is in the panel because
   it is the check most often mistaken for evidence; its `limits` line says why it is not.
+- **It cannot detect circularity it has not seen before.** The screen is total over the
+  inventory and blind to everything outside it: an argument that restates RH in vocabulary
+  the inventory does not hold is not caught.
 - **It does not adjudicate the claim, and it does not adjudicate the claimant.** The report
   is a status record. The standing position of this repository is unchanged by any line of
   it: RH is open.
@@ -193,8 +289,10 @@ These are mechanical, and each has a test that fails if it stops working.
 
 A record is one JSON file in `claims/`. Required keys: `id`, `title`, `claimant`, `date`,
 `statement`, `statement_location`, `declared_inputs`, `probes`. Optional: `document`,
-`formal`, `institutional`, `objections`, `notes`. The loader rejects unknown keys, because a
-typo in a key is otherwise an ignored field and an unstated premise in the report.
+`formal`, `institutional`, `objections`, `notes`. A formal target may declare `trace` entries
+of the form `{"theorem": ..., "suspects": [...]}`, which is how the decisive computation is
+named in the record before it is run. The loader rejects unknown keys, because a typo in a
+key is otherwise an ignored field and an unstated premise in the report.
 
 ```console
 python scripts/audit_claim.py --claim claims/alpoge_2026.json        # three levels, live Lean
@@ -205,9 +303,10 @@ python scripts/audit_claim.py --claim claims/alpoge_2026.json \
 
 Reports are written to `out/claims/<id>.md` and `out/claims/<id>.json` (git-ignored) and
 printed unless `--quiet`. The JSON is the structured form: claim, document, evidence
-classes, every finding with its level, status, verdict, instrument, evidence and limit, the
-objections, and the formal targets with their reproduction commands. `--strict` exits
-non-zero when any check came back `checked_failed`, which is what CI should run.
+classes, the panel verdict and the per-artefact verdicts, every finding with its level,
+status, verdict, instrument class, evidence and limit, the objections, and the formal targets
+with their reproduction commands. `--strict` exits non-zero when any check came back
+`checked_failed`, which is what CI should run.
 
 The claim record is data, not code. Adding a claim does not change the agent, and the agent
 never fetches, reads or interprets the document it audits: it re-hashes it and quotes from
@@ -217,9 +316,10 @@ the record.
 
 | file | role |
 |:---|:---|
-| `python/riemann_framework/claim_audit.py` | the agent: records, Lean machinery, probes, report renderer |
-| `python/tests/test_claim_audit.py` | 39 fast tests: vocabulary, instruments, refusals, parsers |
-| `python/tests/test_alpoge_claim.py` | 14 tests, one live Lean audit: the case study and its negative control |
+| `python/riemann_framework/claim_audit.py` | the agent: records, Lean machinery, probes, verdict algebra, report renderer |
+| `lean/RiemannFramework/DependencyTrace.lean` | `#deps`: transitive dependency closure, Lean core only |
+| `python/tests/test_claim_audit.py` | 59 fast tests: vocabulary, instruments, verdict algebra, circularity, parsers |
+| `python/tests/test_alpoge_claim.py` | 21 tests, one live Lean audit: the case study, both trace controls, and the panel verdict |
 | `scripts/audit_claim.py` | the command: one claim, or all, Markdown and JSON out |
 | `claims/alpoge_2026.json` | the first claim record, with the replayed audit evidence |
 | `python/riemann_framework/dh_filter.py` | the contrapositive screen level 1 runs |

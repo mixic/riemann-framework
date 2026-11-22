@@ -413,7 +413,7 @@ Masullo, \emph{The Music of the Primes} & 2026-11-20 19:13 & 940 pp. &
 Alp\"oge--Furman & 2026 & arXiv:2608.13637 &
   certificates in \texttt{proportion\_certificates.py} \\
 Lamzouri & 2026 & preprint & arXiv:2609.02882; the same module \\
-Framework: eleven work packages & 2026 & 12 Lean modules, 1329 tests &
+Framework: eleven work packages & 2026 & 13 Lean modules, 1357 tests &
   \texttt{lean/}, \texttt{python/}, \texttt{ideas/}, \texttt{claims/} \\
 \bottomrule
 \end{tabularx}
@@ -432,6 +432,7 @@ evidence anywhere in this paper.
 \label{sec:evaluations}
 
 \subsection{The Alp\"oge archive: a kernel verdict on a term}
+\label{sec:alpoge}
 
 \textbf{Evidence.} The primary prose is four pages \cite{alpoge}: a statement of belief, a
 20-entry timeline, and an explanation of the medium. The archive itself is 17.4 million lines
@@ -469,6 +470,19 @@ Section~1.1, and it is why the framework stores the logical core of the objectio
 lemma (Proposition~\ref{prop:vacuous}) while refusing to state the objection itself as a
 theorem about \texttt{RiemannHypothesis}: a claim about source code cannot be expressed as a
 Lean proposition about $\RH$, and pretending otherwise would be an equivocation.
+
+\textbf{The trace, implemented and calibrated; not run on the archive.} The dependency trace is
+no longer a named computation and nothing more. Appendix~\ref{app:executed} gives the
+implementation, the rule that a kernel pass without a trace is \verdict{undetermined} by
+construction, and two controls with known answers: a theorem of this repository that states
+the vacuity and whose closure therefore contains the vacuous predicate, and a theorem beside it
+whose closure does not. On the published archive the trace has \emph{not} been run here, and
+the report says so in the finding rather than in a footnote: the archive is 931~MB of git blobs
+and 61.5~GB of export, it pins Lean v4.33.1 against this repository's v4.34.0-rc2, and it is
+not held on this machine. What changed in this revision is that the computation is executable,
+its discriminating power is demonstrated, and the exact command that would settle the dispute is
+printed in the record. The panel verdict for the claim is \verdict{undetermined}: the term is
+\verdict{validated (term)}, and the panel does not promote the term verdict to the claim.
 
 \textbf{One open, decidable item.} Nielsen names four identifiers for the degenerate model
 (\texttt{geoDegenerate}, \texttt{algDegenerate}, \texttt{padDegenerate},
@@ -674,6 +688,46 @@ replication is the only real remedy and is not claimed.
 \paragraph{Archival dependence.} Hashes protect the bytes, not the availability of the source.
 \emph{Mitigation:} the three documents are stored in the repository, not merely linked.
 
+\paragraph{Four limitations, restated after review.}
+A reader of the first version of this paper objected to four things, and the objection was
+correct about each. They are restated here with what this revision did to them, because a
+limitation that is only acknowledged in the body is a limitation a reader has to reconstruct.
+
+\begin{enumerate}
+\item \emph{The corpus is small and date-restricted by design.} The inclusion rule admits only
+  works released on or after 20 November 2026 and publicly attributed to a claimed proof of
+  $\RH$ or $\GRH$. That is defensible for a pilot and it is not a stress test: the long tail of
+  historical $\RH$ claims is untouched. Section~\ref{sec:corpus} already says that ``all works
+  of all mathematicians'' is not a corpus; what it does not say is what a stress test would
+  cost. Appendix~\ref{app:executed} says it, with the shape of the historical corpus and the
+  one class of claim, prose without a formalisation, for which the protocol's answer is already
+  known and cheap. The residual is unchanged and is a fact about the study, not about the
+  protocol: no historical claim is evaluated here, and none of the protocol's behaviour on one
+  is claimed.
+\item \emph{The DH screen tests transfer, not circularity.} An argument that assumes an
+  $\RH$-equivalent hypothesis is screened as eligible for $\DHf$, because the equivalent fails
+  for $\DHf$: the screen can tell that the argument is not transferable and cannot tell that it
+  is circular. This revision adds the dual screen. A declared input is compared against an
+  equivalence table that is total over the inventory, and the one row that is an equivalence,
+  Li's criterion, is also a row that fails for $\DHf$. An argument that declares only it is
+  therefore marked \verdict{eligible} for exactly the reason it cannot be a proof of $\RH$:
+  eligibility and circularity become the same fact about the argument, and the screen reports
+  \verdict{rejected} with that sentence in the evidence.
+\item \emph{The dependency question is named but not resolved for Alp\"oge.} The paper named
+  the decisive computation and did not perform it, which is what the objection says. This
+  revision implements it, calibrates it against two theorems of this repository with known
+  closures, and states plainly that it has still not been run on the published archive, for the
+  reasons in \S\ref{sec:alpoge}. What is no longer true is that the computation is a promissory
+  note: it is code with controls, and the record carries the command.
+\item \emph{The verdict on Alp\"oge is validated at term level, not proven.} Correct, and the
+  revision makes it structurally impossible to read otherwise. A kernel pass now counts as
+  \verdict{validated (term)} for the \emph{panel} only together with a dependency trace that
+  came back clean, so the claim's panel verdict is \verdict{undetermined} while its statement
+  row remains \verdict{validated (term)}. A reader looking for a definitive answer to ``is the
+  Alp\"oge proof valid?'' will not find one here, and the report says why in its own line: no
+  instrument in this panel can answer that without the trace.
+\end{enumerate}
+
 \section{Related work}
 
 The Xena Project's four criteria \cite{xena} are criteria about statements and terms; this paper
@@ -709,7 +763,7 @@ All commands run from the repository root; the Python interpreter is the one the
 pins, and every number quoted above is produced by a committed test.
 
 \begin{verbatim}
-python -m pytest python/tests -q            # 1329 passed
+python -m pytest python/tests -q            # 1357 passed
 lake env lean lean/RiemannFramework/Dispute.lean
                                           # two 'sorry' warnings
 python scripts/run_dh_filter.py              # dead / eligible lists
@@ -966,6 +1020,171 @@ suggesting that something had been asked would be the same noise in a new place.
 cannot decide peer review, and it cannot turn a numerical check into evidence, which is why the
 zero check is in the panel with the sentence that says so beside it. It audits claims, tracks
 their status, and says what was checked and by what.
+
+\section{The protocol, executed}
+\label{app:executed}
+
+Appendix~\ref{app:agent} described the agent that implements this paper's procedure. This
+appendix documents the two things a reviewer found missing from the first version, both of
+which are now code: the verdict algebra that stops a kernel pass from becoming a claim verdict,
+and the dependency trace that decides the vacuity question instead of naming it.
+
+\subsection{Instruments, and the verdicts they can produce}
+
+Table~\ref{tab:panel} lists the instruments and the verdicts each is allowed to produce. The
+distinction that matters is not the status of a finding but its instrument: two findings can
+share a status and differ in what they license, and the aggregation rule of \S\ref{sec:algebra}
+reads the instrument rather than the prose.
+
+
+\subsection{The verdict algebra}
+\label{sec:algebra}
+
+The aggregation rule is five lines of code and one sentence of mathematics: \emph{the panel's
+verdict is the strongest verdict the panel supports, not the strongest any one instrument
+reached}. In order:
+
+\begin{enumerate}
+\item \verdict{rejected} dominates. A logical screen that fired ends the evaluation, because
+  nothing downstream turns an argument that proves a false analogue, or assumes what it claims
+  to prove, into an argument that does not.
+\item When formal artefacts were supplied, the panel's answer is the best of \emph{their}
+  verdicts. A finite arithmetic check that passed alongside says nothing about the claim, and
+  promoting it would let a consistency observation stand in for the thing under evaluation.
+\item A kernel pass is \verdict{validated (term)} for the panel \emph{only} together with a
+  dependency trace that came back clean. Kernel and no trace is \verdict{undetermined} by
+  construction. This is the rule the review asked for.
+\item When no artefact was supplied, the strongest validated numerical verdict is the panel's
+  answer, because that is all the panel has.
+\item Otherwise \verdict{undetermined}, and the report carries the computations that would
+  decide it.
+\end{enumerate}
+
+\begin{table}[!ht]
+\centering
+\caption{The panel, as implemented. A finding carries a status (what happened) and a verdict
+(what follows); the instrument decides which verdicts are available, and the aggregation rule
+of \S\ref{sec:algebra} reads the instrument rather than the prose.}
+\label{tab:panel}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Instrument & Decides & Can produce \\
+\midrule
+kernel & compilation, \texttt{sorry}, axiom set, statement identity &
+  \verdict{validated (term)}; anything else is \verdict{undetermined} \\
+dependency trace & whether a named definition is reachable from the theorem &
+  \verdict{validated (term)} when clean; \verdict{undetermined} when a name is reached \\
+vacuity census & where the objectional shapes are, textually & nothing: always
+  \verdict{undetermined} \\
+circularity screen & whether a declared input is an $\RH$-equivalent & \verdict{rejected} \\
+$\DHf$ screen & whether an argument also proves a false analogue & \verdict{rejected} \\
+numerical & a finite statement, by computation & \verdict{validated (finite)} \\
+reading & the record: sources, dates, objections & no verdict; the entry is recorded \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The consequence for this paper's first case is the honest one, and it is a correction: the
+published statement is \verdict{validated (term)} and the \emph{panel} verdict is
+\verdict{undetermined}, in the same report, because the trace has not run. Before this
+revision the term-level verdict was the closest thing to a panel verdict the report had, and
+\S\ref{sec:alpoge} said the same in prose; now the code cannot say it differently.
+
+\subsection{The dependency trace}
+
+The trace walks Lean's own environment: from the theorem, over the types and values of every
+constant it mentions, transitively, collecting the closure. It is forty lines of metaprogram,
+it imports nothing but \texttt{Lean} core, and it prints the closure between two markers that
+the agent parses. The question it answers is the one Nielsen's objection poses, and the one a
+kernel check cannot: \texttt{\#print axioms} reports the axioms a term uses, and a proof whose
+geometry predicate is \texttt{fun \_ \_ \_ => True} uses none beyond the standard three. The
+vacuous definitions are definitions, so they are invisible to the axiom audit and visible to
+the trace.
+
+\textbf{Two controls.} An instrument that has never been pointed at a known answer is one
+nobody should trust, so it is calibrated against two theorems whose closures are known in
+advance.
+
+\begin{table}[!ht]
+\centering
+\caption{The trace, calibrated. Both theorems live in the same file as the disputed statement
+of \texttt{Dispute.lean}; only the first mentions the vacuous predicate.}
+\label{tab:trace}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{3.1cm}@{}}
+\toprule
+Theorem & Expected & Observed \\
+\midrule
+\texttt{geometry\_is\_vacuous} & reaches the vacuous predicate &
+  closure of 4, reaches it, \verdict{undetermined} \\
+\texttt{closed\_false\_impossible} & does not reach it &
+  closure of 5, reaches none, \verdict{validated (term)} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{The limit, stated where it bites.} A hit is \emph{syntactic reachability}: the term
+mentions the definition. Whether the definition's content is load-bearing is a further
+question, and a definition can be reached through an unused hypothesis. So a hit is evidence
+that the objection's route exists, not proof that the conclusion travels it. Absence is the
+stronger half: a name outside the closure cannot have contributed to the term at all. Every
+trace finding carries that sentence, so a reader of the report does not have to find this
+paragraph.
+
+\textbf{The archive.} The trace has not been run on the published archive here. The archive is
+931~MB of git blobs and 61.5~GB of export; it pins Lean v4.33.1 while this repository's
+toolchain is v4.34.0-rc2; and it is not held on this machine. The record therefore reports
+\emph{not run} and prints the driver, and its command list carries the whole sequence: copy the
+trace module into the archive, emit a three-line driver that imports it and the target, run it
+with the archive's own \texttt{lake}. The version gap is a nameable risk rather than a blocker,
+because the module uses only \texttt{Lean} core and needs no Mathlib; it is a risk that this
+paper does not discharge, and the difference between "calibrated" and "run on the archive" is
+the difference between the two paragraphs above.
+
+\subsection{The circularity screen, which is the dual of the $\DHf$ screen}
+
+The $\DHf$ screen asks whether an argument would also prove a statement that is false. The
+circularity screen asks whether it already assumes a statement that is true, and the two are
+dual: both are cheap, neither is sufficient, and an argument can pass one while failing the
+other. The screen compares a declared input against an equivalence table that is \emph{total
+over the inventory}: one row is an $\RH$-equivalence (Li's criterion), and the other eight are
+recorded as not equivalent, each with its reason, so that ``not flagged'' means ``considered
+and rejected'' rather than ``not thought about''.
+
+The sharp case is that one row's double status, and it answers the review's second point
+exactly. Li's criterion \emph{fails} for Davenport--Heilbronn, so an argument that declares
+only it is marked \verdict{eligible} by the filter. Li's criterion is also \emph{equivalent} to
+$\RH$, so the same declaration is what makes the argument circular. Eligibility and circularity
+are then the same fact about the argument, and the report says so in one sentence. The verdict
+is \verdict{rejected}, and the limit is stated with it: this rejects the argument as a route to
+the hypothesis, not the hypothesis, not the input, and not the claimant. An argument that
+declares nothing is unscreened, not circular, because the screen reads a declaration.
+
+\subsection{What a corpus stress test would require}
+
+The review's first point is about the corpus, and it is the one this revision cannot fix by
+writing code. The inclusion rule admits works released on or after 20 November 2026, so the
+long tail is untouched. What a stress test would take, in increasing cost:
+
+\begin{itemize}
+\item \emph{Prose-only claims.} The cheapest class, and the protocol already answers it: no
+  formal artefact means the four kernel questions are \verdict{not applicable}, $E3$ is never
+  reached, and the $\DHf$ and circularity screens still classify declared inputs. A corpus of
+  such claims would exercise the screens and nothing else, which is worth knowing and is not a
+  test of the protocol's formal half.
+\item \emph{Claims with a refuted formalisation.} These exercise the failure paths that the
+  2026 corpus, by construction, does not: a statement that does not match, a term that does not
+  compile, an axiom audit that fails. The repository's own \texttt{Dispute.lean} is one such
+  artefact and is calibrated in Appendix~\ref{app:agent}; one is not a corpus.
+\item \emph{Historical claims with a modern re-formalisation.} This is the only class that
+  would test the trace against material nobody curated, and it requires the archive of each
+  claim to be obtainable and buildable, which is a research programme rather than a revision.
+\end{itemize}
+
+Until such a corpus exists, the honest statement is the one in \S\ref{sec:corpus}: the protocol
+is stress-tested against four documents and one self-application, and its behaviour on the
+historical tail is unmeasured.
 
 \begin{thebibliography}{99}
 

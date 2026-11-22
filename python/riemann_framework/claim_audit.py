@@ -168,6 +168,26 @@ class Verdict(str, Enum):
     NOT_ASSESSED = "not assessed"
 
 
+class Instrument(str, Enum):
+    """Which of the panel's instruments produced a finding.
+
+    Distinct from `Verdict`: the verdict is what was concluded, the instrument is what
+    concluded it. The aggregation rule in `ClaimReport.overall` reads this field, because
+    the paper's central claim about the panel is that *a kernel pass is not a term verdict*
+    until a dependency trace has run. Two findings can share a status and differ in
+    instrument, and that difference decides the panel's answer.
+    """
+
+    KERNEL = "kernel"
+    DEPENDENCY_TRACE = "dependency trace"
+    VACUITY_SCAN = "vacuity scan"
+    CIRCULARITY = "circularity screen"
+    DH_SCREEN = "Davenport-Heilbronn screen"
+    NUMERICAL = "numerical instrument"
+    READING = "reading"
+    NONE = "none"
+
+
 class LeanQuestion(str, Enum):
     """The five questions asked of a formal artefact.
 
@@ -219,6 +239,11 @@ class Finding:
     Every field is rendered; none is optional. `limits` is not decoration: a finding
     without a stated limit is the failure mode the paper is written against, so it is
     required and the tests check it is non-empty.
+
+    `instrument_class` is defaulted so that a finding built before the panel had
+    instruments still constructs; every finding the agent produces sets it, and the
+    aggregation rule in `ClaimReport.overall` reads it rather than parsing the
+    human-readable `instrument` string.
     """
 
     level: Level
@@ -228,6 +253,7 @@ class Finding:
     instrument: str
     evidence: str
     limits: str
+    instrument_class: Instrument = Instrument.READING
 
     def as_row(self) -> str:
         """One table row, with the pipe characters the evidence may contain escaped."""
@@ -243,6 +269,7 @@ class Finding:
             "status": self.status.value,
             "verdict": self.verdict.value,
             "instrument": self.instrument,
+            "instrument_class": self.instrument_class.value,
             "evidence": self.evidence,
             "limits": self.limits,
         }
@@ -337,6 +364,20 @@ class StatementTarget:
 
 
 @dataclass(frozen=True)
+class TraceRequest:
+    """A theorem to trace, and the names the objection says it reaches.
+
+    `suspects` is what makes the trace decisive rather than encyclopaedic: the closure of
+    a Matlib-backed theorem runs to thousands of names, and the interesting question is
+    only whether *these* are among them. A name matching by suffix is accepted (`anyGeometry`
+    matches `Development...anyGeometry`) because objection documents quote short names.
+    """
+
+    theorem: str
+    suspects: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class FormalTarget:
     """A formal artefact, where it lives, and what was already established about it.
 
@@ -355,6 +396,7 @@ class FormalTarget:
     commands: tuple[str, ...]
     note: str = ""
     imports: tuple[str, ...] = ()
+    trace: tuple[TraceRequest, ...] = ()
 
     def root_path(self, repo_root: Path) -> Path:
         candidate = Path(self.root)
@@ -423,6 +465,13 @@ class Claim:
                 commands=tuple(entry.get("commands", ())),
                 note=entry.get("note", ""),
                 imports=tuple(entry.get("imports", ())),
+                trace=tuple(
+                    TraceRequest(
+                        theorem=request["theorem"],
+                        suspects=tuple(request.get("suspects", ())),
+                    )
+                    for request in entry.get("trace", ())
+                ),
             )
             for entry in data.get("formal", ())
         )
@@ -1100,6 +1149,217 @@ def _slug(text: str) -> str:
 
 
 # ============================================================
+# The dependency trace: the fifth question, decided
+# ============================================================
+
+#: The module that provides `#deps`. Only `import Lean` is needed, so the same source
+#: compiles in a foreign project that depends on Mathlib alone.
+TRACE_MODULE = "RiemannFramework.DependencyTrace"
+
+_DEPS_BEGIN = "DEPS_BEGIN"
+_DEPS_END = "DEPS_END"
+
+
+def parse_deps(output: str) -> dict[str, set[str]]:
+    """`{theorem: closure}` from the `DEPS_BEGIN`/`DEPS_END` blocks of a trace run.
+
+    The theorem name is on the begin marker, so a driver that traces several theorems in
+    one file yields one block per theorem rather than a concatenation nobody can attribute.
+    """
+    blocks: dict[str, set[str]] = {}
+    current: str | None = None
+    for line in output.splitlines():
+        text = line.strip()
+        if text.startswith(_DEPS_BEGIN):
+            current = text[len(_DEPS_BEGIN):].strip() or "<unnamed>"
+            blocks.setdefault(current, set())
+        elif text.startswith(_DEPS_END):
+            current = None
+        elif current is not None and text and not text.startswith("DEPS_COUNT"):
+            blocks[current].add(text)
+    return blocks
+
+
+def suspect_reachable(closure: set[str], suspect: str) -> str | None:
+    """The fully qualified name in `closure` that answers to `suspect`, or None.
+
+    Objection documents quote short names (`anyGeometry`); the environment holds
+    qualified ones (`RiemannFramework...anyGeometry`). Exact match or a dotted suffix
+    match, so the comparison works in both directions and never guesses at a prefix.
+    """
+    if suspect in closure:
+        return suspect
+    suffix = "." + suspect
+    for name in closure:
+        if name.endswith(suffix):
+            return name
+    return None
+
+
+def dependency_trace(
+    project_root: Path,
+    module: str,
+    request: TraceRequest,
+    *,
+    trace_module: str = TRACE_MODULE,
+    timeout: int = 3600,
+    name_prefix: str = "deps",
+) -> tuple[Status, dict[str, Any]]:
+    """Run `#deps` on one theorem and intersect the closure with the suspects.
+
+    Returns `(status, details)`. `details` always carries the closure size and, when the
+    trace ran, which suspects were reached: those two numbers are what a reviewer needs to
+    see, because "not reached" is only meaningful next to the size of what *was*.
+    """
+    imports = [m for m in (trace_module, module) if m]
+    source = "\n".join(f"import {m}" for m in dict.fromkeys(imports))
+    source += f"\n\n#deps {request.theorem}\n"
+    run = run_lean(
+        project_root, source, name=f"{name_prefix}_{_slug(request.theorem)}",
+        timeout=timeout,
+    )
+    blocks = parse_deps(run.output)
+    closure = blocks.get(request.theorem, set())
+    if len(blocks) == 1 and not closure:
+        closure = next(iter(blocks.values()))
+    if not run.ok or not closure:
+        return Status.NOT_RUN, {
+            "closure": 0,
+            "reached": [],
+            "run": run,
+            "output": run.output,
+        }
+    reached = []
+    for suspect in request.suspects:
+        found = suspect_reachable(closure, suspect)
+        if found is not None:
+            reached.append(found)
+    return Status.CHECKED_FAILED if reached else Status.CHECKED_OK, {
+        "closure": len(closure),
+        "reached": sorted(set(reached)),
+        "run": run,
+        "output": run.output,
+    }
+
+
+def trace_finding(
+    target: FormalTarget,
+    request: TraceRequest,
+    repo_root: Path,
+    *,
+    live: bool,
+    timeout: int,
+) -> Finding:
+    """The trace as a finding: decided, failed, or not run with the command that would.
+
+    The three cases are kept apart because they mean different things. A trace that ran
+    and reached a flagged definition **decides the objection in its favour**: the term
+    really does pass through the vacuous obligation. A trace that ran and reached none
+    refutes it *for those names*. A trace that did not run proves nothing, and says so
+    with the exact command a reader can run.
+    """
+    root = target.root_path(repo_root)
+    present = target.present(repo_root)
+    instrument = f"`#deps` over Lean's environment; {target.role}"
+    limits = (
+        "Syntactic reachability, not semantic dependence: a flagged definition can appear "
+        "in the closure because an unused hypothesis mentions it, so a hit is evidence "
+        "that the objection's route exists rather than proof that the conclusion uses it. "
+        "Absence is the stronger half: a name outside the closure cannot have contributed "
+        "to the term at all. The closure is taken over types and values, not over the "
+        "tactics that produced them."
+    )
+    if not (live and present):
+        why = (
+            "the artefact is present but live Lean was not requested"
+            if present else "the artefact is not on this machine"
+        )
+        command = (
+            "import " + TRACE_MODULE + "\n#import " + (target.module or "<module>")
+            + "\n#deps " + request.theorem
+        )
+        return Finding(
+            level=Level.FORMAL,
+            check=f"{target.role}: dependency trace of `{request.theorem}`",
+            status=Status.NOT_RUN,
+            verdict=Verdict.NOT_ASSESSED,
+            instrument=f"`#deps`; not run ({why})",
+            evidence=(
+                f"not run: {why}. The trace is the decisive computation for the vacuity "
+                f"question and it is pending here. With the artefact in place, the driver "
+                f"is:\n\n```lean\n{command}\n```\n"
+            ),
+            limits=limits,
+            instrument_class=Instrument.DEPENDENCY_TRACE,
+        )
+    status, details = dependency_trace(root, target.module, request, timeout=timeout)
+    if status is Status.NOT_RUN:
+        first = next(
+            (line.strip() for line in str(details["output"]).splitlines() if line.strip()),
+            "",
+        )
+        return Finding(
+            level=Level.FORMAL,
+            check=f"{target.role}: dependency trace of `{request.theorem}`",
+            status=Status.NOT_RUN,
+            verdict=Verdict.NOT_ASSESSED,
+            instrument=instrument,
+            evidence=f"the trace did not produce a closure: {first[:240]}",
+            limits=limits,
+            instrument_class=Instrument.DEPENDENCY_TRACE,
+        )
+    reached = details["reached"]
+    if status is Status.CHECKED_FAILED:
+        return Finding(
+            level=Level.FORMAL,
+            check=f"{target.role}: dependency trace of `{request.theorem}`",
+            status=Status.CHECKED_FAILED,
+            verdict=Verdict.UNDETERMINED,
+            instrument=instrument,
+            evidence=(
+                f"the closure of `{request.theorem}` has {details['closure']} constants "
+                f"and reaches {len(reached)} flagged definition(s): "
+                + ", ".join(f"`{name}`" for name in reached)
+                + ". The objection's route exists in this term; whether it is "
+                "load-bearing is the named computation below."
+            ),
+            limits=limits,
+            instrument_class=Instrument.DEPENDENCY_TRACE,
+        )
+    return Finding(
+        level=Level.FORMAL,
+        check=f"{target.role}: dependency trace of `{request.theorem}`",
+        status=Status.CHECKED_OK,
+        verdict=Verdict.VALIDATED_TERM,
+        instrument=instrument,
+        evidence=(
+            f"the closure of `{request.theorem}` has {details['closure']} constants and "
+            f"reaches none of {len(request.suspects)} flagged definition(s): "
+            + ", ".join(f"`{name}`" for name in request.suspects)
+        ),
+        limits=limits,
+        instrument_class=Instrument.DEPENDENCY_TRACE,
+    )
+
+
+def target_verdict(kernel_ok: bool, trace_statuses: Sequence[Status]) -> Verdict:
+    """The verdict one formal artefact supports, and no stronger.
+
+    This is the paper's rule in code: a kernel pass is a term verdict only together with a
+    trace that came back clean. Kernel and no trace is `undetermined`, not `validated
+    (term)`; a trace that reached a flagged definition is also `undetermined`, because the
+    objection survives and the computation that would settle it is named.
+    """
+    if not kernel_ok:
+        return Verdict.UNDETERMINED
+    if any(status is Status.CHECKED_FAILED for status in trace_statuses):
+        return Verdict.UNDETERMINED
+    if trace_statuses and all(status is Status.CHECKED_OK for status in trace_statuses):
+        return Verdict.VALIDATED_TERM
+    return Verdict.UNDETERMINED
+
+
+# ============================================================
 # Level 1: the repository's own instruments
 # ============================================================
 
@@ -1136,6 +1396,7 @@ def probe_numerical_domain(claim: Claim) -> Finding:
         status=Status.NOT_APPLICABLE,
         verdict=Verdict.OUTSIDE_DOMAIN,
         instrument="riemann_framework.dh_filter (inventory)",
+        instrument_class=Instrument.DH_SCREEN,
         evidence=(
             f"{len(rows)} inventoried inputs, none of which is a proof, a theorem or "
             f"a term: {keys}. A claim that asserts a proof exists is not a statement "
@@ -1175,6 +1436,7 @@ def probe_dh_screen(claim: Claim) -> Finding:
         status=status,
         verdict=verdict,
         instrument="riemann_framework.dh_filter",
+        instrument_class=Instrument.DH_SCREEN,
         evidence=(
             f"declared inputs {sorted(claim.declared_inputs)}; filter verdict "
             f"`{result.verdict.value}`. {result.summary}"
@@ -1208,6 +1470,7 @@ def probe_zero_consistency(claim: Claim) -> Finding:
         status=Status.CHECKED_OK if on_line else Status.CHECKED_FAILED,
         verdict=Verdict.VALIDATED_FINITE,
         instrument="riemann_framework.zeros",
+        instrument_class=Instrument.NUMERICAL,
         evidence=f"{located}; all on the critical line at the working precision",
         limits=(
             "A finite computation about three zeros. The zeros were *found* by a "
@@ -1235,6 +1498,7 @@ def probe_proportion_constants(claim: Claim) -> Finding:
         status=Status.CHECKED_FAILED if failed else Status.CHECKED_OK,
         verdict=Verdict.VALIDATED_FINITE,
         instrument="riemann_framework.proportion_certificates",
+        instrument_class=Instrument.NUMERICAL,
         evidence=(
             (f"failed: {failed}" if failed else "all six comparisons hold")
             + f"; 2 - R(psi_MT) = {constants['simple_montgomery_taylor']:.10f}, "
@@ -1245,6 +1509,149 @@ def probe_proportion_constants(claim: Claim) -> Finding:
             "hypothesis, and neither paper claims one; the constants are shared by "
             "arguments whose ceiling their own authors state."
         ),
+    )
+
+
+#: Inventory inputs that are **equivalent** to the Riemann hypothesis, with the source of
+#: the equivalence. An argument whose only Davenport-Heilbronn-discriminating input sits
+#: here does not establish RH: it assumes it.
+#:
+#: The table is one row long because the inventory has one such row, and that is a fact
+#: worth stating rather than a gap: `dh_filter.py` documents `li_positivity` as "the
+#: RH-equivalent positivity lambda_n >= 0 for all n (Li's criterion)". The classification
+#: below is total over the inventory, so a reader can see the other eight were considered
+#: and why each is not an equivalence.
+RH_EQUIVALENT_INPUTS: dict[str, tuple[str, str]] = {
+    "li_positivity": (
+        "Li's criterion: lambda_n >= 0 for all n is equivalent to RH, and Keiper's "
+        "sequence is equivalent to it",
+        "Li (1997), J. Number Theory 65; Keiper (1992); as recorded in the inventory row",
+    ),
+}
+
+#: The rest of the inventory, and why each is *not* an RH-equivalence. A total function
+#: over the inventory is what keeps the screen from looking vacuous: "not flagged" has to
+#: mean "considered and rejected", not "not thought about".
+NOT_RH_EQUIVALENT: dict[str, str] = {
+    "functional_equation": "a completion property the Davenport-Heilbronn function shares",
+    "real_coefficients": "a symmetry of the coefficient field, also shared",
+    "zero_symmetry": "a consequence of the two symmetries above, not of RH",
+    "hadamard_product": "order and entireness, which DH also has",
+    "euler_product": (
+        "a structural property whose *absence* for DH is what makes DH a counterexample "
+        "source; having one for zeta is not equivalent to RH"
+    ),
+    "explicit_formula_prime_side": (
+        "the explicit formula is a theorem (Guinand-Weil) for both functions; RH is "
+        "equivalent to a positivity on the arithmetic side, which is a different input"
+    ),
+    "riemann_von_mangoldt_count": "a zero-counting asymptotic that holds unconditionally",
+    "gue_pair_correlation": (
+        "a statistical conjecture about spacings; nothing here establishes an "
+        "equivalence to RH, and this repository's own screen records it as unsourced"
+    ),
+}
+
+
+def probe_circularity(claim: Claim) -> Finding:
+    """Does the argument assume the thing it claims to prove?
+
+    The dual of the Davenport-Heilbronn screen. DH asks whether an argument would also
+    prove a false statement; this asks whether it already assumes a true one. Both are
+    cheap, and neither is sufficient: an argument can pass DH (its inputs fail for DH) and
+    still be circular, which is exactly what happens when the discriminating input is
+    Li's criterion. The screen classifies declared inputs only, and a claim that declares
+    none is unscreened rather than circular.
+    """
+    from . import dh_filter
+
+    inventory = dh_filter.DH_INPUTS
+    unknown = [key for key in claim.declared_inputs if key not in inventory]
+    if unknown:
+        raise ValueError(
+            f"{claim.id}: declared inputs {unknown} are not in the DH inventory "
+            f"({sorted(inventory)}); the circularity screen classifies inventory keys only"
+        )
+    declared = [key for key in claim.declared_inputs if key in RH_EQUIVALENT_INPUTS]
+    if not claim.declared_inputs:
+        return Finding(
+            level=Level.NUMERICAL,
+            check="the declared inputs are not equivalent to the Riemann hypothesis",
+            status=Status.NOT_APPLICABLE,
+            verdict=Verdict.NOT_ASSESSED,
+            instrument="riemann_framework.dh_filter inventory, plus the equivalence table",
+            evidence=(
+                "the record declares no inputs, so there is nothing to classify. An "
+                "undeclared argument is unscreened, not circular: the screen reads a "
+                "declaration, and a claim that supplies none is a claim the screen "
+                "cannot read."
+            ),
+            limits=(
+                "This is not a pass. The circularity screen is total over the inventory "
+                "and blind to everything outside it: an argument that restates RH in "
+                "vocabulary the inventory does not hold is not caught here."
+            ),
+            instrument_class=Instrument.CIRCULARITY,
+        )
+    if not declared:
+        return Finding(
+            level=Level.NUMERICAL,
+            check="the declared inputs are not equivalent to the Riemann hypothesis",
+            status=Status.CHECKED_OK,
+            verdict=Verdict.NOT_ASSESSED,
+            instrument="riemann_framework.dh_filter inventory, plus the equivalence table",
+            evidence=(
+                f"declared inputs {sorted(claim.declared_inputs)}; none is in the "
+                f"RH-equivalence table, which holds {sorted(RH_EQUIVALENT_INPUTS)}. Each "
+                "of the other inventoried inputs was classified as not equivalent, with "
+                "the reason recorded in `NOT_RH_EQUIVALENT`."
+            ),
+            limits=(
+                "Passing means the argument does not assume one of the known RH "
+                "restatements. It does not mean the argument is non-circular: circularity "
+                "can hide in a definition the inventory has never seen, and an argument "
+                "can also assume something *stronger* than RH, which would prove it "
+                "without being equivalent to it."
+            ),
+            instrument_class=Instrument.CIRCULARITY,
+        )
+    statements = "; ".join(
+        f"`{key}`: {RH_EQUIVALENT_INPUTS[key][0]} ({RH_EQUIVALENT_INPUTS[key][1]})"
+        for key in declared
+    )
+    # The sharp case is the one already in the inventory: an input that is RH-equivalent
+    # *and* fails for Davenport-Heilbronn is what makes `eligible` uninformative, because
+    # the filter marks the argument eligible for exactly the reason it cannot be a proof.
+    discriminators = [
+        key for key in declared if inventory[key].status is dh_filter.InputStatus.FAILS
+    ]
+    sharp = ""
+    if discriminators:
+        sharp = (
+            f" {', '.join(f'`{key}`' for key in discriminators)} also fails for "
+            "Davenport-Heilbronn, so the filter marks this argument `eligible` on the "
+            "strength of the very input that makes it circular: eligibility and "
+            "circularity are the same fact about it."
+        )
+    return Finding(
+        level=Level.NUMERICAL,
+        check="the declared inputs are not equivalent to the Riemann hypothesis",
+        status=Status.CHECKED_FAILED,
+        verdict=Verdict.REJECTED,
+        instrument="riemann_framework.dh_filter inventory, plus the equivalence table",
+        evidence=(
+            f"the argument declares {statements}." + sharp + " An input equivalent to the "
+            "hypothesis makes the DH screen's `eligible` verdict carry no information "
+            "about whether the argument proves RH: an argument resting on it says nothing "
+            "that the hypothesis did not already say."
+        ),
+        limits=(
+            "This rejects the argument as a route to the hypothesis, not the hypothesis "
+            "and not the input: Li's criterion is a theorem for zeta, and the argument "
+            "may be a perfectly good proof that RH implies RH. What it cannot be is a "
+            "proof of RH."
+        ),
+        instrument_class=Instrument.CIRCULARITY,
     )
 
 
@@ -1260,6 +1667,12 @@ PROBES: dict[str, Probe] = {
         instrument="dh_filter",
         decides="whether the claim's declared inputs survive the DH substitution",
         run=probe_dh_screen,
+    ),
+    "circularity": Probe(
+        key="circularity",
+        instrument="dh_filter",
+        decides="whether the declared inputs are RH-equivalent restatements",
+        run=probe_circularity,
     ),
     "zero_consistency": Probe(
         key="zero_consistency",
@@ -1339,6 +1752,7 @@ def _formal_findings(result: FormalResult) -> list[Finding]:
                 instrument=f"Lean, via `lake env lean`; {source}",
                 evidence=result.evidence[question],
                 limits=limitations[question],
+                instrument_class=Instrument.KERNEL,
             )
         )
     findings.append(_non_vacuity_finding(result))
@@ -1418,8 +1832,10 @@ def _non_vacuity_finding(result: FormalResult) -> Finding:
             "definitions is a question about a 61 GB proof term's dependency graph, "
             "and it is the one question nobody has settled. Locating is not proving "
             "dependence, and the absence of a located shape is not a proof of "
-            "non-vacuity either."
+            "non-vacuity either. The dependency trace findings below are what decides "
+            "it, and `target_verdict` refuses a term verdict until they are clean."
         ),
+        instrument_class=Instrument.VACUITY_SCAN,
     )
 
 
@@ -1437,6 +1853,7 @@ def _no_formalisation_findings(claim: Claim) -> list[Finding]:
             status=Status.NOT_APPLICABLE,
             verdict=Verdict.NOT_ASSESSED,
             instrument="none",
+            instrument_class=Instrument.NONE,
             evidence="the claim record declares no formal target",
             limits=(
                 "Nothing was asked. A prose claim can be a real proof and a formalised "
@@ -1460,6 +1877,7 @@ def _institutional_findings(claim: Claim, repo_root: Path) -> list[Finding]:
                 status=Status.CHECKED_OK if matches else Status.CHECKED_FAILED,
                 verdict=Verdict.NOT_ASSESSED,
                 instrument="SHA-256 against `references/`",
+                instrument_class=Instrument.NONE,
                 evidence=evidence,
                 limits=(
                     "A hash establishes that this file is the one the record was made "
@@ -1487,6 +1905,7 @@ def _institutional_findings(claim: Claim, repo_root: Path) -> list[Finding]:
                 status=Status.RECORDED,
                 verdict=Verdict.NOT_ASSESSED,
                 instrument=fact.source,
+                instrument_class=Instrument.READING,
                 evidence=fact.date + (f"; {fact.note}" if fact.note else ""),
                 limits=(
                     "Recorded from the named source and not verified here. An "
@@ -1496,6 +1915,46 @@ def _institutional_findings(claim: Claim, repo_root: Path) -> list[Finding]:
             )
         )
     return findings
+
+
+def panel_verdict(findings: Sequence[Finding],
+                  target_verdicts: Sequence[Verdict]) -> Verdict:
+    """The strongest verdict the whole panel supports, and no stronger.
+
+    The rules, in the order they apply:
+
+    1. `rejected` dominates. A logical screen that fired ends the evaluation, because
+       nothing downstream can make an argument that proves a false analogue, or assumes
+       the thing it claims to prove, into an argument that does not.
+    2. When formal artefacts were supplied, the panel's answer is the best of *their*
+       verdicts. A finite arithmetic check that happened to pass alongside says nothing
+       about the claim; promoting it would let a consistency observation stand in for
+       the thing under evaluation.
+    3. When no artefact was supplied (or none answered), the strongest validated
+       numerical verdict is the panel's answer, because that is all the panel has.
+    4. Otherwise `undetermined`, and the report carries the computations that would
+       decide it.
+    """
+    verdicts = [finding.verdict for finding in findings]
+    if Verdict.REJECTED in verdicts:
+        return Verdict.REJECTED
+    if target_verdicts:
+        if Verdict.VALIDATED_TERM in target_verdicts:
+            return Verdict.VALIDATED_TERM
+        if not all(verdict is Verdict.NOT_ASSESSED for verdict in target_verdicts):
+            return Verdict.UNDETERMINED
+    if Verdict.VALIDATED_ELEMENTARY in verdicts:
+        return Verdict.VALIDATED_ELEMENTARY
+    if Verdict.VALIDATED_FINITE in verdicts:
+        return Verdict.VALIDATED_FINITE
+    if not verdicts:
+        return Verdict.NOT_ASSESSED
+    if all(verdict is Verdict.NOT_ASSESSED for verdict in verdicts):
+        return Verdict.NOT_ASSESSED
+    if all(verdict in (Verdict.NOT_ASSESSED, Verdict.OUTSIDE_DOMAIN)
+           for verdict in verdicts):
+        return Verdict.OUTSIDE_DOMAIN
+    return Verdict.UNDETERMINED
 
 
 def evidence_classes(claim: Claim, findings: Sequence[Finding]) -> tuple[str, str]:
@@ -1558,6 +2017,11 @@ class ClaimReport:
     evidence: str
     evidence_reasons: str
     position: str = STANDING_POSITION
+    #: `(role, verdict)` per formal artefact, plus the panel verdict those support. The
+    #: pair is kept rather than collapsed so a report cannot show a term verdict it did
+    #: not earn: the panel verdict is the one the whole panel supports.
+    targets: tuple[tuple[str, Verdict], ...] = ()
+    panel: Verdict = Verdict.NOT_ASSESSED
 
     @property
     def by_level(self) -> dict[Level, list[Finding]]:
@@ -1589,6 +2053,11 @@ class ClaimReport:
             }),
             "evidence_classes": self.evidence,
             "evidence_reasons": self.evidence_reasons,
+            "panel_verdict": self.panel.value,
+            "target_verdicts": [
+                {"role": role, "verdict": verdict.value}
+                for role, verdict in self.targets
+            ],
             "findings": [finding.as_dict() for finding in self.findings],
             "objections": [objection.as_dict() for objection in self.claim.objections],
             "formal": [
@@ -1630,6 +2099,25 @@ class ClaimReport:
             )
         lines.append("")
         lines.append(f"**Evidence classes reached** {self.evidence}")
+        lines.append("")
+        lines.append(f"**Panel verdict** `{self.panel.value}`")
+        if self.targets:
+            lines.append("")
+            lines.append(
+                "Per formal artefact: "
+                + "; ".join(
+                    f"{role} `{verdict.value}`" for role, verdict in self.targets
+                )
+                + "."
+            )
+        lines.append("")
+        lines.append(
+            "The panel verdict is the strongest verdict *the panel* supports, not the "
+            "strongest any one check reached. A kernel pass counts as `validated (term)` "
+            "only together with a dependency trace that came back clean; a kernel pass "
+            "without a trace is `undetermined` by construction, and so is a trace that "
+            "reached a definition the objection named."
+        )
         lines.append("")
         lines.append(f"> {self.position}")
         lines.append("")
@@ -1829,12 +2317,30 @@ def audit_claim(
                 statements=target.statements, axiom_targets=target.axiom_targets,
                 recorded=target.recorded, recorded_on=target.recorded_on,
                 commands=target.commands, note=target.note, imports=target.imports,
+                trace=target.trace,
             )
             for target in targets
         )
+    target_verdicts: list[tuple[str, Verdict]] = []
     for target in targets:
-        result = formal_check(target, repo_root, live=live_lean, timeout=timeout)
-        findings.extend(_formal_findings(result))
+        owned: list[Finding] = _formal_findings(
+            formal_check(target, repo_root, live=live_lean, timeout=timeout)
+        )
+        for request in target.trace:
+            owned.append(
+                trace_finding(target, request, repo_root, live=live_lean, timeout=timeout)
+            )
+        findings.extend(owned)
+        kernel_ok = any(
+            finding.instrument_class is Instrument.KERNEL
+            and finding.verdict is Verdict.VALIDATED_TERM
+            for finding in owned
+        )
+        trace_statuses = [
+            finding.status for finding in owned
+            if finding.instrument_class is Instrument.DEPENDENCY_TRACE
+        ]
+        target_verdicts.append((target.role, target_verdict(kernel_ok, trace_statuses)))
     if not targets:
         findings.extend(_no_formalisation_findings(claim))
     findings.extend(_institutional_findings(claim, repo_root))
@@ -1844,6 +2350,8 @@ def audit_claim(
         findings=tuple(findings),
         evidence=evidence,
         evidence_reasons=reasons,
+        targets=tuple(target_verdicts),
+        panel=panel_verdict(findings, [verdict for _, verdict in target_verdicts]),
     )
 
 

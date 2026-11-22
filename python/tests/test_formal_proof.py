@@ -49,6 +49,10 @@ LEAN_FILES = [
     RIEMANN_FRAMEWORK_DIR / "NewIdeaTest.lean",
     RIEMANN_FRAMEWORK_DIR / "SanityChecks.lean",
     RIEMANN_FRAMEWORK_DIR / "DynamicalDesymmetrisation.lean",
+    # The dependency trace: a metaprogram over Lean's environment, not library
+    # content. It has no `sorry` and no axioms, and it is what decides the fifth
+    # question of the audit protocol.
+    RIEMANN_FRAMEWORK_DIR / "DependencyTrace.lean",
 ]
 
 # Files that must be *complete*: compiled, and free of both `sorry` and `axiom`.

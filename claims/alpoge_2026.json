@@ -9,6 +9,7 @@
   "probes": [
     "numerical_domain",
     "dh_screen",
+    "circularity",
     "zero_consistency"
   ],
   "document": {
@@ -49,16 +50,32 @@
         "declarations_accepted": 1468418,
         "verifier": "con-leche (branch `compare`, commit 274f0138, built with Lean 4.36.0), `--verified --jobs=12`: exit 0, 561.6 s wall, 34.4 GB peak RSS",
         "negative_control": "the challenge file alone, `con-leche --verified --jobs=12 challenge.ndjson`: exit 2, \"use of the sorryAx axiom in value of riemannHypothesis\"",
-        "dependency_closure": "163,852 of 163,893 parsed modules reachable from the target, maximum depth 42"
+        "dependency_closure": "163,852 of 163,893 parsed modules reachable from the target, maximum depth 42",
+        "trace_status": "not run here: the archive is 931 MB of git blobs and 61.5 GB of export, and it pins Lean v4.33.1 while this repository's toolchain is v4.34.0-rc2. The trace module uses only Lean core, so the version gap is a nameable risk rather than a blocker; the command is in `commands`."
       },
       "commands": [
         "git clone https://github.com/Deicyde/riemann-hypothesis external/alpoge-lean  # 931 MB; needs core.longpaths",
         "git -C external/alpoge-lean grep -n -E '\\bsorry\\b|\\bsorryAx\\b' -- src",
         "python scripts/audit/scan_export_axioms.py solution.ndjson  # 3 axioms, 0 sorryAx",
         "con-leche --compare --jobs=20 challenge.ndjson solution.ndjson  # exit 0",
-        "con-leche --verified --jobs=12 challenge.ndjson  # negative control: exit 2, sorryAx"
+        "con-leche --verified --jobs=12 challenge.ndjson  # negative control: exit 2, sorryAx",
+        "# the decisive check, once the archive is in place:",
+        "cp lean/RiemannFramework/DependencyTrace.lean external/alpoge-lean/src/AuditDeps.lean",
+        "printf 'import AuditDeps\\nimport Mathlib\\n#deps riemannHypothesis\\n' > external/alpoge-lean/src/Trace.lean",
+        "lake -d external/alpoge-lean env lean external/alpoge-lean/src/Trace.lean  # closure, then intersect"
       ],
-      "note": "A replay is not a substitute for the run: it records what a run on another machine established, with the commands that produced it. The record does not assert the archive's module path, because the audit did not need one; a live run therefore needs `--lean-root` and a module path in this entry before its output means anything."
+      "note": "A replay is not a substitute for the run: it records what a run on another machine established, with the commands that produced it. The record does not assert the archive's module path, because the audit did not need one; a live run therefore needs `--lean-root` and a module path in this entry before its output means anything.",
+      "trace": [
+        {
+          "theorem": "riemannHypothesis",
+          "suspects": [
+            "anyGeometry",
+            "geoDegenerate",
+            "divXFl",
+            "x0"
+          ]
+        }
+      ]
     },
     {
       "role": "this repository's recording of the dispute (live)",
@@ -82,10 +99,24 @@
       "recorded": {},
       "recorded_on": "2026-11-22",
       "commands": [
-        "lake build RiemannFramework.Dispute",
+        "lake build RiemannFramework.DependencyTrace RiemannFramework.Dispute",
         "python -m pytest python/tests/test_alpoge_claim.py -q"
       ],
-      "note": "This is not a model of the published proof and it is not offered as one. It is the repository's own file: it states Alpöge's position with `sorry` and proves the structural core of Nielsen's objection without one. Running the five questions on it is a live negative control, and the `sorry` the agent finds is the one the record says is there."
+      "note": "This is not a model of the published proof and it is not offered as one. It is the repository's own file: it states Alpoge's position with `sorry` and proves the structural core of Nielsen's objection without one. Running the five questions on it is a live negative control, and the `sorry` the agent finds is the one the record says is there. Its two trace requests are a positive and a negative control for the dependency trace itself: `geometry_is_vacuous` must reach `vacuousGeometry`, and `closed_false_impossible` must not.",
+      "trace": [
+        {
+          "theorem": "RiemannFramework.geometry_is_vacuous",
+          "suspects": [
+            "vacuousGeometry"
+          ]
+        },
+        {
+          "theorem": "RiemannFramework.closed_false_impossible",
+          "suspects": [
+            "vacuousGeometry"
+          ]
+        }
+      ]
     }
   ],
   "institutional": [
