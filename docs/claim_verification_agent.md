@@ -341,6 +341,55 @@ earns `undetermined`, not `validated (term)`, because the term it belongs to car
 And the two trace rows are the calibration of the decisive instrument itself, one positive
 and one negative.
 
+### The gap closer: the four computations, executed where they can be
+
+`python/riemann_framework/gap_closer.py` is the execution half of the trace, and
+`python scripts/audit/rh_gap_closer.py` is its command line. It performs the four computations
+the protocol names: C1, the closure by `#deps`; C2, an independent closure; C3, the comparison,
+which stops the report with a named reconciliation when the two differ; and C4, the mutation of
+every flagged declaration the closure reaches. It refuses `validated (term)` while any of the
+four has not run, so a report cannot overclaim by omission, and it writes six artefacts plus a
+SHA-256 manifest:
+
+- `closure_deps.txt`, `closure_laud.txt`, `closure_crossvalidated.json`,
+  `load_bearing.json`, `dependency_graph.html` (five colours: green, blue, red, amber, yellow),
+  `gap_statement.md`.
+
+**The archive run is blocked, and the block is the report.** `--archive external/alpoge-lean`
+finds no archive, so C1--C4 are `not run`, the verdict is `undetermined`, and each computation
+carries the command that would execute it. The record's archive mutant is marked NOT CHECKED
+HERE, and the tool's own precondition check (lakefile, toolchain, target module) refuses to
+pretend otherwise. Two of the instruments the specification names do not exist as executables
+here: `laud graph`, `laud mutate`, `lean-proof-review` and the vacuity plugin are absent, and the
+public packages with those names are prompt-level *skills* rather than checkers; C2 therefore
+runs as this repository's `#depsm` over the same environment, and the substitution is printed in
+every report. The closure and cross-validation are real computations; the load-bearing step for
+the archive remains unexecuted.
+
+**The control run executes C1--C3.** On `RiemannFramework.geometry_is_vacuous`, with
+`vacuousGeometry` flagged by the census:
+
+| computation | result |
+|:---|:---|
+| C1, `#deps` | closure of 4 names |
+| C2, `#depsm` | closure of 4 names |
+| C3, comparison | the two closures agree |
+| C4, vacuous-analogue mutation | `not run`: the record's mutant is a content flip, not a vacuous analogue; it ran and was killed, which calibrates the engine |
+
+The flagged declaration is in the closure and is vacuous by inspection (`:= True`), so it is red,
+and the verdict is `undetermined` with two named computations: discharge the witness, and declare
+a vacuous analogue for the mutation. The report is at `docs/gap_closer/alpoge_2026-control/`; the
+blocked archive report is at `docs/gap_closer/alpoge_2026/`.
+
+What the C4 semantics cannot decide is worth stating here rather than in a footnote. The
+specification's test replaces a flagged definition with a vacuous analogue and asks whether the
+theorem still compiles. When the definition is *already* the trivially true form, the vacuous
+analogue is the definition and the test is the identity: for such a declaration the vacuity is
+established by reading it, not by mutating it. The mutation discriminates only where the
+suspicion is that a definition is semantically off while not literally `True`. That limit is
+recorded as the reason C4 is `not run` for the control even though a mutation of the definition
+was executed.
+
 ## 4. The overclaiming controls
 
 These are mechanical, and each has a test that fails if it stops working.

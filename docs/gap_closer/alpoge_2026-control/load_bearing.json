@@ -1,0 +1,24 @@
+{
+  "target": "geometry_is_vacuous",
+  "verdict": "undetermined",
+  "declarations": [
+    {
+      "name": "vacuousGeometry",
+      "in_closure": true,
+      "flagged": true,
+      "vacuity_critical": true,
+      "colour": "red",
+      "mutant": "inspection",
+      "evidence": "the definition is literally the trivially true shape, so the theorem's content is carried by a vacuous definition; classified by inspection, not by mutation (the declared rewrite ran and was killed, which calibrates the engine but is not a vacuous analogue)"
+    }
+  ],
+  "colours": {
+    "red": [
+      "vacuousGeometry"
+    ],
+    "amber": [],
+    "blue": [],
+    "green": []
+  },
+  "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry."
+}

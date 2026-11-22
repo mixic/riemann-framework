@@ -1,0 +1,52 @@
+{
+  "claim": "alpoge_2026",
+  "target": "geometry_is_vacuous",
+  "module": "RiemannFramework.Dispute",
+  "c1": {
+    "name": "C1",
+    "instrument": "#deps (Expr.getUsedConstants)",
+    "status": "checked_ok",
+    "detail": "closure of 4 names",
+    "substitute": null,
+    "named_computation": null,
+    "payload": {
+      "names": [
+        "Nat",
+        "RiemannFramework.geometry_is_vacuous",
+        "RiemannFramework.vacuousGeometry",
+        "True"
+      ]
+    }
+  },
+  "c2": {
+    "name": "C2",
+    "instrument": "#depsm (structural recursion)",
+    "status": "checked_ok",
+    "detail": "closure of 4 names",
+    "substitute": "laud graph is not available; #depsm is the repository's second traversal over the same environment",
+    "named_computation": null,
+    "payload": {
+      "names": [
+        "Nat",
+        "RiemannFramework.geometry_is_vacuous",
+        "RiemannFramework.vacuousGeometry",
+        "True"
+      ]
+    }
+  },
+  "status": "checked_ok",
+  "only_in_deps": [],
+  "only_in_laud": [],
+  "common": [
+    "Nat",
+    "RiemannFramework.geometry_is_vacuous",
+    "RiemannFramework.vacuousGeometry",
+    "True"
+  ],
+  "verdict": "undetermined",
+  "named_computations": [
+    "discharge the vacuity witness vacuousGeometry: replace it with a definition whose content the proof uses, or record it as load-bearing and reopen the objection",
+    "run C4 (declare a vacuous-analogue mutant for each flagged declaration and re-run)"
+  ],
+  "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry."
+}

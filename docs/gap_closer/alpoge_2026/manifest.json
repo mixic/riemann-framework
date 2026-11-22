@@ -1,0 +1,50 @@
+{
+  "claim": "alpoge_2026",
+  "verdict": "undetermined",
+  "files": {
+    "closure_deps.txt": "887ea9639a39bfb857591c664d40b48a2b67a916c649ebace44a658ae8747727",
+    "closure_laud.txt": "6875fc4df22e04d86dc9ff6223fa6233593ddbeb694d9e402bf6f6956a20e00d",
+    "closure_crossvalidated.json": "246a30aeac5d1c2bd33bee64717bde56dc35024fe6d3f48452c8ed49a086c248",
+    "load_bearing.json": "ae97f164bca7627cde1f8c93c1aa2ec24dd214a824134ecfa4a333a757f3fd73",
+    "dependency_graph.html": "c38dcc48bdb8f379af8d570be24978073259f07725eecbc9cfc408e5ba253fe5",
+    "gap_statement.md": "125b4e42ae8a7ad1d2e7a176ab29c7c6cbfd1f7bb746a4b48d125c4cf1a5ee81"
+  },
+  "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry.",
+  "self_audit": [
+    {
+      "name": "no validated term over a vacuity witness",
+      "ok": true,
+      "detail": "0 vacuity-critical declaration(s)"
+    },
+    {
+      "name": "four computations executed before a term verdict",
+      "ok": true,
+      "detail": "C1=not_run, C2=not_run, C3=not_run, C4=not_run"
+    },
+    {
+      "name": "closure discrepancy not silently resolved",
+      "ok": true,
+      "detail": "C3 compared"
+    },
+    {
+      "name": "#print axioms is not used as the tracer",
+      "ok": true,
+      "detail": "not run"
+    },
+    {
+      "name": "red nodes are in the closure",
+      "ok": true,
+      "detail": "0 red"
+    },
+    {
+      "name": "yellow nodes are outside the closure",
+      "ok": true,
+      "detail": "0 yellow"
+    },
+    {
+      "name": "gap statement asserts no proof",
+      "ok": true,
+      "detail": "none"
+    }
+  ]
+}

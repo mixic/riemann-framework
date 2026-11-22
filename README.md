@@ -101,7 +101,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1424 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1439 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1082,6 +1082,17 @@ orm_unit_does_not_force_local_units), and certifies the arithmetic case in ℤ[i
   `python scripts/adjudicate.py --claim claims/alpoge_2026.json`. A panel is per artefact: the
   record's published archive and its live control are adjudicated separately, because pooling
   them made the control's deliberate `sorry` the claim's verdict.
+- **`python/riemann_framework/gap_closer.py`** — the execution half of the dependency trace. It
+  performs the four computations the protocol names (closure by `#deps`, a second closure by
+  `#depsm`, their comparison, and the mutation of every flagged declaration the closure reaches),
+  classifies each flagged declaration as vacuously load-bearing or not, refuses the positive
+  verdict while any of the four computations has not run, and writes the six artefacts
+  (`closure_deps.txt`, `closure_laud.txt`, `closure_crossvalidated.json`, `load_bearing.json`,
+  `dependency_graph.html` with five colours, `gap_statement.md`) plus a SHA-256 manifest. It is
+  driven by `python scripts/audit/rh_gap_closer.py`: `--archive` for the published archive,
+  `--local-control` for this repository's `Dispute.lean`, where the closure and cross-validation
+  actually execute. The archive run is reported `not run`, with the clone command as its named
+  computation, until the archive is on the machine.
 - **`python/riemann_framework/input_omission.py`** — the declaration scan. The DH and circularity
   screens read declarations, so an input the argument uses but the declaration never mentions is
   invisible to them; this module scans the primary document for the inventory's own vocabulary and
@@ -1253,7 +1264,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1424 tests pass** on the current tree. They are not smoke tests: the suite
+**1439 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1312,6 +1323,7 @@ silently changed meaning.
 | `test_declared_dependencies.py` | 6 | Every third-party import of the package, the tests, the examples and the scripts is in `python/requirements.txt`; the scanner driven into failing on the sympy import that made CI red; `zstandard` allowlisted with its reason and its absence run for real; and `requirements.txt` compared against `pyproject.toml` |
 | `test_input_omission.py` | 9 | The declaration scan: every inventory row has vocabulary, the declared and excluded ledgers are disjoint and reference the inventory, hyphenation and typographic apostrophes are folded, a mention outside both ledgers is unreconciled, a document that names nothing is `no_mentions` rather than clean, and the command line writes its record |
 | `test_archive_trace_driver.py` | 6 | The archive trace driver without a toolchain: a missing archive is `not run` with its path, a missing lakefile blocks, a toolchain mismatch is a recorded risk, the plan names the copy and both extractors without touching the archive, and a completed run writes a JSON-safe record |
+| `test_gap_closer.py` | 15 | The gap closer: the six-term vocabulary, the census scan, red/amber/blue classification from mutation outcomes, the precedence and its refusals (no term verdict while a computation has not run), the closure-discrepancy stop, the self-audit conditions, the five-colour graph invariant that red nodes lie in the closure and yellow ones outside it, the sentence-level refusal of a proof claim in the gap statement, and the six artefacts with their hashes |
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
@@ -1552,6 +1564,7 @@ riemann-framework/
 │       ├── test_declared_dependencies.py # Imports against the declared dependency set
 │       ├── test_input_omission.py    # Mentions against the declared inputs
 │       ├── test_archive_trace_driver.py # The archive trace driver, without a toolchain
+│       ├── test_gap_closer.py        # Closure, cross-validation, load-bearing, five colours
 │       ├── test_dsin.py              # DSIN simulation tests
 │       ├── test_bb84_implementation.py # Source, detectors, PNS
 │       └── test_bb84.py              # Baseline + backend equivalence

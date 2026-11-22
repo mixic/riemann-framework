@@ -1,0 +1,12 @@
+{
+  "target": "riemannHypothesis",
+  "verdict": "undetermined",
+  "declarations": [],
+  "colours": {
+    "red": [],
+    "amber": [],
+    "blue": [],
+    "green": []
+  },
+  "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry."
+}

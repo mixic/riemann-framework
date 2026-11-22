@@ -1,0 +1,6 @@
+# C1 closure for geometry_is_vacuous (#deps (Expr.getUsedConstants), checked_ok)
+# 4 names
+Nat
+RiemannFramework.geometry_is_vacuous
+RiemannFramework.vacuousGeometry
+True

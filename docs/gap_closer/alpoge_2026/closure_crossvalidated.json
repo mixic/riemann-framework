@@ -1,0 +1,35 @@
+{
+  "claim": "alpoge_2026",
+  "target": "riemannHypothesis",
+  "module": "",
+  "c1": {
+    "name": "C1",
+    "instrument": "#deps (Expr.getUsedConstants)",
+    "status": "not_run",
+    "detail": "archive precondition failed (archive directory: missing, lakefile: missing, lean-toolchain: missing)",
+    "substitute": null,
+    "named_computation": "clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean",
+    "payload": {}
+  },
+  "c2": {
+    "name": "C2",
+    "instrument": "#depsm (structural recursion)",
+    "status": "not_run",
+    "detail": "archive precondition failed (archive directory: missing, lakefile: missing, lean-toolchain: missing)",
+    "substitute": "laud graph is not available; #depsm is the substitute",
+    "named_computation": "clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean",
+    "payload": {}
+  },
+  "status": "not_run",
+  "only_in_deps": null,
+  "only_in_laud": null,
+  "common": null,
+  "verdict": "undetermined",
+  "named_computations": [
+    "run C1 (clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean)",
+    "run C2 (clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean)",
+    "run C3 (run C1 and C2)",
+    "run C4 (run C1--C3, then declare a vacuous analogue from the archive's own source)"
+  ],
+  "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry."
+}
