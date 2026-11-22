@@ -1137,6 +1137,17 @@ and no file here is an input to any computation in this repository.
 The protocol that compares them, with its evidence classes and its verdict table, is the paper
 [*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 13 pp.).
 
+**The audit that runs the instruments themselves** is [`docs/verification_report.md`](docs/verification_report.md):
+it rebuilds the Alpöge verdict from the published export rather than from prose — three axioms and
+no `sorryAx` in 61.5 GB, all 1,468,418 declarations accepted by the independent `con-leche` checker,
+the five challenge theorems justified record by record — and it refutes two of Masullo's steps as
+written: the Archimedean bound of §1.4.3 is not uniform in `φ` (it grows like `log(1/δ)`), and the
+F-stratum of §1.3.2 is strictly smaller than the norm pre-image it is identified with. Its scripts
+are in [`scripts/audit/`](scripts/audit). The report changes no standing position: a kernel-accepted
+term settles what follows from the stated definitions, and it does not by itself settle the
+mathematical claim, which the report declines to adjudicate.
+
+
 ## Roadmap
 
 **What is done.** Nine tracks, each with a document: the numerical core
