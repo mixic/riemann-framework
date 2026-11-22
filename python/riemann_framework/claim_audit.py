@@ -92,7 +92,7 @@ import json
 import os
 import re
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
@@ -254,6 +254,10 @@ class Finding:
     evidence: str
     limits: str
     instrument_class: Instrument = Instrument.READING
+    #: Machine-readable payload for the probes that produce one (the trace records its
+    #: closure size, the suspects it reached and the flag set it was given). Kept out of
+    #: vidence so a renderer never has to parse prose to colour a graph node.
+    details: Mapping[str, Any] = field(default_factory=dict)
 
     def as_row(self) -> str:
         """One table row, with the pipe characters the evidence may contain escaped."""
@@ -270,6 +274,7 @@ class Finding:
             "verdict": self.verdict.value,
             "instrument": self.instrument,
             "instrument_class": self.instrument_class.value,
+            "details": dict(self.details),
             "evidence": self.evidence,
             "limits": self.limits,
         }
@@ -1204,16 +1209,22 @@ def dependency_trace(
     trace_module: str = TRACE_MODULE,
     timeout: int = 3600,
     name_prefix: str = "deps",
+    extractor: str = "deps",
 ) -> tuple[Status, dict[str, Any]]:
-    """Run `#deps` on one theorem and intersect the closure with the suspects.
+    """Run one extractor on one theorem and intersect the closure with the suspects.
 
     Returns `(status, details)`. `details` always carries the closure size and, when the
     trace ran, which suspects were reached: those two numbers are what a reviewer needs to
     see, because "not reached" is only meaningful next to the size of what *was*.
+
+    `details["names"]` is the closure itself, a `set`, and is deliberately **not** part of
+    a finding: a Mathlib-backed closure runs to thousands of names and would bury the
+    report. The caller that needs it — the cross-validation — compares the two sets and
+    records only the difference.
     """
     imports = [m for m in (trace_module, module) if m]
     source = "\n".join(f"import {m}" for m in dict.fromkeys(imports))
-    source += f"\n\n#deps {request.theorem}\n"
+    source += f"\n\n#{extractor} {request.theorem}\n"
     run = run_lean(
         project_root, source, name=f"{name_prefix}_{_slug(request.theorem)}",
         timeout=timeout,
@@ -1224,7 +1235,9 @@ def dependency_trace(
         closure = next(iter(blocks.values()))
     if not run.ok or not closure:
         return Status.NOT_RUN, {
+            "extractor": extractor,
             "closure": 0,
+            "names": set(),
             "reached": [],
             "run": run,
             "output": run.output,
@@ -1235,12 +1248,166 @@ def dependency_trace(
         if found is not None:
             reached.append(found)
     return Status.CHECKED_FAILED if reached else Status.CHECKED_OK, {
+        "extractor": extractor,
         "closure": len(closure),
+        "names": set(closure),
         "reached": sorted(set(reached)),
         "run": run,
         "output": run.output,
     }
 
+
+#: How many names of a disagreement are printed before the record switches to a count.
+#: A diff of two thousand Mathlib names helps nobody; the first few usually name the cause.
+DISCREPANCY_SAMPLE = 12
+
+
+def compare_closures(
+    theorem: str,
+    first: dict[str, Any],
+    second: dict[str, Any],
+) -> dict[str, Any]:
+    """Compare two closures of the same theorem and record the difference.
+
+    The rule the specification states, applied without a fallback that could hide a
+    disagreement: identical closures corroborate the extraction; different closures leave
+    the trace `undetermined` and name the reconciliation as the computation that would
+    settle it. A disagreement is never averaged, never resolved in favour of the first
+    extractor, and never dropped because the two agree on the suspects: the closure is the
+    object being certified, so its bounds have to agree and not only its intersection with
+    a list written by hand.
+    """
+    left = set(first.get("names", ()))
+    right = set(second.get("names", ()))
+    only_left = sorted(left - right)
+    only_right = sorted(right - left)
+    agreement = bool(left) and left == right
+    payload: dict[str, Any] = {
+        "theorem": theorem,
+        "extractors": [first.get("extractor", "deps"), second.get("extractor", "depsm")],
+        "counts": {
+            first.get("extractor", "deps"): len(left),
+            second.get("extractor", "depsm"): len(right),
+        },
+        "agreement": agreement,
+        "discrepancy": not agreement,
+        "only_in_" + str(first.get("extractor", "deps")): only_left[:DISCREPANCY_SAMPLE],
+        "only_in_" + str(second.get("extractor", "depsm")): only_right[:DISCREPANCY_SAMPLE],
+        "only_in_first_count": len(only_left),
+        "only_in_second_count": len(only_right),
+        "reached": {
+            str(first.get("extractor", "deps")): list(first.get("reached", [])),
+            str(second.get("extractor", "depsm")): list(second.get("reached", [])),
+        },
+        "verdict": (
+            Verdict.VALIDATED_TERM.value if agreement else Verdict.UNDETERMINED.value
+        ),
+        "named_computation": (
+            None if agreement
+            else "reconcile the closure mismatch between `#deps` and `#depsm` for "
+                 f"`{theorem}`: {len(only_left)} name(s) in the first and not the second, "
+                 f"{len(only_right)} in the second and not the first"
+        ),
+        "scope": (
+            "Both extractors read the same environment and differ only in how they walk "
+            "an expression, so agreement rules out a defect in this module's traversal, "
+            "not a defect in Lean's environment or in the definitions a closure passes "
+            "through. The MIT verification page states the same limit for its own "
+            "checks; it is not closed here."
+        ),
+    }
+    return payload
+
+
+def cross_validate_closures(
+    project_root: Path,
+    module: str,
+    request: TraceRequest,
+    *,
+    first: tuple[Status, dict[str, Any]],
+    timeout: int,
+    trace_module: str = TRACE_MODULE,
+) -> dict[str, Any]:
+    """Run the second extractor and record how the two closures compare.
+
+    Both extractors are always attempted, so that a failure of one is *recorded* rather
+    than turning into a missing number: the rule is that one extractor failing falls back
+    to the other and reports the failed one as `undetermined` with a named repair, while
+    both failing leaves the trace `undetermined` with no closure at all.
+    """
+    _, first_details = first
+    _, second_details = dependency_trace(
+        project_root, module, request, timeout=timeout,
+        trace_module=trace_module, name_prefix="depsm", extractor="depsm",
+    )
+    first_ran = bool(first_details.get("names"))
+    second_ran = bool(second_details.get("names"))
+    if first_ran and second_ran:
+        payload = compare_closures(request.theorem, first_details, second_details)
+        payload["supplied_by"] = "deps"
+        return payload
+    ran = "deps" if first_ran else "depsm" if second_ran else None
+    failed = None if ran is None else ("depsm" if ran == "deps" else "deps")
+    payload = {
+        "theorem": request.theorem,
+        "extractors": ["deps", "depsm"],
+        "agreement": False,
+        "discrepancy": None,
+        "fallback": ran,
+        "failed": failed,
+        "counts": {
+            "deps": len(first_details.get("names", ())),
+            "depsm": len(second_details.get("names", ())),
+        },
+        "verdict": Verdict.UNDETERMINED.value,
+        "named_computation": (
+            "no extractor produced a closure: run `#deps` and `#depsm` on "
+            f"`{request.theorem}` in a project that builds"
+            if ran is None
+            else f"repair the `#{failed}` extractor on `{request.theorem}` and rerun the "
+                 f"cross-validation; `#{ran}` supplied the closure in the meantime"
+        ),
+        "scope": (
+            "One extractor's closure is a single instrument reading, and a single "
+            "reading is what this protocol exists to stop promoting to a verdict. The "
+            "fallback is recorded, not used as if the two had agreed."
+        ),
+    }
+    return payload
+
+
+def trace_with_cross_validation(
+    project_root: Path,
+    module: str,
+    request: TraceRequest,
+    *,
+    timeout: int,
+    trace_module: str = TRACE_MODULE,
+) -> tuple[Status, dict[str, Any]]:
+    """Both extractors, merged into one record the finding can be built from.
+
+    The closure reported is the first extractor's when it ran, otherwise the second's,
+    and `cross_validation.fallback` says which. A reader who wants the disagreement gets
+    it in the same payload; a reader who wants the closure gets one number, not two.
+    """
+    first = dependency_trace(
+        project_root, module, request, timeout=timeout,
+        trace_module=trace_module, name_prefix="deps", extractor="deps",
+    )
+    cross = cross_validate_closures(
+        project_root, module, request, first=first, timeout=timeout,
+        trace_module=trace_module,
+    )
+    status, details = first
+    if status is Status.NOT_RUN and cross.get("fallback") == "depsm":
+        status, details = dependency_trace(
+            project_root, module, request, timeout=timeout,
+            trace_module=trace_module, name_prefix="depsm", extractor="depsm",
+        )
+    merged = dict(details)
+    merged["cross_validation"] = cross
+    merged["extractor"] = details.get("extractor", "deps")
+    return status, merged
 
 def trace_finding(
     target: FormalTarget,
@@ -1260,14 +1427,18 @@ def trace_finding(
     """
     root = target.root_path(repo_root)
     present = target.present(repo_root)
-    instrument = f"`#deps` over Lean's environment; {target.role}"
+    instrument = (
+        "`#deps` and `#depsm` over Lean's environment, compared; " + target.role
+    )
     limits = (
         "Syntactic reachability, not semantic dependence: a flagged definition can appear "
         "in the closure because an unused hypothesis mentions it, so a hit is evidence "
         "that the objection's route exists rather than proof that the conclusion uses it. "
         "Absence is the stronger half: a name outside the closure cannot have contributed "
         "to the term at all. The closure is taken over types and values, not over the "
-        "tactics that produced them."
+        "tactics that produced them. The two extractors share Lean's environment, so their "
+        "agreement rules out a defect in this module's traversal and not a defect in the "
+        "definitions the closure passes through."
     )
     if not (live and present):
         why = (
@@ -1292,7 +1463,9 @@ def trace_finding(
             limits=limits,
             instrument_class=Instrument.DEPENDENCY_TRACE,
         )
-    status, details = dependency_trace(root, target.module, request, timeout=timeout)
+    status, details = trace_with_cross_validation(
+        root, target.module, request, timeout=timeout
+    )
     if status is Status.NOT_RUN:
         first = next(
             (line.strip() for line in str(details["output"]).splitlines() if line.strip()),
@@ -1309,6 +1482,17 @@ def trace_finding(
             instrument_class=Instrument.DEPENDENCY_TRACE,
         )
     reached = details["reached"]
+    cross = dict(details.get("cross_validation", {}))
+    payload = {
+        "theorem": request.theorem,
+        "module": target.module,
+        "closure": details["closure"],
+        "reached": list(reached),
+        "suspects": list(request.suspects),
+        "role": target.role,
+        "extractor": details.get("extractor", "deps"),
+        "cross_validation": cross,
+    }
     if status is Status.CHECKED_FAILED:
         return Finding(
             level=Level.FORMAL,
@@ -1325,6 +1509,7 @@ def trace_finding(
             ),
             limits=limits,
             instrument_class=Instrument.DEPENDENCY_TRACE,
+            details=payload,
         )
     return Finding(
         level=Level.FORMAL,
@@ -1336,9 +1521,18 @@ def trace_finding(
             f"the closure of `{request.theorem}` has {details['closure']} constants and "
             f"reaches none of {len(request.suspects)} flagged definition(s): "
             + ", ".join(f"`{name}`" for name in request.suspects)
+            + (
+                f". Cross-validation: `#deps` and `#depsm` agree exactly on all "
+                f"{details['closure']} names."
+                if cross.get("agreement")
+                else ". Cross-validation: the extraction is not corroborated ("
+                     + (cross.get("named_computation") or "the second extractor did not run")
+                     + ")."
+            )
         ),
         limits=limits,
         instrument_class=Instrument.DEPENDENCY_TRACE,
+        details=payload,
     )
 
 
@@ -1836,6 +2030,13 @@ def _non_vacuity_finding(result: FormalResult) -> Finding:
             "it, and `target_verdict` refuses a term verdict until they are clean."
         ),
         instrument_class=Instrument.VACUITY_SCAN,
+        details={
+            "true_bodied": names,
+            "aliases": aliases,
+            "true_lambdas": lambdas,
+            "rfl_values": rfls,
+            "scanned": result.scanned,
+        },
     )
 
 
@@ -2285,6 +2486,7 @@ def audit_claim(
     live_lean: bool = True,
     lean_root: Path | None = None,
     timeout: int = 1800,
+    role: str | None = None,
 ) -> ClaimReport:
     """Audit one claim: run the probes, ask the five questions, collect the record.
 
@@ -2297,6 +2499,12 @@ def audit_claim(
     is never redirected: pointing this repository's own live checks at somebody else's tree
     would report that tree's failure as this one's. The redirect moves where the agent
     looks, not what it claims.
+
+    `role` restricts the formal levels to one target. A record can carry an artefact and a
+    live negative control, and the first live run of the adjudicator pooled them: the
+    control's two deliberate `sorry`s failed the kernel probe, which failed the review, and
+    the claim came back `rejected` on the strength of a fixture. A panel is about one
+    artefact; this parameter is how a caller says which.
     """
     unknown = [key for key in claim.probes if key not in PROBES]
     if unknown:
@@ -2305,6 +2513,14 @@ def audit_claim(
         )
     findings: list[Finding] = [PROBES[key].run(claim) for key in claim.probes]
     targets = claim.formal
+    if role is not None:
+        selected = tuple(target for target in targets if target.role == role)
+        if not selected:
+            raise ValueError(
+                f"{claim.id}: no formal target with role {role!r}; "
+                f"roles are {[target.role for target in claim.formal]}"
+            )
+        targets = selected
     if lean_root is not None:
         # Only the artefacts that are *not here* are moved. Redirecting a target that is
         # present would point this repository's own live checks at somebody else's tree

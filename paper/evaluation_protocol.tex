@@ -413,7 +413,7 @@ Masullo, \emph{The Music of the Primes} & 2026-11-20 19:13 & 940 pp. &
 Alp\"oge--Furman & 2026 & arXiv:2608.13637 &
   certificates in \texttt{proportion\_certificates.py} \\
 Lamzouri & 2026 & preprint & arXiv:2609.02882; the same module \\
-Framework: eleven work packages & 2026 & 13 Lean modules, 1357 tests &
+Framework: eleven work packages & 2026 & 13 Lean modules, 1403 tests &
   \texttt{lean/}, \texttt{python/}, \texttt{ideas/}, \texttt{claims/} \\
 \bottomrule
 \end{tabularx}
@@ -437,12 +437,31 @@ evidence anywhere in this paper.
 \textbf{Evidence.} The primary prose is four pages \cite{alpoge}: a statement of belief, a
 20-entry timeline, and an explanation of the medium. The archive itself is 17.4 million lines
 in 175{,}187 modules, with a stated dependency on Mathlib alone. The Lean and Mathlib
-communities certified the statement and the term \cite{leanmathlib}; Sutherland's page records
-the mechanical audit \cite{sutherland}. As of the date of the record, the audit reports
-175{,}187 modules compiling, axioms exactly \texttt{propext}, \texttt{Classical.choice},
-\texttt{Quot.sound}, and Mathlib's compiled artefacts byte-identical to the pin, with the
-comparator run and the paranoid-kernel replay still outstanding at the time the record was
-written.
+communities certified the statement and the term \cite{leanmathlib}, and Sutherland's
+verification page records the mechanical audit in detail \cite{sutherland}: at the snapshot
+archived with this paper, all 175{,}187 modules compile; \texttt{\#print axioms} for the five
+headline theorems returns exactly \texttt{propext}, \texttt{Classical.choice} and
+\texttt{Quot.sound}; the 15 axioms in the environment are all in \texttt{Init}; Mathlib's
+compiled artefacts are byte-identical to the official cache; a sandboxed rebuild with no
+network and a read-only source tree reproduces the 61{,}570{,}595{,}788-byte export byte for
+byte; \texttt{leanchecker} replays 175{,}187 of 175{,}187 modules with zero rejections; and the
+independent kernels accept the export --- \texttt{nanoda}, and \texttt{con-leche}, whose Rust port
+\texttt{con-ron} agrees --- with \texttt{con-leche} reporting 1{,}468{,}418 declarations accepted in
+\texttt{--verified} mode and, in \texttt{--compare}, all five challenge theorems ``justified by the
+solution''. At the time of the snapshot the \texttt{lake comparator} run and the paranoid-kernel
+replay of the export were still in progress, and the page says so.
+
+\textbf{What the audit does not settle, in the page's own words.} Its closing caveat is that a
+passing check ``relies on those kernels and on Mathlib's definitions being what they are
+intended to be''. That is the definitional-fidelity assumption no kernel discharges, and it is
+where the fifth question of \S\ref{sec:protocol} sits. The page also fixes the scope:
+``GRH'' there means Dirichlet $L$-functions, all moduli and all characters, and ``Dedekind zeta
+functions, Hecke $L$-functions and automorphic $L$-functions in general are not among the
+statements that were checked''. The claim's own prose says the method ``easily extends much
+further, resolving the so-called Generalized Riemann Hypothesis'' \cite{alpoge}; the
+formalised GRH is the Dirichlet case, so the general statement is outside what was checked.
+That is a scope limit recorded, not a defect found, and it is the kind of limit a verification
+page states more readily than the claim it verifies.
 
 \textbf{What the instruments say.} The statement is Mathlib's \texttt{RiemannHypothesis}; the
 term has that type; the axiom set is the standard one. In the vocabulary of
@@ -464,19 +483,23 @@ obligations; and her Section~10 states the limits of her own method: about 70 fi
 
 The protocol's verdict on the objection is \verdict{undetermined}, with the decisive
 computation named: the dependency trace. The protocol's verdict on the certification is
-\verdict{validated (term)} together with the observation that a term-verdict is silent about
-internal definitions. This is the paper's central worked example of the gap in
-Section~1.1, and it is why the framework stores the logical core of the objection as a proved
-lemma (Proposition~\ref{prop:vacuous}) while refusing to state the objection itself as a
-theorem about \texttt{RiemannHypothesis}: a claim about source code cannot be expressed as a
-Lean proposition about $\RH$, and pretending otherwise would be an equivocation.
+\verdict{validated (term)}, together with the observation that a term verdict is a scoped
+conditional --- \emph{this} term inhabits \emph{this} statement under \emph{this} axiom set ---
+and that both antecedents sit outside its scope: the statement may not be the intended one, and
+the definitions it invokes may carry no mathematics. This is the paper's central worked example
+of the gap in Section~1.1, and it is why the framework stores the logical core of the objection
+as a proved lemma (Proposition~\ref{prop:vacuous}) while refusing to state the objection itself
+as a theorem about \texttt{RiemannHypothesis}: a claim about source code cannot be expressed as
+a Lean proposition about $\RH$, and pretending otherwise would be an equivocation.
 
 \textbf{The trace, implemented and calibrated; not run on the archive.} The dependency trace is
 no longer a named computation and nothing more. Appendix~\ref{app:executed} gives the
 implementation, the rule that a kernel pass without a trace is \verdict{undetermined} by
 construction, and two controls with known answers: a theorem of this repository that states
 the vacuity and whose closure therefore contains the vacuous predicate, and a theorem beside it
-whose closure does not. On the published archive the trace has \emph{not} been run here, and
+whose closure does not. The closure is computed twice, by two independent traversals of Lean's
+environment, and the report carries the difference when there is one
+(\S\ref{sec:crossval}). On the published archive the trace has \emph{not} been run here, and
 the report says so in the finding rather than in a footnote: the archive is 931~MB of git blobs
 and 61.5~GB of export, it pins Lean v4.33.1 against this repository's v4.34.0-rc2, and it is
 not held on this machine. What changed in this revision is that the computation is executable,
@@ -763,7 +786,7 @@ All commands run from the repository root; the Python interpreter is the one the
 pins, and every number quoted above is produced by a committed test.
 
 \begin{verbatim}
-python -m pytest python/tests -q            # 1357 passed
+python -m pytest python/tests -q            # 1403 passed
 lake env lean lean/RiemannFramework/Dispute.lean
                                           # two 'sorry' warnings
 python scripts/run_dh_filter.py              # dead / eligible lists
@@ -1094,7 +1117,7 @@ revision the term-level verdict was the closest thing to a panel verdict the rep
 \subsection{The dependency trace}
 
 The trace walks Lean's own environment: from the theorem, over the types and values of every
-constant it mentions, transitively, collecting the closure. It is forty lines of metaprogram,
+constant it mentions, transitively, collecting the closure. It is a self-contained metaprogram,
 it imports nothing but \texttt{Lean} core, and it prints the closure between two markers that
 the agent parses. The question it answers is the one Nielsen's objection poses, and the one a
 kernel check cannot: \texttt{\#print axioms} reports the axioms a term uses, and a proof whose
@@ -1142,6 +1165,46 @@ because the module uses only \texttt{Lean} core and needs no Mathlib; it is a ri
 paper does not discharge, and the difference between "calibrated" and "run on the archive" is
 the difference between the two paragraphs above.
 
+\subsection{The closure, computed twice}
+\label{sec:crossval}
+
+A closure is a claim about a term, and a claim that rests on one traversal of one API rests on an
+unexamined premise. The premise is not hypothetical: if the collector skipped one constructor,
+every closure in the report would be short, every ``reaches none'' would be cheap, and nothing in
+the report would say so. The specification behind this appendix answers with a second extractor,
+and this repository implements the rule rather than the tool it names.
+
+\textbf{Two traversals.} \texttt{\#deps} collects constants with Lean's own
+\texttt{Expr.getUsedConstants}; \texttt{\#depsm} collects them with \texttt{usedConstantsManual},
+the same relation written out case by case as a structural recursion in the same file; and
+\texttt{\#depscmp} prints the symmetric difference so that a person can read it. The agent runs
+both, always. Identical closures corroborate the extraction; a difference leaves the probe
+\verdict{undetermined} with the reconciliation named and both name lists in the record; if one
+extractor fails, the other supplies the closure and the failure is recorded as a fallback rather
+than as agreement. A difference is never averaged, never resolved in favour of the first
+extractor, and never dropped because the two agree on the suspects: the closure is the object
+being certified, so its bounds have to agree, and not only its intersection with a list a person
+wrote.
+
+\textbf{What it yields on the controls.} On the two theorems of \texttt{Dispute.lean} the two
+extractors return the same $4$ and $5$ names respectively, so the calibrated closures of
+Table~\ref{tab:trace} are not artefacts of one API call. On the two live trace requests they
+agree on all $4$ names of \texttt{geometry\_is\_vacuous} and all $5$ of
+\texttt{closed\_false\_impossible}. That is what a correct implementation of the relation should
+give, so it is a self-consistency result rather than a discovery, and the paper reports it as
+one.
+
+\textbf{What it does not close.} Both extractors read the same environment, so their agreement
+rules out a defect in \emph{this} module's traversal and not a defect in Lean's environment or in
+Mathlib's definitions. The specification named \texttt{laud graph} as the second extractor; that
+tool is not installed here, is not version-pinned here, and nothing in this paper claims to have
+run it. The substitution is stated in the module docstring, in
+\texttt{docs/claim\_verification\_agent.md}, and here: the second extractor is a native
+implementation over the same environment, a narrower instrument than the one specified, and the
+narrower claim is the true one. What remains after it is the assumption the MIT verification page
+also states for its own checks --- that the definitions the closure passes through are what they
+are intended to be --- and no computation in this repository addresses that assumption.
+
 \subsection{The circularity screen, which is the dual of the $\DHf$ screen}
 
 The $\DHf$ screen asks whether an argument would also prove a statement that is false. The
@@ -1160,6 +1223,111 @@ are then the same fact about the argument, and the report says so in one sentenc
 is \verdict{rejected}, and the limit is stated with it: this rejects the argument as a route to
 the hypothesis, not the hypothesis, not the input, and not the claimant. An argument that
 declares nothing is unscreened, not circular, because the screen reads a declaration.
+
+\subsection{The panel, executed}
+
+The panel was run end to end on the 2026 record, once per artefact, and the two reports are kept
+apart because a panel is about one artefact. The first execution pooled them: the record's live
+control contains two deliberate \texttt{sorry}s, the kernel probe read both targets, and the claim
+came back \verdict{rejected} --- a verdict obtained from a fixture rather than from the claim. The
+role parameter of the audit is the fix, and it is a parameter rather than a special case for the
+control.
+
+\begin{table}[!ht]
+\centering
+\caption{The panel on the published archive. One row is decided --- the kernel replay --- and every
+other row is withheld with the computation that would decide it. The aggregated verdict is the
+panel's, not the kernel's.}
+\label{tab:executed}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Probe & Verdict & What would change it \\
+\midrule
+\texttt{KERNEL} & \verdict{validated (term)} & decided, on the replay: compiles, no
+  \texttt{sorryAx}, standard axioms, statement identified \\
+\texttt{MUTATION} & \verdict{undetermined} & make the declared mutant runnable; its anchor is in
+  the archive, which is not on this machine \\
+\texttt{VACUITY} & \verdict{undetermined} & the census could not read the artefact, so it located
+  nothing rather than finding nothing \\
+\texttt{PROOF\_REVIEW} & \verdict{undetermined} & L1 and L2 pass on the replay; L3 cannot, because
+  no trace and no mutant ran \\
+\texttt{DEPENDENCY\_TRACE} & \verdict{undetermined} & run \texttt{\#deps} on
+  \texttt{riemannHypothesis} with the archive in place \\
+\midrule
+\multicolumn{2}{@{}l}{Aggregated} & \verdict{undetermined} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[!ht]
+\centering
+\caption{The panel on the repository's live control, which states the claimant's position with
+\texttt{sorry} and proves the structural core of the objection without one. The mutation and trace
+probes are calibrated here; the kernel probe withholds, because the file contains the two
+\texttt{sorry}s it is built to contain.}
+\label{tab:control}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}X@{}}
+\toprule
+Probe & Verdict & Evidence \\
+\midrule
+\texttt{KERNEL} & \verdict{undetermined} & two \texttt{sorry} in the module source, \texttt{sorryAx}
+  in the axiom list: the artefact establishes nothing, and that is not a rejection \\
+\texttt{MUTATION} & \verdict{validated (term)} & flipping \texttt{vacuousGeometry} kills
+  \texttt{geometry\_is\_vacuous} and leaves \texttt{closed\_false\_impossible} alone; weakening the
+  used hypothesis to \texttt{True} kills \texttt{vacuous\_route\_grounds\_nothing} \\
+\texttt{VACUITY} & \verdict{undetermined} & the census flags \texttt{vacuousGeometry}, as the
+  control intends it to \\
+\texttt{PROOF\_REVIEW} & \verdict{undetermined} & L2 passes (\texttt{rfl} against Mathlib's
+  \texttt{RiemannHypothesis}); L1 fails, so nothing is reviewed \\
+\texttt{DEPENDENCY\_TRACE} & \verdict{undetermined} & the closure of \texttt{geometry\_is\_vacuous}
+  has $4$ names and reaches \texttt{vacuousGeometry}; the closure of
+  \texttt{closed\_false\_impossible} has $5$ and reaches none; both corroborated by the second
+  extractor \\
+\midrule
+\multicolumn{2}{@{}l}{Aggregated} & \verdict{undetermined} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{What the archive panel establishes.} The kernel row is \verdict{validated (term)} and
+nothing else is. The mutant cannot run, the census cannot read, and the trace has not been
+executed, so the panel is \verdict{undetermined} and every withheld row carries the computation
+that would decide it. That is the review's correction made by the code rather than by a paragraph:
+before this revision the term verdict was the closest thing to a panel verdict the report had.
+
+\textbf{What the control panel establishes.} The mutation probe's \verdict{validated (term)} is a
+real calibration, not a formality: the flip kills the theorem that states the vacuity, leaves the
+theorem beside it alone, and the vacuous-truth rewrite kills the theorem that uses its hypothesis.
+The trace probe reaches the vacuous predicate from one theorem and none from the other, with both
+closures corroborated. The kernel row withholds because the file contains the two \texttt{sorry}s
+it is built to contain, and the review withholds for the same reason: a term that is not there has
+not been refuted, and \verdict{rejected} is reserved for screens.
+
+\textbf{What a term verdict yields, exactly.} \verdict{validated (term)} is a scoped conditional:
+\emph{this} term inhabits \emph{this} statement under \emph{this} axiom set. Both antecedents sit
+outside its scope. The statement may not be the intended one --- the de Bruijn gap, which the
+statement-identity check narrows and cannot close; the definitions it invokes may carry no
+mathematics --- the vacuity question, which the trace addresses for the names it is given; and the
+axiom set may be larger than advertised --- the audit narrows this, and the interpretive question
+of whether the declared axioms are acceptable is not a kernel question at all. It also does not
+certify that the argument is the argument claimed: a proof can reach a conclusion through a route
+the paper describes as something else, and a term verdict says nothing about that. The framework
+therefore neither promotes a term verdict to a verdict on $\RH$ nor says that a kernel-checked
+faithful statement is unproved: for a faithful statement under a sound kernel, inhabitation of the
+proposition is a derivation of the proposition relative to the definitions the statement uses.
+Both overclaims are refused in the same sentence, and that sentence is printed in every report.
+
+\textbf{Three defects the first execution found.} The panel found three bugs in itself, and they
+are recorded because an agent that reports only its successes is making the mistake it audits.
+Every mutant came back ``survived'': the attribution counted newlines in the source up to an offset
+taken from the compiler's output, which put every error on line 1 or 2. The claim's own negative
+control set the claim's verdict, because the probes did not distinguish artefacts. And an absent
+artefact read as ``nothing found'', because a census that could not scan returned an empty flag set
+that the probe scored as clean. Each is now pinned by a test with a known answer --- a kill, a
+role-scoped panel, and a \texttt{scanned: false} record --- and each is the kind of defect that no
+amount of prose review of the code would have found, which is the argument for running it.
 
 \subsection{What a corpus stress test would require}
 

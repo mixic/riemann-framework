@@ -37,6 +37,25 @@ Given a constant, `#deps` walks `Environment.find?` over the constant's *type* a
 the statement mentions and what the proof term uses; a name that never appears there
 cannot have contributed to the theorem.
 
+## Two extractors, on purpose
+
+A closure is a claim about a term, and a claim about a term that rests on one traversal of
+one API is a claim with an unexamined premise: if `Expr.getUsedConstants` skipped a
+constructor, the closure would be short and nothing would say so. So the closure is
+computed twice, by two independent traversals of the same environment:
+
+* `#deps` walks expressions with `Expr.getUsedConstants`, Lean's own collector;
+* `#depsm` walks them with `usedConstantsManual`, the structural recursion written out
+  here, case by case.
+
+The two must agree exactly. `#depscmp` prints the difference when they do not, and the
+agent records `only_in_deps` / `only_in_depsm` in the cross-validation payload rather than
+picking one. **What the pair does not close:** both read the same environment, so a defect
+in Lean's environment — or in Mathlib's definitions, which is the assumption the MIT
+verification page states for its own checks — is invisible to both. The pair rules out a
+defect in *this* module's traversal, not a defect in the data. It is not a second
+implementation of Lean, and this file does not claim to be one.
+
 ## What it does not compute
 
 * It is **syntactic over the environment**, not a semantic analysis: it says a name is
@@ -114,5 +133,79 @@ elab "#deps " n:ident : command => do
   for name in names do
     logInfo m!"{name}"
   logInfo m!"DEPS_END"
+
+/-! ## The second extractor
+
+`usedConstantsManual` is the same relation as `Expr.getUsedConstants`, written out. It is
+deliberately a *different* implementation and not a wrapper: a wrapper would agree by
+construction and would measure nothing. If the two disagree, one of them is wrong about
+this expression, and the disagreement is the finding.
+-/
+
+/-- Every constant mentioned by an expression, collected by an explicit structural walk. -/
+partial def usedConstantsManual (e : Expr) (acc : NameSet) : NameSet :=
+  match e with
+  | .const n _ => acc.insert n
+  | .app f a => usedConstantsManual a (usedConstantsManual f acc)
+  | .lam _ t b _ => usedConstantsManual b (usedConstantsManual t acc)
+  | .forallE _ t b _ => usedConstantsManual b (usedConstantsManual t acc)
+  | .letE _ t v b _ =>
+    usedConstantsManual b (usedConstantsManual v (usedConstantsManual t acc))
+  | .mdata _ b => usedConstantsManual b acc
+  | .proj _ _ b => usedConstantsManual b acc
+  | .sort _ | .bvar _ | .fvar _ | .mvar _ | .lit _ => acc
+
+/-- The same walk as `visit`, over the manual collector. -/
+partial def visitManual (env : Environment) (stack : List Name) (acc visited : NameSet) :
+    NameSet × NameSet :=
+  match stack with
+  | [] => (acc, visited)
+  | n :: rest =>
+    if visited.contains n then
+      visitManual env rest acc visited
+    else
+      let visited := visited.insert n
+      match env.find? n with
+      | none => visitManual env rest acc visited
+      | some info =>
+        let acc := acc.insert n
+        let mentioned : NameSet :=
+          usedConstantsManual info.type
+            (match info.value? with
+             | some value => usedConstantsManual value NameSet.empty
+             | none => NameSet.empty)
+        visitManual env ((mentioned.toList) ++ rest) acc visited
+
+/-- Every constant reachable from `root`, by the manual traversal. -/
+def closureManual (env : Environment) (root : Name) : NameSet :=
+  (visitManual env [root] NameSet.empty NameSet.empty).1
+
+/-- `#depsm name` prints the manual traversal's closure in the `#deps` format. -/
+elab "#depsm " n:ident : command => do
+  let env ← Lean.getEnv
+  let deps := closureManual env n.getId
+  let names := deps.toList.map (fun name => toString name)
+  logInfo m!"DEPS_BEGIN {n.getId}"
+  logInfo m!"DEPS_COUNT {names.length}"
+  for name in names do
+    logInfo m!"{name}"
+  logInfo m!"DEPS_END"
+
+/-- `#depscmp name` prints the disagreement between the two extractors, and nothing else.
+
+The agent runs the two extractors separately, so that one failure cannot take the other
+down with it; this command exists so that a person can see the difference directly. -/
+elab "#depscmp " n:ident : command => do
+  let env ← Lean.getEnv
+  let a := closure env n.getId
+  let b := closureManual env n.getId
+  logInfo m!"CMP_COUNT {a.toList.length} {b.toList.length}"
+  for name in a.toList do
+    unless b.contains name do
+      logInfo m!"CMP_ONLY_DEPS {name}"
+  for name in b.toList do
+    unless a.contains name do
+      logInfo m!"CMP_ONLY_DEPSM {name}"
+  logInfo m!"CMP_END"
 
 end RiemannFramework.DependencyTrace

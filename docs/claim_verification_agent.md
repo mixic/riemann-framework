@@ -126,6 +126,73 @@ gap is a nameable risk rather than a blocker; it is stated rather than assumed a
 the one place where the agent's report is weaker than a full audit, and it is the place the
 paper's own §5.2 verdict (`undetermined`) already reflected.
 
+### The closure, computed twice
+
+A closure is a claim about a term, and a claim resting on one traversal of one API rests on an
+unexamined premise: if `Expr.getUsedConstants` skipped a constructor, the closure would be
+short and nothing in the report would say so. So `DependencyTrace.lean` carries a second
+extractor. `#deps` uses Lean's own collector; `#depsm` uses `usedConstantsManual`, the same
+relation written out case by case as a structural recursion; `#depscmp` prints the difference
+between them for a person to read.
+
+The agent runs both, always, and records one of three outcomes:
+
+| outcome | status | verdict | what it means |
+|:---|:---|:---|:---|
+| both ran, closures identical | `checked_ok` | validated (term) | the extraction is corroborated |
+| both ran, closures differ | `checked_failed` | undetermined | the difference is printed, not resolved |
+| one ran | `not_run` | undetermined | the fallback is recorded as a fallback |
+| neither ran | `not_run` | undetermined | no closure, and the repair is named |
+
+A disagreement is never averaged, never decided in favour of the first extractor, and never
+dropped because the two agree on the suspects: the closure is the object being certified, so
+its bounds have to agree and not only its intersection with a list a person wrote. The
+`reached` sets must agree too, and the record keeps both.
+
+**What the pair does not close.** Both extractors read the same environment, so their
+agreement rules out a defect in *this* module's traversal and not a defect in Lean's
+environment or in Mathlib's definitions. The specification this implements named two external
+tools for the same job (`laud graph` as the second extractor); neither is installed here, and
+no claim is made to have run them. The substitution is stated in the module docstring, in
+this document, and in the paper's appendix: the second extractor is a native implementation
+over the same environment, which is a narrower claim than the specification's, and the
+narrower claim is the true one.
+
+### Three defects the first live run found
+
+The panel was run end to end on this repository, and it found three bugs in itself. They are
+recorded because a verification agent that reports only its successes is making the same
+mistake as the claims it audits.
+
+1. **Every mutant "survived".** The attribution step counted newlines in the *source* up to an
+   offset taken from the *compiler's output*, which put every error on line 1 or 2. The kill
+   test is now pinned by a control with a known answer (`geometry_is_vacuous` must be killed
+   by flipping `vacuousGeometry`), and a test constructs that case.
+2. **The panel pooled the claim's artefact with its own fixture.** The record carries a live
+   negative control containing two deliberate `sorry`s; the kernel probe read both targets, so
+   the control's `sorry` became the claim's `rejected`. `audit_claim(..., role=…)` now scopes
+   the formal levels to one artefact, and the reports are per-target.
+3. **An absent artefact read as "nothing found".** With the archive off the machine the census
+   could not scan, and the probe reported `validated (term)` for "no `True`-bodied definition".
+   A census with `scanned: false` is now `not_run`, because an absence of evidence is not
+   evidence of absence, and the probe is the place that has to know it.
+
+### What a term verdict yields, exactly
+
+The panel's strongest verdict, `validated (term)`, is a scoped conditional: *this term inhabits
+this statement under this axiom set*. Both antecedents sit outside its scope. The statement may
+not be the intended one (the de Bruijn gap); the definitions it invokes may carry no
+mathematics (the vacuity question); the axiom set may be larger than advertised (the audit
+narrows this but does not close the interpretive question). And the argument may not be the
+argument claimed: a proof can reach a conclusion through a route the paper describes as
+something else.
+
+This is why the framework does not promote a term verdict to a verdict on the Riemann
+hypothesis, and why it also does not say that a kernel-checked faithful statement is *unproved*:
+for a faithful statement under a sound kernel, inhabitation of the proposition is a derivation
+of the proposition relative to the definitions the statement uses. Both overclaims are refused
+in the same sentence, and the sentence is printed in every report.
+
 ### The circularity screen: the dual of the Davenport–Heilbronn screen
 
 The DH screen asks whether an argument would also prove a statement that is false. This asks
@@ -180,6 +247,29 @@ cannot read a referee report and an institution's confidence is not a theorem. T
 mechanical check on this level is the hash: `references/` holds the document, the record
 holds its SHA-256, and a single changed byte turns the `E0` finding red.
 
+**The verification page, recorded in full.** The most informative institutional entry is
+Andrew Sutherland's verification report for the Alpöge archive
+(`references/sutherland_grh_checks_2026-11-22.html`, sha256 `01a43fc8…388a7`). At that hash it
+states that all 175,187 modules compile, that `#print axioms` returns exactly `propext`,
+`Classical.choice` and `Quot.sound`, that the 15 axioms in the environment are all in `Init`,
+that the compiled Mathlib artefacts are byte-identical to the cache, that a sandboxed rebuild
+reproduces the 61,570,595,788-byte export byte for byte, that `leanchecker` replays every
+module with zero rejections, and that nanoda and con-leche (with con-ron, its Rust port) accept,
+with con-leche reporting 1,468,418 declarations accepted and all five challenge theorems
+"justified by the solution". That is a far stronger kernel result than any replay in this
+repository, and the record keeps it at `recorded` because a replay of somebody else's kernel run
+is not a check this module ran.
+
+It is also the clearest statement of the limit this agent exists to name. The page's own
+closing caveat is that a passing check "relies on those kernels and on Mathlib's definitions
+being what they are intended to be", and its scope note is that "GRH" there means Dirichlet
+L-functions — Dedekind zeta functions, Hecke L-functions and automorphic L-functions "are not
+among the statements that were checked". Both sentences are quoted in the entry, because the
+first is the definitional-fidelity assumption no kernel can discharge and the second is a
+scope restriction on the claim as stated ("the method easily extends much further, resolving
+the so-called Generalized Riemann Hypothesis"): the formalised GRH is the Dirichlet case, and
+the general case is not among the checked statements.
+
 ## 3. The Alpöge case, end to end
 
 `claims/alpoge_2026.json` is the record; `python scripts/audit_claim.py --claim
@@ -205,6 +295,20 @@ this commit:
 
 **Panel verdict: `undetermined`.** Per artefact: the published archive `undetermined`, this
 repository's recording `undetermined`.
+
+**The panel, executed, per artefact.** `python scripts/adjudicate.py --claim
+claims/alpoge_2026.json --role "<role>"` writes the five probes, the aggregation, the colour-coded
+graph and the gap statement. The published archive comes out as: kernel `validated (term)` on the
+replay, mutation `undetermined` (the mutant's anchor is in an archive that is not on this
+machine), vacuity `undetermined` (the census could not read), review `undetermined` (L1 and L2
+pass on the replay, L3 cannot), trace `undetermined` (not run), panel `undetermined`. The live
+control comes out as: kernel `undetermined` (two `sorry`, `sorryAx`), mutation `validated (term)`
+(the flip kills `geometry_is_vacuous` and leaves `closed_false_impossible` alone; the
+vacuous-truth rewrite kills `vacuous_route_grounds_nothing`), vacuity `undetermined` (the census
+flags `vacuousGeometry`, as intended), review `undetermined` (L2 passes by `rfl`, L1 fails so
+nothing is reviewed), trace `undetermined` (closure of 4 reaches `vacuousGeometry`; closure of 5
+reaches none; both corroborated by the second extractor), panel `undetermined`. The archive's
+panel is the headline: one row is decided and the code refuses to promote it.
 
 Three facts about that table are the point of the whole exercise. The term is `validated
 (term)` **and** the fifth question is `undetermined`, **and** the panel is `undetermined`,
@@ -299,6 +403,11 @@ python scripts/audit_claim.py --claim claims/alpoge_2026.json        # three lev
 python scripts/audit_claim.py --all --no-lean                        # replay only, fast
 python scripts/audit_claim.py --claim claims/alpoge_2026.json \
     --lean-root D:\archives\alpoge-lean                              # an archive kept elsewhere
+
+python scripts/adjudicate.py --claim claims/alpoge_2026.json \
+    --role "the published archive (absent from this machine by default)"
+python scripts/adjudicate.py --claim claims/alpoge_2026.json \
+    --role "this repository's recording of the dispute (live)"
 ```
 
 Reports are written to `out/claims/<id>.md` and `out/claims/<id>.json` (git-ignored) and
@@ -317,10 +426,13 @@ the record.
 | file | role |
 |:---|:---|
 | `python/riemann_framework/claim_audit.py` | the agent: records, Lean machinery, probes, verdict algebra, report renderer |
-| `lean/RiemannFramework/DependencyTrace.lean` | `#deps`: transitive dependency closure, Lean core only |
+| `python/riemann_framework/adjudicator.py` | the five-probe panel, the aggregation rule, the graph, and the four deliverables |
+| `lean/RiemannFramework/DependencyTrace.lean` | `#deps`, `#depsm` and `#depscmp`: the transitive closure, computed twice, Lean core only |
 | `python/tests/test_claim_audit.py` | 59 fast tests: vocabulary, instruments, verdict algebra, circularity, parsers |
+| `python/tests/test_adjudicator.py` | 46 fast tests: the aggregation's failing branches, the dual-extractor records, the graph, the deliverables |
 | `python/tests/test_alpoge_claim.py` | 21 tests, one live Lean audit: the case study, both trace controls, and the panel verdict |
 | `scripts/audit_claim.py` | the command: one claim, or all, Markdown and JSON out |
+| `scripts/adjudicate.py` | the command: five probes on one artefact, four deliverables out |
 | `claims/alpoge_2026.json` | the first claim record, with the replayed audit evidence |
 | `python/riemann_framework/dh_filter.py` | the contrapositive screen level 1 runs |
 | `python/riemann_framework/zeros.py`, `proportion_certificates.py` | the other level-1 instruments |

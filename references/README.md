@@ -18,17 +18,20 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Reference archive
 
-Three third-party documents about claims on the Riemann hypothesis, stored byte for byte
-as they were obtained, indexed here with a hash, a size and a page count. Nothing in this
+Four third-party documents about claims on the Riemann hypothesis, stored byte for byte as
+they were obtained, indexed here with a hash, a size and a page count. Nothing in this
 folder is written by this repository except this file.
 
-**Why store them at all.** Two of the three sources are the kind that disappear or change:
+**Why store them at all.** Two of the three documents are the kind that disappear or
+change:
 
 - `alpo.ge/remark.pdf` is a personal statement on a personal site;
 - PhilArchive answers automated retrieval with a Cloudflare challenge, so a reader who
   follows a citation months from now may not be able to check it at all;
 - the third is a 940-page draft whose author states he is still filling in sections, so the
-  version that gets cited later will not be the version quoted here.
+  version that gets cited later will not be the version quoted here;
+- the fourth is a live verification page that its author says will be updated as the
+  remaining checks finish, so the page a reader opens later is not the page quoted here.
 
 A citation that cannot be opened is not a reference. Storing the bytes and recording the
 hash is what makes the quotations in `docs/` checkable years later, and what makes a
@@ -42,6 +45,8 @@ Get-FileHash references\alpoge_remark_2026-11-20.pdf -Algorithm SHA256
 
 Hashes are lowercase hex SHA-256. Byte counts are the exact file lengths. Page counts come
 from the PDF's own page tree (`pdfinfo`, MiKTeX's poppler build), not from counting text.
+The one HTML record has no page count: it is a single page, and its hash is of the bytes
+the server returned.
 
 **What is not here.** The 61.5 GB Lean export behind the Alpöge archive, the mirror used by
 Nielsen, and any critique that could not be retrieved. A reader who needs those can find them
@@ -135,6 +140,57 @@ argument, and no simulation here can.
 repository as announced through Ravi Vakil's Math 216 course blog, which was not fetched; only
 the file itself, its dates and its contents are facts of record here. If a stable location
 becomes known, add it to this line without changing the hash.
+
+### `sutherland_grh_checks_2026-11-22.html`
+
+- title: *Verification files for the Lean proof of the Riemann Hypothesis*
+- author: Andrew Sutherland (MIT), "checks run with Claude Code"
+- issued: page last updated 2026-11-22 04:35 UTC; the snapshot archived here is of that state
+- bytes: 27222
+- sha256: `01a43fc8defab818d878bfa8fd900d7563073db3dbc6f150ad73baec0fe388a7`
+- source: `https://math.mit.edu/~drew/grh/`
+- obtained: 2026-11-22, as the server returned it
+- cited by: [docs/claim_verification_agent.md](../docs/claim_verification_agent.md)
+
+**What it is.** The verification report for the 2026 Alpöge archive, and the most complete
+kernel-level record of it that exists. At this hash it states: all 175,187 modules compile
+(Lean v4.33.1, Mathlib v4.33.1) with zero errors; `#print axioms` for the five headline
+theorems returns `propext`, `Classical.choice`, `Quot.sound` and nothing else; 15 axioms
+exist in the environment and all are in `Init`; 8,322 Mathlib and 378 dependency `.olean`
+files are byte-identical to the official cache; an independent sandboxed `lake build`
+(no network, read-only source, separate machine) exits 0 and its `lean4export` output is
+byte-identical to the published 61,570,595,788-byte export; `leanchecker` replays 175,187 of
+175,187 modules with zero rejections; nanoda, con-leche (`master`, and `--compare` against
+the challenge) and con-ron (`--compare`) all accept, with con-leche reporting 1,468,418
+declarations accepted in `--verified` mode and all five challenge theorems "justified by the
+solution"; lean4lean accepts 175,187 of 175,187 compiled modules (five after raising a step
+limit). The arithmetic consequences — Robin's and Lagarias's inequalities — are also
+recorded, combined with an independent formalisation of Robin's criteria
+(`kimihiro64/Robin1984`, commit `acab1a3`), and the page reports that the elaborated
+Lagarias statement names 27 constants directly and depends on 1,801 Mathlib and core
+declarations (2,050 for Robin's), counting definitions with their bodies and theorems by
+their statements.
+
+**What it establishes.** That a term of the five stated types exists, depends only on the
+three standard axioms, and is accepted by three independently written kernels and by a
+byte-identical export rebuilt from a sandboxed build. That is a much stronger kernel result
+than any replay in this repository.
+
+**What it does not establish, in its own words.** The page's closing caveat: "A passing
+check shows that the formal statements, as written in Lean against Mathlib's definitions,
+follow from the three standard axioms according to the kernels used. It relies on those
+kernels and on Mathlib's definitions being what they are intended to be." Its scope note is
+equally explicit: "GRH" there means Dirichlet L-functions, all moduli and all characters,
+and "Dedekind zeta functions, Hecke L-functions and automorphic L-functions in general are
+not among the statements that were checked." The page is a record of kernels accepting
+terms. It says nothing about whether a theorem's proof routes through definitions that
+carry no mathematics — the question Nielsen's objection poses — and nothing in it is
+evidence about the Riemann hypothesis beyond what the stated statements say.
+
+This repository treats the page as an institutional fact (`recorded`, not `checked_ok`) and
+does not promote it: a replay of someone else's kernel run is not a check this repository
+ran. `docs/claim_verification_agent.md` records what the page does and does not settle, and
+the evaluation paper cites it for exactly that distinction.
 
 ---
 

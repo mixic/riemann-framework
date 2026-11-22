@@ -75,6 +75,17 @@
             "x0"
           ]
         }
+      ],
+      "mutants": [
+        {
+          "id": "flip-anygeometry-on-the-published-archive",
+          "operator": "CONTENT_FLIP",
+          "source": "external/alpoge-lean/src/Development/AbelianVarietyTheory/Definitions/AutomorphicMembership/OverIx.lean",
+          "find": "def anyGeometry (_D _J _X : Type) : Prop := True",
+          "replace": "def anyGeometry (_D _J _X : Type) : Prop := False",
+          "theorem": "riemannHypothesis",
+          "note": "NOT CHECKED HERE: the anchor is the shape Nielsen reports, not a line this repository has read. On the archive the anchor must be taken from the file itself before the mutant means anything, which is why the mutation probe reports `not_run` for this target rather than a verdict."
+        }
       ]
     },
     {
@@ -116,6 +127,35 @@
             "vacuousGeometry"
           ]
         }
+      ],
+      "mutants": [
+        {
+          "id": "flip-vacuous-geometry-for-theorem-that-states-it",
+          "operator": "CONTENT_FLIP",
+          "source": "lean/RiemannFramework/Dispute.lean",
+          "find": "def vacuousGeometry (_D _J _X : Nat) : Prop := True",
+          "replace": "def vacuousGeometry (_D _J _X : Nat) : Prop := False",
+          "theorem": "geometry_is_vacuous",
+          "note": "the theorem asserts the vacuous predicate of every input, so flipping it to `False` must break that theorem: a kill here is the engine's positive control"
+        },
+        {
+          "id": "flip-vacuous-geometry-for-theorem-beside-it",
+          "operator": "CONTENT_FLIP",
+          "source": "lean/RiemannFramework/Dispute.lean",
+          "find": "def vacuousGeometry (_D _J _X : Nat) : Prop := True",
+          "replace": "def vacuousGeometry (_D _J _X : Nat) : Prop := False",
+          "theorem": "closed_false_impossible",
+          "note": "same rewrite, different theorem: this one never mentions the vacuous predicate, so it must survive. The pair is the negative control, and it is what 'not load-bearing' looks like mechanically"
+        },
+        {
+          "id": "vacuous-truth-on-a-used-hypothesis",
+          "operator": "VACUOUS_TRUTH",
+          "source": "lean/RiemannFramework/Dispute.lean",
+          "find": "(h : a.routesThroughVacuous = true)",
+          "replace": "(h : True)",
+          "theorem": "vacuous_route_grounds_nothing",
+          "note": "the structure of Nielsen's objection as a theorem: the hypothesis `h` is used by `rw`, so weakening it to `True` must kill the proof. A survivor here would mean the hypothesis does no work"
+        }
       ]
     }
   ],
@@ -136,10 +176,10 @@
     },
     {
       "kind": "independent_replay",
-      "value": "Drew Sutherland's verification page publishes the checklist: kernel replay, axiom audit, export hashes, statement comparison",
-      "source": "https://math.mit.edu/~drew/grh/",
-      "date": "2026-11-21 12:55 UTC",
-      "note": "A checklist of checks that were run, not an independent formalisation of the argument."
+      "value": "Drew Sutherland's verification page records the mechanical audit: 175,187 modules compile; `#print axioms` for the five headline theorems returns only `propext`, `Classical.choice` and `Quot.sound`; the 15 axioms in the environment are all in `Init`; Mathlib's compiled artefacts are byte-identical to the official cache; a sandboxed rebuild reproduces the 61,570,595,788-byte export byte for byte; `leanchecker` replays 175,187 of 175,187 modules with zero rejections; nanoda and con-leche (and con-ron, its Rust port) accept the export, con-leche reporting 1,468,418 declarations accepted in `--verified` mode and all five challenge theorems justified by the solution. Its own caveat is that a passing check relies on those kernels and on Mathlib's definitions being what they are intended to be, and its scope note is that GRH there means Dirichlet L-functions: Dedekind, Hecke and automorphic L-functions were not among the statements checked.",
+      "source": "https://math.mit.edu/~drew/grh/; archived as references/sutherland_grh_checks_2026-11-22.html, sha256 01a43fc8defab818d878bfa8fd900d7563073db3dbc6f150ad73baec0fe388a7",
+      "date": "page last updated 2026-11-22 04:35 UTC",
+      "note": "A checklist of kernel checks that were run, not an independent formalisation of the argument, and not a dependency analysis: it says nothing about whether the proof routes through definitions that carry no mathematics, and it states that limit itself."
     },
     {
       "kind": "independent_replay",
