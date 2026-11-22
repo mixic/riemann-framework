@@ -30,7 +30,11 @@ Lean toolchains: `leanprover/lean4:v4.34.0-rc2` (pre-existing) and `leanprover/l
 | 6 | Masullo §1.4.3: the Archimedean integrals have a common bound `A` independent of `z` **and of φ** | **REFUTED as stated** | the bound holds in `z` at fixed φ, but grows as `log(1/δ)` along the very family φ the draft defines; measured slope 0.9999 |
 | 7 | Masullo §1.4.3, narrowed to uniformity in `z` at fixed φ | **VERIFIED** (narrower claim) | integral bounded (0.18–2.87) over the sampled `z` grid |
 | 8 | Masullo §1.3.2: the F-stratum **equals** the norm pre-image of the Q-stratum | **REFUTED as an identity** | exact integer counterexample at every split prime tested (6/6); ramified primes are a control that cannot cancel |
-| 9 | Chapter-wide inequality/sign fuzz of the typescript | **NOT DONE** | out of this session's reach; see §3.4 |
+| 9 | Split-prime certificate `5 = (2+i)(2−i)` in `Z[i]`, both norms 5, neither a unit | **VERIFIED** | exact arithmetic for `p ≡ 1 (mod 4)`; formalised in `lean/RiemannFramework/IdeleSplit.lean`, axioms `propext`, `Classical.choice`, `Quot.sound` |
+| 10 | The supplied Archimedean test measures the uniform boundedness of Masullo §1.4.3 | **REFUTED as a test** | `∫₀^T e^{−πx²}x^{σ−1}dx = ½π^{−σ/2}γ(σ/2,πT²) → ½Γ_ℝ(σ)` exactly; the growth is ζ's trivial pole at `s = 1`, and the supplied quadrature is 93% wrong at σ = 0.001 |
+| 11 | The two supplied Lean snippets are verified counterexamples | **DO NOT COMPILE** | `decide` failure plus `sorryAx` in snippet 1; `ℤ[i]` is file-local and `prime_of_norm_prime` is absent in snippet 2 |
+| 12 | Five zeta values at `Re s = 1/2` | **VALIDATED (finite), not evidence** | `zetazero` returns on-line zeros by construction; a finite list cannot decide a universal sentence |
+| 13 | Chapter-wide inequality/sign fuzz of the typescript | **NOT DONE** | out of this session's reach; see §3.5 |
 
 Two of the four Phase-1 claims that the MIT verification page lists as still running at the time
 of the record were settled here by substitution: `lake comparator` was replaced by
@@ -302,14 +306,53 @@ inclusion fails, so the stratum is strictly smaller than the pre-image. Whether 
 needs the inclusion (and the word "is" is loose) is a question about how the stratification is
 used later; the plain reading of the sentence is false.
 
-### 3.3 Fuzz of the disputed bound
+**What the supplied version of this check does.** The verification script supplied with the p = 5
+construction works over Q(i), where 5 does split, and its arithmetic is right: |g_{v₁}| = 1/5,
+|g_{v₂}| = 5, product 1, and the two components are units at no place above 5. It computes
+`5**(-1) * 5**(+1) = 1` rather than factoring `5 = (2+i)(2−i)`, so it asserts the valuations
+instead of deriving them; the exact certificate is in `scripts/audit/three_checks.py`, which
+factors p = a² + b² for p ≡ 1 mod 4 and checks both norms. The conclusion is the same.
+
+### 3.3 The two supplied Lean snippets do not compile
+
+Both were run against the repository's pinned toolchain (`leanprover/lean4:v4.34.0-rc2` with
+Mathlib at `0df444a3`), not read.
+
+- **Snippet 1**, the zero-dependency model: fails at line 31 with `failed to synthesize
+  Decidable ¬isLocalUnit counterexampleIdele.val_v1` (the `decide` tactic cannot see through the
+  `def`), and the resulting file reports `sorryAx` in `#print axioms`. The proof is one `simp`
+  away, but as supplied it is not a verified counterexample.
+- **Snippet 2**, the Mathlib-backed version: fails at the first line that uses `ℤ[i]`, because
+  that notation is `local` to `Mathlib/NumberTheory/Zsqrtd/GaussianInt.lean` and outside it parses
+  as indexing. It also calls `GaussianInt.prime_of_norm_prime`, which does not exist in the pinned
+  Mathlib (the available lemma is `Zsqrtd.isUnit_iff_norm_isUnit`), and the "general" version calls
+  `Nat.Prime.sq_add_sq`, also absent.
+
+A corrected module, `lean/RiemannFramework/IdeleSplit.lean`, was therefore written and is
+checked by the suite: it compiles sorry-free, its two theorems depend only on `propext`,
+`Classical.choice` and `Quot.sound`, and it proves the valuation-model cancellation together with
+the arithmetic certificate `5 = (2+i)(2−i)`, both norms 5, neither factor a unit. The paper
+records the same material in Appendix B, together with the two further supplied checks that cannot
+fail: `(X^p − X)²` has total multiplicity exactly `2p = deg` for every `p`, and the theta-lift
+script defines a decay factor whose `⌊√X⌋`-th power is `√X` by construction.
+
+### 3.4 Fuzz of the disputed bound
 
 A 60-point randomised sweep over (σ ∈ [0,3], δ ∈ [2^{−16},2^{−1}]) of the same integral gives
 sup |I| = 10.0008 at δ = 3.6·10^{−5}. This is an amplification of §3.1, not independent evidence:
 it re-samples the family whose divergence is already proved, and its value is only that it makes
 the growth visible for readers who distrust the asymptotic argument.
 
-### 3.4 Not done
+**What the supplied version of this check measures.** The script supplied for §1.4.3 integrates
+∫₀^T e^{−πx²}x^{σ−1}dx and reads the growth of Γ_ℝ(σ) = π^{−σ/2}Γ(σ/2) as σ → 0⁺. That integral
+equals ½π^{−σ/2}γ(σ/2, πT²) for every σ > 0, so it converges and its growth is the pole of Γ at 0,
+which is ζ's trivial pole at s = 1: not a bound on any family of test functions. Two of its printed
+values are also quadrature error (at σ = 0.01 the quadrature gives 51.61 where the exact value is
+99.14; at σ = 0.001, 70.81 against 999.14), so the quantity was under-resolved near x = 0 as well.
+The claim of §1.4.3 is refuted by the δ-family above, not by this. The full table is in
+`scripts/audit/three_checks.py` and in the paper's Appendix B.
+
+### 3.5 Not done
 
 - The PhilArchive critique (`philarchive.org/archive/NIEIOM`) is behind a Cloudflare challenge:
   HTTP 403 with a "Just a moment…" body on repeated attempts (page fetch and `curl` with a browser

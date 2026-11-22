@@ -100,7 +100,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1272 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1276 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1017,6 +1017,13 @@ They are not part of this library's build or proof claims.
   they need **not** have equal dimension: `eigenspaces_can_differ` carries `diag(1, 1, -1)`
   as the witness. The equal-dimension item that `docs/future_work.md` used to list as a
   target was false, and this file is where the counterexample lives.
+- **`RiemannFramework/IdeleSplit.lean`** — a split prime defeats a norm-preimage identification.
+  Proves that a unit norm at a split prime does not force the local components above it to be
+  units (
+orm_unit_does_not_force_local_units), and certifies the arithmetic case in ℤ[i]:
+  5 = (2 + i)(2 - i) with both factors of norm 5 and neither a unit
+  (split_prime_certificate). Sorry-free, and its two theorems depend only on propext,
+  Classical.choice and Quot.sound.
 - **`RiemannFramework/ZetaBridge.lean`** — owns the reflection `σ(s) = 1 - conj s` and bridges it to
   Mathlib's functional equation, with a machine-checked negative result. It derives `σ`-invariance
   of the zero set (`ζ s = 0 → ζ (σ s) = 0`) from `Λ(1 - s) = Λ(s)` composed with
@@ -1135,7 +1142,7 @@ changes the standing position that RH is open ([`docs/claimed_proof_triage.md`](
 and no file here is an input to any computation in this repository.
 
 The protocol that compares them, with its evidence classes and its verdict table, is the paper
-[*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 13 pp.).
+[*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 16 pp.).
 
 **The audit that runs the instruments themselves** is [`docs/verification_report.md`](docs/verification_report.md):
 it rebuilds the Alpöge verdict from the published export rather than from prose — three axioms and
@@ -1212,7 +1219,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1272 tests pass** on the current tree. They are not smoke tests: the suite
+**1276 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1271,7 +1278,8 @@ silently changed meaning.
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
-| `test_evaluation_paper.py` | 7 | The paper guards itself: 13 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
+| `test_evaluation_paper.py` | 7 | The paper guards itself: 16 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
+| `test_idele_split_lean.py` | 4 | The split-prime module compiles sorry-free, its axioms are the standard three, the aggregate imports it, and the Lean certificate agrees with the exact Python check |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
@@ -1401,6 +1409,8 @@ riemann-framework/
 │       ├── DimensionShift.lean       # Sector swap is an involution (sorry-free)
 │       ├── InvolutionEigenspace.lean # Involution eigenspace lemmas (sorry-free)
 │       ├── ZetaBridge.lean           # σ, FE bridge, 2-cycle gap, verdict (sorry-free)
+│       ├── Boundary.lean             # Sector labels, eigenspace counterexample (sorry-free)
+│       ├── IdeleSplit.lean           # Split-prime idele certificate (sorry-free)
 │       ├── RiemannHypothesis.lean       # Minimal RH statement (`sorry`)
 │       ├── RiemannHypothesis_optimized.lean # Clay Millennium formulation (`sorry`)
 │       ├── ZetaConjecture.lean          # RH statement + the open `zeros_are_fixed_by_sigma` (`sorry`)

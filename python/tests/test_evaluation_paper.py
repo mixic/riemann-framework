@@ -155,6 +155,6 @@ def test_the_falsification_criteria_are_printed(paper_text: str) -> None:
 
 def test_the_paper_names_the_repository_it_was_computed_from(paper_text: str) -> None:
     """Reproducibility claim: the commands and the file names must appear."""
-    for token in ("pythonscripts/run_dh_filter.py", "1272tests", "references/",
+    for token in ("pythonscripts/run_dh_filter.py", "1276tests", "references/",
                   "ideas/"):
         assert token.replace(" ", "") in paper_text.replace(" ", ""), token

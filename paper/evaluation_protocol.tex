@@ -413,7 +413,7 @@ Masullo, \emph{The Music of the Primes} & 2026-11-20 19:13 & 940 pp. &
 Alp\"oge--Furman & 2026 & arXiv:2608.13637 &
   certificates in \texttt{proportion\_certificates.py} \\
 Lamzouri & 2026 & preprint & arXiv:2609.02882; the same module \\
-Framework: eleven work packages & 2026 & 11 Lean modules, 1272 tests &
+Framework: eleven work packages & 2026 & 12 Lean modules, 1276 tests &
   \texttt{lean/}, \texttt{python/}, \texttt{ideas/} \\
 \bottomrule
 \end{tabularx}
@@ -709,7 +709,7 @@ All commands run from the repository root; the Python interpreter is the one the
 pins, and every number quoted above is produced by a committed test.
 
 \begin{verbatim}
-python -m pytest python/tests -q            # 1272 passed
+python -m pytest python/tests -q            # 1276 passed
 lake env lean lean/RiemannFramework/Dispute.lean
                                           # two 'sorry' warnings
 python scripts/run_dh_filter.py              # dead / eligible lists
@@ -747,6 +747,173 @@ File & Bytes & Pages & SHA-256 (first 16 hex) \\
 conflict is declared in Section~\ref{sec:evaluations} and mitigated by the control in
 Table~\ref{tab:self}. No external funding. The code is GPL-3.0; the archived documents remain
 the property of their authors and are stored for verification only.
+
+\section{Three computations from the corpus, and what each one tests}
+\label{app:three}
+
+The evaluations of Section~\ref{sec:evaluations} are claims about claims. The computations
+recorded here are claims about computations, and they are kept for the reason the protocol
+exists: a number is evidence only for the quantity it actually computes. All three were run at
+30 significant digits by \texttt{scripts/audit/three\_checks.py}, which prints the JSON these
+tables summarise; the counterexample of \S\ref{app:split} is also formalised in Lean
+(\S\ref{app:split}). Of the three, one supplies a counterexample, one measures a different
+quantity from the one it names, and one is a consistency check that cannot be evidence.
+
+\subsection{The split-prime certificate}
+\label{app:split}
+
+Masullo \S1.3.2 identifies the $k$-th divisorial stratum with the pre-image, under the norm
+map $\mathrm{GL}_1(\mathbb{A}_F)\to\mathrm{GL}_1(\mathbb{A}_{\mathbb{Q}})$, of the $k$-th
+stratum on the rational side; both strata are defined by requiring the local component to be a
+unit above each of the first $k$ rational primes. At a split prime the two completions are
+copies of $\mathbb{Q}_p$ and the idele norm multiplies the components, so the valuations add.
+The certificate is the arithmetic that makes this possible at $p=5$, the split case in
+$\mathbb{Z}[i]$:
+
+\begin{quote}
+$5=(2+i)(2-i)$, with $N(2+i)=N(2-i)=5$ and neither factor a unit. The idele with $2+i$ at the
+first place above $5$ and $(2-i)^{-1}$ at the second has local absolute values $5^{-1}$ and
+$5^{+1}$, whose product is $1$: the norm is a unit at $5$ while neither component is.
+\end{quote}
+
+\begin{table}[h]
+\centering
+\caption{Split primes in $\mathbb{Z}[i]$. Each row certifies $p=\pi_1\pi_2$ with both factors
+of norm $p$ and neither a unit, so the valuation pair $(+1,-1)$ has unit norm everywhere.}
+\label{tab:split}
+\footnotesize
+\begin{tabular}{@{}rllrr@{}}
+\toprule
+$p$ & $\pi_1$ & $\pi_2$ & $N(\pi_1)=N(\pi_2)$ & unit norm, non-unit components \\
+\midrule
+5 & $2+i$ & $2-i$ & 5 & yes \\
+13 & $3+2i$ & $3-2i$ & 13 & yes \\
+29 & $5+2i$ & $5-2i$ & 29 & yes \\
+37 & $6+i$ & $6-i$ & 37 & yes \\
+41 & $5+4i$ & $5-4i$ & 41 & yes \\
+53 & $7+2i$ & $7-2i$ & 53 & yes \\
+61 & $6+5i$ & $6-5i$ & 61 & yes \\
+73 & $8+3i$ & $8-3i$ & 73 & yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The general statement follows from Fermat's two-square theorem: every prime $p\equiv1$
+modulo $4$ splits in $\mathbb{Z}[i]$. The Lean module \texttt{lean/RiemannFramework/IdeleSplit.lean}
+records two theorems: the valuation model and its cancellation
+(\texttt{norm\_unit\_does\_not\_force\_local\_units}), and the arithmetic certificate
+(\texttt{split\_prime\_certificate}, which asserts $5=(2+i)(2-i)$ with both norms $5$ and
+neither factor a unit). Compiled against Mathlib with Lean 4.34.0-rc2, both depend only on
+\texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}. The module formalises the
+valuation model and the arithmetic; the identification of that model with the adelic statement
+is a reading, not a kernel-checked equivalence, and is labelled as such in the file.
+
+One correction to the record: in $\mathbb{Q}(\sqrt{5})$ the prime $5$ is ramified
+($5=(\sqrt{5})^2$, discriminant $5$), so the split-prime counterexample must be built over a
+field where $5$ splits, such as $\mathbb{Q}(i)$; in the ramified case the local norm is $g^2$
+and unit norm forces a unit component, so the phenomenon is exactly a split-prime phenomenon.
+
+\subsection{The Archimedean test, and the quantity it actually measures}
+
+A verification script supplied for this paper integrates
+\[
+  M(\sigma,T)=\int_0^T e^{-\pi x^2}x^{\sigma-1}\,dx
+\]
+and reads the growth of $\Gamma_{\mathbb{R}}(\sigma)=\pi^{-\sigma/2}\Gamma(\sigma/2)$ as
+$\sigma\to0^{+}$ as a failure of the uniform bound that Masullo \S1.4.3 (= \S1.8.4.3) asserts.
+The integral is elementary: substituting $u=\pi x^2$,
+\[
+  M(\sigma,T)=\tfrac12\,\pi^{-\sigma/2}\,\gamma\!\left(\tfrac{\sigma}{2},\pi T^2\right)
+  \longrightarrow \tfrac12\,\Gamma_{\mathbb{R}}(\sigma),
+\]
+so it converges for every $\sigma>0$ and its growth is the pole of $\Gamma$ at $0$, which is the
+trivial pole of $\zeta$ at $s=1$: a fact about $\zeta$ that no test-function family can avoid.
+It is not a statement about $\varphi$, and $\sigma\to0$ is not the limit that \S1.4.3 takes,
+which is $\varepsilon\to0$ and $h\to1$ on a compact $K$.
+
+\begin{table}[h]
+\centering
+\caption{The supplied test on the left of the exact value. The truncated integral is
+$M(\sigma,100)$; its exact value is $\tfrac12\pi^{-\sigma/2}\gamma(\sigma/2,100^2\pi)$. The
+last two rows of the supplied table are quadrature error near the $x^{\sigma-1}$ endpoint, not
+divergence, and the growth that remains is the pole of $\Gamma$.}
+\label{tab:gamma}
+\footnotesize
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$\sigma$ & $\Gamma_{\mathbb{R}}(\sigma)$ & $M$ by quadrature & $M$ exactly & relative error \\
+\midrule
+0.5 & 2.723288 & 1.361644 & 1.361644 & $0$ \\
+0.2 & 8.484489 & 4.242243 & 4.242244 & $4\cdot10^{-7}$ \\
+0.1 & 18.386978 & 9.187601 & 9.193489 & $6\cdot10^{-4}$ \\
+0.01 & 198.289513 & 51.610442 & 99.144757 & $0.48$ \\
+0.001 & 1998.279206 & 70.813023 & 999.139603 & $0.93$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The quantity \S1.4.3 does bound is the real-place term, whose kernel for $|\chi_v|=1$ and
+$\varphi_z(t)=t^{-z}$ is $t^{-\sigma-1/2}/(t-1)$; it is not integrable at $t=1$. Every
+admissible $h$ vanishes on a neighbourhood of $1$, so every integral is finite, but the family
+$h\to1_{(1,\infty)}$ that the same section defines must move that neighbourhood to zero, and
+then the integral grows like $\log(1/\delta)$ ($\delta$ the width of the neighbourhood): slope
+$0.9999$ against $\log(1/\delta)$ over the last decade, from
+\texttt{scripts/audit/masullo\_archimedean.py}. That is the defect of \S1.4.3, and it is a
+different computation from the one supplied. The supplied test is therefore recorded as
+\emph{mis-specified}: it refutes the uniform boundedness of a family of integrals that the
+section never considers, while the section's own assertion is refuted by the family it does
+define.
+
+\subsection{Five zeta values: a consistency check, not evidence}
+
+\begin{table}[h]
+\centering
+\caption{$\zeta$ at the first five zero heights. The on-line column is a check of the
+evaluation: \texttt{mpmath.zetazero} returns zeros with real part $1/2$ by construction, so
+the column is zero because the point is a computed zero, not because the hypothesis has been
+tested.}
+\label{tab:zeta}
+\footnotesize
+\begin{tabular}{@{}rlrr@{}}
+\toprule
+$k$ & $t_k$ & $|\zeta(\tfrac12+it_k)|$ & $|\zeta(0.6+it_k)|$ \\
+\midrule
+1 & 14.1347251417 & $6.2\cdot10^{-31}$ & 0.076188 \\
+2 & 21.0220396388 & $4.3\cdot10^{-31}$ & 0.107095 \\
+3 & 25.0108575801 & $1.6\cdot10^{-30}$ & 0.128121 \\
+4 & 30.4248761259 & $1.4\cdot10^{-30}$ & 0.120672 \\
+5 & 32.9350615877 & $2.0\cdot10^{-30}$ & 0.127412 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The values are correct and they carry no evidential weight. In the protocol's vocabulary the
+finite statement ``these five evaluations vanish to $10^{-30}$'' is
+\verdict{validated (finite)}, and the universal statement is untouched: a finite list of zeros
+cannot decide a universal sentence, and the zeros listed were located on the line before they
+were checked. The table is useful for exactly one thing, which is to show that the arithmetic
+agrees with the term that Alpöge's archive proves about Mathlib's $\zeta$; it is not a test of
+$\RH$ and it is not counted as one anywhere in this paper.
+
+\subsection{Two further checks that cannot fail}
+
+Two more simulations were supplied. The first computes, for several primes $p$, the multiplicity
+of the roots of $F(X)=(X^p-X)^2$ on $\mathbb{F}_p$ and reports that the total multiplicity
+$2p$ does not exceed $\deg F=2p$. The inequality holds with equality for every $p$ because
+$X^p-X$ is the product of the linear factors over $\mathbb{F}_p$; the check has no failing case
+and says nothing about Stepanov's method, whose content is a polynomial of \emph{low} degree in
+the $X^p$ blocks together with a multiplicity count that is made to exceed the degree. The
+second chooses a decay factor $X^{-1/(2\lfloor\sqrt X\rfloor)}$ and raises it to the power
+$\lfloor\sqrt X\rfloor$, obtaining $X\cdot X^{-1/2}=\sqrt X$ and reporting a match with the
+``$\sqrt X$ bound''. That is the definition of the exponent, not a property of a theta lift. A
+check whose output is fixed in advance is not evidence, by the same criterion this paper applies
+to everything else (Definition~\ref{def:verdicts} and the criteria of
+Section~\ref{sec:protocol}).
+
+\paragraph{What the appendix establishes.} One supplied computation is a genuine counterexample
+and is formalised; one measures a different quantity and is recorded as mis-specified; one is a
+consistency check; two cannot fail. The protocol applies to the tools as well as to the claims,
+which is the reason these negatives are printed rather than dropped.
 
 \begin{thebibliography}{99}
 
