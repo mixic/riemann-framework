@@ -77,6 +77,13 @@ output/.shot-profile/
 !output/real_systems.png
 !output/pt_symmetric.png
 
+# LaTeX build artefacts from paper/ (the compiled PDF is a delivered artefact)
+paper/build/
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+
 # OS
 .DS_Store
 Thumbs.db

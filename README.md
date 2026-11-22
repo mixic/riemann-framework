@@ -33,9 +33,10 @@ remains open, and an index of every document here.
 | manuscript | status | materials |
 |:---|:---|:---|
 | [Desymmetrization of Quantum Spectra: A Bayesian Sector-Count Diagnostic with Measured Coverage](docs/desymmetrisation_paper.md) | draft complete, reproducible; **not submitted** | [**PDF**](output/desymmetrisation_paper.pdf) · [submission checklist](docs/submission_checklist.md) · [cover letter](docs/cover_letter.md) · [arXiv metadata](docs/arxiv_submission.md) |
+| [A Screening Protocol for Claimed Proofs of the Riemann Hypothesis](paper/evaluation_protocol.tex) | draft complete, reproducible; **not submitted** | [**PDF**](paper/evaluation_protocol.pdf) · [LaTeX source](paper/evaluation_protocol.tex) |
 | [The Davenport–Heilbronn filter as a standalone methods note](docs/dh_filter_methods_note.md) | draft complete; **not submitted** | §9 of the note lists what remains |
 
-Neither has a venue, a DOI or a referee report. The figures, tables and Lean checks are
+None of these has a venue, a DOI or a referee report. The figures, tables and Lean checks are
 reproducible from the repository; the submission steps are the author's. The arXiv
 metadata file is filled in — title, the 196-word listing abstract, categories, comments, a
 copy-paste field table, the author block — with the MSC codes and the licence marked for
@@ -99,7 +100,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1265 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1272 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1133,6 +1134,9 @@ for the first two, [`docs/masullo_grh_draft.md`](docs/masullo_grh_draft.md) for 
 changes the standing position that RH is open ([`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) §5),
 and no file here is an input to any computation in this repository.
 
+The protocol that compares them, with its evidence classes and its verdict table, is the paper
+[*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 13 pp.).
+
 ## Roadmap
 
 **What is done.** Nine tracks, each with a document: the numerical core
@@ -1160,7 +1164,7 @@ sector question is closed** — abandoned on criterion (2), see
 | M1 multi-seed verdict | verdict written with `n_seeds ≥ 300`, `std`, and the parameter point | **done** — `mixed`, 300 seeds, in `output/falsification_summary.txt` |
 | M2 consolidated negative results | nine sections, each carrying a measurement | **done** — `docs/lessons_learned.md` §1–§9 |
 | M3 BB84 detector blinding | a blinding model whose measured success rate is reported, with a countermeasure | **done** — `bb84_detector.py`: at `10⁶` mean photons per pulse the sifted-key QBER is `0.0000` while Eve holds `1.00` bits, so the error-rate statistic cannot see it; an optical power monitor at `≥ 10` photons catches the attack `100%` with honest false alarm `1.7e-10`. Randomised detector efficiency needs `≥ 50%` to reach the `0.11` abort threshold, so it is a partial defence. See [`docs/bb84_implementation.md`](docs/bb84_implementation.md) §3 |
-| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 10 Lean modules compile (`test_formal_proof.py`) |
+| M4 Lean `σ² = id` | sorry-free proof checked by `lake build` | **done** — `sigma_involutive` (`ZetaBridge.lean`) proves `σ ∘ σ = id` componentwise, the file is `sorry`- and `axiom`-free, and all 11 Lean modules compile (`test_formal_proof.py`) |
 | M5 DSH sector question | a definitive answer: a sector in `[0.58, 0.62]` with per-seed `std < 0.02`, or a proof that the construction cannot produce one | **done — the DSH is abandoned.** Criterion (2) holds: GUE blocks give 2/2 GUE sectors, GOE blocks give 0/2, so the class is inherited at 300 seeds and `d = 100, 200`. Criterion (1) holds only for GOE blocks and is therefore class-conditional, not independent evidence. See [`docs/m5_verdict.md`](docs/m5_verdict.md) |
 
 **M5 outcome: the hypothesis is abandoned.** The milestone ran at 300 seeds per
@@ -1197,7 +1201,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1265 tests pass** on the current tree. They are not smoke tests: the suite
+**1272 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1256,6 +1260,7 @@ silently changed meaning.
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
+| `test_evaluation_paper.py` | 7 | The paper guards itself: 13 pages of text layer, the sentence that keeps RH open, no proof claim, the five verdict words, and its printed hashes checked against `references/` |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |
