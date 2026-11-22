@@ -140,6 +140,25 @@ half mechanically, and `tests/test_proportion_certificates.py` guards the module
 public surface against acquiring a name that implies a proof verdict. Neither
 paper claims RH, and the second contains a proof that its method cannot reach it.
 
+Two later claims are outside both papers, and both are recorded separately, without a verdict:
+
+- the 2026 Alpöge announcement, its certification by the Lean and Mathlib communities, and
+  Nielsen's objection that the formalisation discharges its geometry obligations vacuously. What
+  each kind of check establishes, and the one dependency question nobody has traced, are in
+  [`alpoge_nielsen_dispute.md`](alpoge_nielsen_dispute.md); the two positions are recorded as
+  `sorry` in `lean/RiemannFramework/Dispute.lean`, which is registered in `OPEN_RH_FILES`. It is
+  deliberately not imported by the aggregate module.
+- the 2026 Masullo typescript, reported as a human-written proof of GRH. What its own pages
+  contain as of 2026-11-22 — a stated trace formula, an assumption its author says cannot yet be
+  removed, and a placeholder where the consequence for the zeros would go — is in
+  [`masullo_grh_draft.md`](masullo_grh_draft.md), with page references. The one gate of this
+  repository that does apply, the Davenport–Heilbronn filter, returns `eligible` for its declared
+  inputs: permission, not promise, and explicitly not a validity verdict.
+
+Both records cite documents stored byte for byte, with a hash and a page count, in
+[`references/`](../references/README.md). Neither changes this section: RH is open, and nothing
+here adjudicates either claim.
+
 ## 6. Files
 
 | file | role |
@@ -148,6 +167,9 @@ paper claims RH, and the second contains a proof that its method cannot reach it
 | `python/tests/test_proportion_certificates.py` | 20 tests, weighted toward the tight cases |
 | `ideas/proportion_two_thirds_alpoge_furman.json` | claim, falsification criterion, and the ineligibility note |
 | `ideas/proportion_lamzouri_new_proof.json` | the same for Lamzouri |
+| `docs/alpoge_nielsen_dispute.md` | the 2026 Alpöge release and Nielsen's objection, side by side |
+| `docs/masullo_grh_draft.md` | the 2026 Masullo draft: what its pages say, and what they leave open |
+| `references/` | the three documents these notes cite, stored with a hash and a page count |
 
 ## References
 

@@ -99,7 +99,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1247 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1265 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1043,6 +1043,15 @@ They are not part of this library's build or proof claims.
   `prove_rh_via_sigma` consumes. This is the one place in the formalization where the open problem
   is written down.
 - **`RiemannFramework/SanityChecks.lean`** — worked examples confirming `σ` behaves as expected.
+- **`RiemannFramework/Dispute.lean`** — the two recorded positions on the 2026 Alpöge claim and
+  its objection, which are **not** this repository's positions. It states the disputed
+  statement, proves the structural core of the objection with no `sorry` (a certificate
+  predicate that is constantly `True` discharges its closure at every index having checked
+  nothing, and a constantly-`False` one discharges nothing), and records each side with a
+  `sorry`: Alpöge's assertion of the statement, and Nielsen's claim that the published archive
+  routes its conclusion through vacuous geometry so grounds nothing. The second is a claim
+  about source code, and Lean cannot state it as a theorem about `RiemannHypothesis`; the file
+  says so in its own docstring. See [`docs/alpoge_nielsen_dispute.md`](docs/alpoge_nielsen_dispute.md).
 
 **The pipeline interface:**
 
@@ -1091,6 +1100,38 @@ The only route here to a machine-checked **universal** proof is Lean 4 — `Dime
 3. **Only then think about formalization** — and even then, the path through Lean/Mathlib is years, not weeks.
 
 **Honest advice, without wanting to take away your motivation:** this framework is an excellent tool for quickly discarding bad ideas and sharpening promising ones. But it is — and structurally can never be more than — a pre-filter. Confirmation of a real proof does not happen through code that prints "PASS"; it happens through human expert scrutiny and, ideally, full formal verification.
+
+## Reference archive
+
+The 2026 claims are not adjudicated, but the documents that make them are kept. Three
+third-party PDFs sit under `references/`, stored byte for byte and indexed with a SHA-256
+and a page count in [`references/README.md`](references/README.md):
+
+| document | what it is | archived as |
+|:---|:---|:---|
+| Alpöge, *Remark* (2026-11-20, 4 pp.) | the statement of belief that accompanied the Lean release, and the reason there is no prose proof | `references/alpoge_remark_2026-11-20.pdf` |
+| Nielsen, *The Invalidity of Alpöge's Proposed Proof of the Riemann Hypothesis* (2026-11-20, 13 pp.) | the source-level objection: vacuous geometric and lattice witnesses | `references/nielsen_invalidity_2026-11-20.pdf` |
+| Masullo, *The Music of the Primes* (2026-11-20, 940 pp.) | a draft on a trace formula and the zeros of Hecke L-functions, reported as a GRH proof | `references/masullo_music_of_the_primes_2026-11-20.pdf` |
+
+The hash is enforced, not just recorded: `test_reference_archive.py` fails if a stored file
+changes, disappears, loses its citation, or is dropped into the folder unindexed. Two of the
+three are documents their authors are still revising, so a silent revision inheriting an old
+citation is a real hazard and not a hypothetical one.
+
+**The one mechanical check that does apply to the Masullo draft** is the Davenport–Heilbronn
+filter. [`trace_formula_screen.py`](python/riemann_framework/trace_formula_screen.py) declares the
+inputs the draft's own sections use — the Euler product, the prime side of Weil's explicit formula,
+and the functional equation — and the filter returns **`eligible`**: the two arithmetic inputs fail
+for Davenport–Heilbronn, so the contrapositive that rejects a whole class of RH arguments does not
+apply here. That is permission, not promise and not validation: the filter sees transfer, not
+circularity, and it cannot see the placeholder at the draft's Chapter 13 or the unremovable
+`φ(C_F^1) = 0` restriction. The details, and what the screen deliberately does not declare, are in
+[`docs/masullo_grh_draft.md`](docs/masullo_grh_draft.md) §6.
+
+What each says is recorded without a verdict — [`docs/alpoge_nielsen_dispute.md`](docs/alpoge_nielsen_dispute.md)
+for the first two, [`docs/masullo_grh_draft.md`](docs/masullo_grh_draft.md) for the third. Neither record
+changes the standing position that RH is open ([`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) §5),
+and no file here is an input to any computation in this repository.
 
 ## Roadmap
 
@@ -1156,7 +1197,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1247 tests pass** on the current tree. They are not smoke tests: the suite
+**1265 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1193,7 +1234,7 @@ silently changed meaning.
 | `test_affine_reduction.py` | 22 | The affine-reduction gate |
 | `test_dimension_lift.py` | 17 | Dimension-lift Euler-product checks |
 | `test_idea_pipeline.py` | 25 | Pipeline stages A–E, the Stage-D probe, and the inconclusive-gate contract |
-| `test_formal_proof.py` | 19 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open; the obligation theorems carry no `sorryAx` |
+| `test_formal_proof.py` | 20 | Every Lean module compiles; sorry-free files stay sorry-free; RH targets stay open; the obligation theorems carry no `sorryAx` |
 | `test_dimension_shift.py` | 14 | Dimension-shift operator model |
 | `test_falsification.py` | 24 | Multi-seed verdicts, the seed floor, and the single-seed artefact |
 | `test_explicit_formula.py` | 11 | Explicit-formula calculations |
@@ -1213,6 +1254,8 @@ silently changed meaning.
 | `test_stage_screen.py` | 8 | The DH filter applied to this stage: five claims, one unsourced input, no `dead` and no `eligible`, no claim about the zeros, and the undeclared claim left unscreened |
 | `test_packaging.py` | 7 | The metadata parses, the version has one source and is read back by the backend, the licence matches `LICENSE`, every third-party import is declared, and matplotlib stays in the `plots` extra |
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
+| `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
+| `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
 | `test_numeric_zeros.py` | 2 | Numerical zero verification |

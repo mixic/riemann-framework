@@ -69,6 +69,11 @@ OPEN_RH_FILES = [
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis.lean",
     RIEMANN_FRAMEWORK_DIR / "RiemannHypothesis_optimized.lean",
     RIEMANN_FRAMEWORK_DIR / "ZetaConjecture.lean",
+    # The two recorded positions on the 2026 Alpöge claim and its objection. It asserts
+    # the statement *and* the objection, so it must never report itself complete; see
+    # `docs/alpoge_nielsen_dispute.md`. Its two `sorry`s are the assertions, and the
+    # structural lemmas around them are proved.
+    RIEMANN_FRAMEWORK_DIR / "Dispute.lean",
 ]
 
 # The theorems that say what the `RHIdea` obligations are worth. They live in a file

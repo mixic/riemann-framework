@@ -1,0 +1,12 @@
+{
+  "id": "masullo_music_of_the_primes",
+  "hypothesis": "The 940-page draft 'The Music of the Primes' (Alessandro Maria Masullo, released 2026-11-20) purports to prove GRH for the Hecke L-functions of an arbitrary number field, by proving a trace formula on the idelic class group -- for test functions satisfying phi(C_F^1) = 0 -- and then deducing the location of the zeros from its spectral side, with the restriction removed a posteriori.",
+  "expression": "1",
+  "falsification_criterion": "As posted, the claim has no statement to falsify: Theorem 13.3.1.2, 'Divisor of L(s, chi)', is printed with its number and no statement, and its footnotes read 'Correct statement', 'Insert statement' and 'State and prove the Main Theorems' (p. 522). A statement would be falsified by (a) a zero of a Hecke L-function located off 1/2 + i*R, or (b) a failure of the stated Trace Formula (Theorem 13.3.1.1) for admissible phi, or (c) a gap in the deduction from the trace formula to the zeros. None of these is reachable by computation in this repository: (a) and (b) are analytic statements about a 900-page argument, and (c) is a reading, not a measurement.",
+  "dh_inputs": [
+    "euler_product",
+    "explicit_formula_prime_side",
+    "functional_equation"
+  ],
+  "notes": "NOT AN RH ATTEMPT THAT THIS REPOSITORY CAN VET, and NOT PIPELINE-ELIGIBLE. The expression field is the constant 1, a placeholder with no mathematical role: the claim is a proof-shaped claim, not a map on the complex plane, so Stage B will reject it as an affine constant and report a stage-B failure. Read that verdict as 'this claim is outside the pipeline's input domain', NOT as 'the draft is wrong' -- see docs/claimed_proof_triage.md section 2, and docs/masullo_grh_draft.md for what the draft's own pages contain. What IS mechanically checkable here is the Davenport-Heilbronn screen: python/riemann_framework/trace_formula_screen.py declares the three inputs above, from the paper's own section references, and the filter returns 'eligible' -- the two arithmetic inputs (Euler product, prime side of the explicit formula) fail for Davenport-Heilbronn, so the contrapositive that kills a whole class of RH arguments does not apply to this one. That is permission, not promise. The filter would have fired had the argument used an RH-equivalent positivity criterion; section 1.4.6 says it does not, and that is why li_positivity is deliberately not declared."
+}

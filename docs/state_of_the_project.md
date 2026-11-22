@@ -72,7 +72,7 @@ is used without qualification.
 
 ### 3.1 In Lean 4
 
-Four of the nine modules are `sorry`-free and `axiom`-free — `DimensionShift`,
+Four of the eleven modules are `sorry`-free and `axiom`-free — `DimensionShift`,
 `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`. The others contain
 `sorry` **by design**: they state the Riemann hypothesis, and one of those `sorry`s *is*
 the open problem. A test fails if any of them stops containing it.
@@ -346,8 +346,8 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks closed as negative | 3 | DSH, shift-zeta, DSIN |
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
-| `sorry`-free Lean modules | 4 of 9 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
-| tests passing | 1238 | `python/tests/` |
+| `sorry`-free Lean modules | 4 of 11 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation` |
+| tests passing | 1265 | `python/tests/` |
 | documents | 38 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
@@ -465,7 +465,7 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1238 passed`; `lake build` → 10 modules
+**Last verified:** `python -m pytest tests/ -q` → `1265 passed`; `lake build` → 11 modules
 compile, the 4 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.
