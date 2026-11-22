@@ -20,7 +20,7 @@ the parts of `paper/evaluation_protocol.pdf` that a reader could be misled by:
 
 * the sentence that keeps the Riemann hypothesis open has to survive editing -- if an
   author (or a language model) rewrites it into a claim, the suite goes red;
-* the vocabulary has to stay the five-word one, with no word meaning "true";
+* the vocabulary has to stay the six-verdict one, with no word meaning "true";
 * the hashes the paper prints have to be the hashes of the archived files, byte for
   byte, because a paper quoting a stale hash is quoting a document nobody can find;
 * the PDF has to be the compiled one, not a placeholder.

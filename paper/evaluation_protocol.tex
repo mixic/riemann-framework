@@ -94,7 +94,7 @@ different things.
 A \emph{kernel} check establishes that a term inhabits a type. It is decisive about the term
 and silent about the definitions the term is written against. When the type is Mathlib's own
 \texttt{RiemannHypothesis}, a kernel check establishes that the statement is the intended one
-and that the proof term has it---an achievement, and not the same achievement as establishing
+and that the proof term has it; that is an achievement, and it is not the same achievement as establishing
 that the argument's internal objects carry the mathematics their names suggest.
 
 A \emph{reading} establishes that a human can follow an argument from stated hypotheses to a
@@ -122,8 +122,9 @@ that instrument can say?} The answers are drawn from a fixed vocabulary
 (Definition~\ref{def:verdicts}): a claim can be \emph{rejected} by a logical screen, declared
 \emph{outside the domain} of every instrument held, left \emph{undetermined} with a named
 computation that would decide it, or \emph{validated} only in the finite, elementary or
-term-level sense that an instrument actually supports---and ``term-level'' is a warning as much
-as a result, since a term can inhabit a type whose internal definitions carry no mathematics.
+term-level sense that an instrument actually supports. The qualification ``term-level'' is a
+warning as much as a result, since a term can inhabit a type whose internal definitions carry no
+mathematics.
 There is deliberately no verdict ``true'', and no verdict ``promising''.
 
 \subsection{Contributions}
@@ -136,7 +137,7 @@ There is deliberately no verdict ``true'', and no verdict ``promising''.
   verdict, with a pre-registered list of observations that would falsify the study itself.
 \item An evaluation of a defined corpus (Section~\ref{sec:evaluations}): the 2026 Alp\"oge
   archive and its objection, the 2026 Masullo typescript, the proportion theorems of
-  Alp\"oge--Furman and Lamzouri, and the framework's own eleven work packages---the last as a
+  Alp\"oge--Furman and Lamzouri, and the framework's own eleven work packages, the last as a
   control, because a protocol that cannot reject its author's proposal is not a protocol.
 \item A calibration of the Davenport--Heilbronn screen (Section~\ref{sec:calibration}): the
   screen returns ``eligible'' for three of the nine candidate records in the framework's own
@@ -149,7 +150,7 @@ There is deliberately no verdict ``true'', and no verdict ``promising''.
 \subsection{Scope, stated before the results}
 
 ``All works of all mathematicians'' is not a corpus. There is no sampling frame for it: the
-population is unbounded, unbounded in time, and---decisively---not observable, because most
+population is unbounded, unbounded in time, and, decisively, not observable, because most
 arguments exist only as prose that no instrument in this paper can take as input. A study that
 claimed to evaluate it would be reporting on the works that happened to be machine-readable
 while describing itself as reporting on the works. Section~\ref{sec:corpus} therefore fixes an
@@ -207,7 +208,7 @@ they are the ones most often mistaken for each other.
 \label{sec:calibration}
 
 Let $f$ be a Dirichlet series with a functional equation but no Euler product, whose zeros are
-known not all to lie on the critical line---the Davenport--Heilbronn function is the standard
+known not all to lie on the critical line; the Davenport--Heilbronn function is the standard
 example \cite{leclair,vorsos}. Then:
 
 \begin{proposition}[contrapositive screen]
@@ -232,7 +233,7 @@ settles the Euler-product row: for the DH coefficients $b$, $b(2)b(3)=-\kappa^{2
 so the coefficients are not multiplicative.
 
 Now the calibration. The framework's own archive holds nine candidate records. Screen all nine
-and the dead list has \emph{one} entry---the framework's own flagship proposal, which declares
+and the dead list has \emph{one} entry: the framework's own flagship proposal, which declares
 only the functional equation and the zero symmetry, both of which $\DHf$ has. Three records are
 \verdict{eligible}, five are \verdict{unscreened}. Eligibility is therefore not scarce: any
 argument that touches the prime side of an explicit formula qualifies, which is most of
@@ -241,7 +242,7 @@ paper that reported only ``three of nine pass'' would be reporting the wrong sta
 
 A second limit is sharper and is stated here because it applies directly to
 Section~\ref{sec:masullo}. The screen tests \emph{transfer}, not \emph{circularity}. An
-argument that assumes an $\RH$-equivalent hypothesis---Li's criterion, say---is screened as
+argument that assumes an $\RH$-equivalent hypothesis (Li's criterion, say) is screened as
 \verdict{eligible} for DH, because Li's criterion fails for DH. The screen cannot tell
 discrimination from circularity. Passing it is necessary and nowhere near sufficient.
 
@@ -250,7 +251,7 @@ discrimination from circularity. Passing it is necessary and nowhere near suffic
 The framework contains two proofs that a computation \emph{is} a proof, because the statements
 are finite and exactly decidable: a certified sieve establishes $p_{1{,}000{,}000}=15{,}485{,}863$
 with no gap below it, and exact integer arithmetic establishes the Riemann hypothesis for
-individual curves over finite fields---942 elliptic curves over $\mathbb{F}_{5},\dots,
+individual curves over finite fields: 942 elliptic curves over $\mathbb{F}_{5},\dots,
 \mathbb{F}_{19}$, 324 smooth genus-$2$ curves over $\mathbb{F}_{3}$, and 10{,}000 over
 $\mathbb{F}_{5}$, with zero failures. Neither is a numerical sample; both are finite claims
 decided exactly.
@@ -311,8 +312,8 @@ reproducible computation);
 $E4$: an independent party has reproduced a check on it.
 \end{definition}
 
-The classes are nested in cost, not in strength. A claim at $E3$ with no $E1$---a formalisation
-whose theorem is not stated in prose---is not better off than one at $E1$; it is differently
+The classes are nested in cost, not in strength. A claim at $E3$ with no $E1$ (a formalisation
+whose theorem is not stated in prose) is not better off than one at $E1$; it is differently
 situated, and the protocol's job is to say how.
 
 \subsection{Decision procedure}
@@ -321,8 +322,8 @@ Given a claim $c$:
 \begin{enumerate}
 \item \textbf{Archive} the primary document; record hash and length. If it cannot be archived,
   stop: the claim is not evaluable here, and say so.
-\item \textbf{Extract the statement}, with page or line. If there is no statement---a
-  placeholder, an unfinished chapter---record that fact; it is a result about the document and
+\item \textbf{Extract the statement}, with page or line. If there is no statement (a
+  placeholder, an unfinished chapter), record that fact; it is a result about the document and
   it bounds everything that follows.
 \item \textbf{Identify the declared inputs} and classify them. If they are enough to run the DH
   screen and the screen fires, the claim is \verdict{rejected}; stop.
@@ -369,8 +370,8 @@ one of the following:
 
 A census needs a frame: a rule that decides membership before the results are seen, and that
 could in principle be applied to every candidate. For claims about $\RH$ there is no such rule
-at the scale of the literature, for three reasons. The population is open---new claims appear
-daily. The claim type is heterogeneous---a claim may be a paper, a formalisation, a lecture, or
+at the scale of the literature, for three reasons. The population is open: new claims appear
+daily. The claim type is heterogeneous: a claim may be a paper, a formalisation, a lecture, or
 a file; the instruments here accept only some of these. And the observable subset is
 unrepresentative by construction: an argument with no formalisation and no certificate cannot
 be screened by anything in this paper, so a census restricted to screenable claims measures the
@@ -424,7 +425,7 @@ Excluded, with what their inclusion would require: arguments available only as p
 PDF (needs transcription and archival, and then only the DH screen applies); claims about
 $\RH$ over function fields (out of scope: $\RH$ is a theorem there, so the analogue of the
 question is different); and the 2026 PhilArchive critique of the Masullo draft, which is
-reported but was not retrieved---it is named in the repository's record and is not counted as
+reported but was not retrieved; it is named in the repository's record and is not counted as
 evidence anywhere in this paper.
 
 \section{Evaluations}
@@ -438,14 +439,14 @@ in 175{,}187 modules, with a stated dependency on Mathlib alone. The Lean and Ma
 communities certified the statement and the term \cite{leanmathlib}; Sutherland's page records
 the mechanical audit \cite{sutherland}. As of the date of the record, the audit reports
 175{,}187 modules compiling, axioms exactly \texttt{propext}, \texttt{Classical.choice},
-\texttt{Quot.sound}, and Mathlib's compiled artefacts byte-identical to the pin---with the
+\texttt{Quot.sound}, and Mathlib's compiled artefacts byte-identical to the pin, with the
 comparator run and the paranoid-kernel replay still outstanding at the time the record was
 written.
 
 \textbf{What the instruments say.} The statement is Mathlib's \texttt{RiemannHypothesis}; the
 term has that type; the axiom set is the standard one. In the vocabulary of
-Definition~\ref{def:verdicts}, that is a \verdict{validated} verdict about a \emph{term}---and
-the verdict is not available for reuse as a verdict about the \emph{argument}, because no
+Definition~\ref{def:verdicts}, that is a \verdict{validated} verdict about a \emph{term}, and
+that verdict is not available for reuse as a verdict about the \emph{argument}, because no
 argument is written down. The author says why: a prose write-up would be a ``massive unreadable
 travesty of `slop'\,'' \cite{alpoge}.
 
@@ -457,7 +458,7 @@ lattice identification that holds by \texttt{rfl}; and a height equation that ho
 height was assigned to be its own formula. Her Section~8 collects the findings; her Section~9
 lists four checks that would settle the matter, of which the decisive one is a transitive
 dependency trace from the final theorem to the definitions that discharge the geometric
-obligations; and her Section~10 states the limits of her own method---about 70 files read of
+obligations; and her Section~10 states the limits of her own method: about 70 files read of
 175{,}187, no build, no axiom print, no compiled trace.
 
 The protocol's verdict on the objection is \verdict{undetermined}, with the decisive
@@ -523,7 +524,7 @@ missing Chapter~13 would supply. The draft therefore describes a strategy whose 
 steps are, on its own account, not yet carried out.
 
 \textbf{Verdicts.} \verdict{outside domain} for the numerical instruments (there is no
-spectrum), for the kernel (there is no formalisation), and---as posted---for the mathematics,
+spectrum), for the kernel (there is no formalisation), and for the mathematics as posted,
 because the theorem is not stated. Once Theorem~13.3.1.2 is stated and proved the verdict
 becomes \verdict{undetermined}, with the decisive observations already named: the statement
 itself, and the removal of the test-function restriction. The DH screen returns
@@ -541,9 +542,9 @@ distinct). Both are proportion theorems and both say so.
 inequality, a multiset inequality for conjugation-invariant multisets, the constant chain
 $2-R(\psi)$ and $(3-R(\psi))/2$, and the admissibility of the kernel used. The tests weight the
 explicit tight cases above random search, because a Monte Carlo search cannot prove an
-inequality---it can only fail to find a counterexample. Measured: the rank--trace inequality
+inequality; it can only fail to find a counterexample. Measured: the rank--trace inequality
 held in 20{,}000 random admissible cases with worst margin $0.096$; the multiset inequality
-held in 3{,}000 conjugation-invariant multisets with tightest margin $0.0$---the tight case
+held in 3{,}000 conjugation-invariant multisets with tightest margin $0.0$: the tight case
 again, which is what pins the normalisation; and the constants evaluate to
 $0.6725007037$ and $0.8362503518$, matching both papers.
 
@@ -633,7 +634,7 @@ Finite-field / prime certificates & validated (finite) & 3 & an exact counterexa
 \end{table}
 
 The distribution is the paper's headline result, and it is deliberately unflattering to the
-corpus. Of eleven entries, three are rejected---two of them methods rejected on their own
+corpus. Of eleven entries, three are rejected: two of them methods rejected on their own
 evidence, one of them the framework's flagship proposal. Two are outside every domain held,
 one is undetermined with a named decisive computation, one is eligible without being validated,
 and four are validated: one as a statement about a proof term, one as a finite statement, and
@@ -689,7 +690,7 @@ results are collected in a lessons-learned document that this paper treats as da
 \section{Conclusion}
 
 The instruments answer different questions, and the discipline that matters is not running more
-of them but assigning each claim to the one whose input domain it occupies---and saying
+of them but assigning each claim to the one whose input domain it occupies, and saying
 ``outside domain'' when there is none. Applied to the 2026 corpus, the protocol yields three
 rejections, two claims outside every domain, one undetermined entry with a named decisive
 computation, one eligible-but-unvalidated declaration, and four validated statements none of
@@ -698,7 +699,7 @@ that cannot be evaluated: one has no prose argument, the other has no statement 
 uncomfortable result for a paper about evaluation, and it is the correct one.
 
 The Riemann hypothesis remains open. Nothing in this paper is evidence for or against it, and
-no verdict in Table~\ref{tab:results} would change if it were settled tomorrow---except the
+no verdict in Table~\ref{tab:results} would change if it were settled tomorrow, except the
 \verdict{undetermined} entry, which would stop being interesting.
 
 \appendix
@@ -720,7 +721,7 @@ verifiable. \texttt{python/tests/test\_evaluation\_paper.py} extracts this PDF's
 checks four things: that the page and character counts are the compiled article's; that the
 sentence keeping the hypothesis open is present; that none of the six phrases asserting a proof
 appears; and that the sixteen-hex-digit hashes printed in Table~\ref{tab:hashes} are prefixes of
-the SHA-256 digests of the archived files. It cannot check whether the verdicts are right---only
+the SHA-256 digests of the archived files. It cannot check whether the verdicts are right; only
 the criteria in \S\ref{sec:protocol} can do that, and they are printed in the paper for a reader
 to apply against the author.
 
