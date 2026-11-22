@@ -15,6 +15,14 @@ pip-*/
 .lake/
 build/
 
+# Scratch for the claim-audit agent: generated reports and the Lean probe files they are
+# compiled from. Reproducible with `python scripts/audit_claim.py`; never committed.
+out/
+
+# Third-party archives kept outside the tree by design (the Alpoge Lean archive is 931 MB
+# of git blobs, its export 61.5 GB). `scripts/audit_claim.py --lean-root` points at one.
+external/
+
 # VS Code
 .vscode/
 *.code-workspace

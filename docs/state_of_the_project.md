@@ -347,8 +347,8 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | tracks with surviving instruments | 2 | the DH filter, the desymmetrisation diagnostic |
 | tracks with finite proofs | 2 | finite-field curves, prime certificates |
 | `sorry`-free Lean modules | 6 of 12 | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`, `Boundary`, `IdeleSplit` |
-| tests passing | 1276 | `python/tests/` |
-| documents | 38 | `docs/` |
+| tests passing | 1329 | `python/tests/` |
+| documents | 48 | `docs/` |
 | negative results on record | 19 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
 | manuscripts | 2 | [`desymmetrisation_paper.md`](desymmetrisation_paper.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) |
@@ -371,6 +371,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
 | [`number_systems.md`](number_systems.md), [`spherical_number_systems.md`](spherical_number_systems.md) | the dimension-lift proposals and their status |
 | [`bb84_implementation.md`](bb84_implementation.md), [`dimension_shift_quantum_communication.md`](dimension_shift_quantum_communication.md) | the communication tracks |
 | [`claimed_proof_triage.md`](claimed_proof_triage.md), [`openai_math_quasi_riemann.md`](openai_math_quasi_riemann.md) | the triage of outside claims |
+| [`claim_verification_agent.md`](claim_verification_agent.md), [`alpoge_nielsen_dispute.md`](alpoge_nielsen_dispute.md) | the audit agent for claimed proofs, and the dispute it was calibrated on |
 | [`scientific_contribution_assessment.md`](scientific_contribution_assessment.md), [`project_critique_and_roadmap.md`](project_critique_and_roadmap.md) | what this is worth, and what it should do next |
 | [`state_of_the_project.md`](state_of_the_project.md) | this document |
 
@@ -465,8 +466,8 @@ is recorded here.
 
 **Status:** closed as a research program; retained as an instrument.
 
-**Last verified:** `python -m pytest tests/ -q` → `1276 passed`; `lake build` → 12 modules
-compile, the 5 `sorry`-free modules remain `sorry`-free;
+**Last verified:** `python -m pytest tests/ -q` → `1329 passed`; `lake build` → 12 modules
+compile, the 6 `sorry`-free modules remain `sorry`-free;
 `python scripts/build_and_verify.py` → 25 PDF checks pass;
 `python scripts/generate_desymmetrisation_figures.py` reproduces the manuscript's figures.
 

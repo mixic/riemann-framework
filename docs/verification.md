@@ -138,6 +138,14 @@ AI can assist in verification in several ways:
 | Mathematical validity of new theories | Human review | Not automatable |
 | Proof search | TreeThink + LLM | Heuristic, no guarantee |
 
+The automated rows are now one command. `python/riemann_framework/claim_audit.py` asks them of
+a claimed proof as the formal level of a three-level audit, and it reports the circularity row
+as `undetermined` rather than guessing: a textual census can locate the definitions a circular
+argument would pass through, and it cannot show that the conclusion's proof term passes through
+them. The numerical and institutional levels sit beside it, each with the instrument and the
+source it rests on. What the agent is, what it refuses, and what the 2026 Alpöge claim came out
+as are in [`claim_verification_agent.md`](claim_verification_agent.md).
+
 ## 6. References
 
 - Clay Mathematics Institute. *Millennium Problems: Riemann Hypothesis*.

@@ -413,8 +413,8 @@ Masullo, \emph{The Music of the Primes} & 2026-11-20 19:13 & 940 pp. &
 Alp\"oge--Furman & 2026 & arXiv:2608.13637 &
   certificates in \texttt{proportion\_certificates.py} \\
 Lamzouri & 2026 & preprint & arXiv:2609.02882; the same module \\
-Framework: eleven work packages & 2026 & 12 Lean modules, 1276 tests &
-  \texttt{lean/}, \texttt{python/}, \texttt{ideas/} \\
+Framework: eleven work packages & 2026 & 12 Lean modules, 1329 tests &
+  \texttt{lean/}, \texttt{python/}, \texttt{ideas/}, \texttt{claims/} \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -709,7 +709,7 @@ All commands run from the repository root; the Python interpreter is the one the
 pins, and every number quoted above is produced by a committed test.
 
 \begin{verbatim}
-python -m pytest python/tests -q            # 1276 passed
+python -m pytest python/tests -q            # 1329 passed
 lake env lean lean/RiemannFramework/Dispute.lean
                                           # two 'sorry' warnings
 python scripts/run_dh_filter.py              # dead / eligible lists
@@ -914,6 +914,58 @@ Section~\ref{sec:protocol}).
 and is formalised; one measures a different quantity and is recorded as mis-specified; one is a
 consistency check; two cannot fail. The protocol applies to the tools as well as to the claims,
 which is the reason these negatives are printed rather than dropped.
+
+\section{An audit agent for claimed proofs}
+\label{app:agent}
+
+The protocol of Section~\ref{sec:protocol} is a procedure, so it can be executed: the
+repository carries an agent that takes a claimed proof as a record, runs the three levels, and
+emits a report whose every line names what it rests on. It implements this paper's method and
+extends nothing: no output of it changes a verdict above, and it has no verdict on $\RH$.
+
+\textbf{Three levels, kept apart.} A numerical check can refute a quantitative claim and can
+never confirm one, so a claim that asserts the existence of a proof enters no instrument in
+Table~\ref{tab:instruments}, and the agent reports \verdict{outside domain} from the inventory
+rather than from a sentence in a document. A formal check is decided by a kernel and answers a
+narrower question than it appears to. Institutional status is not a mathematical question at
+all. Merging the three is how a report comes to mean something it did not establish.
+
+\textbf{Five formal questions.} Does it compile; is it free of \texttt{sorry}; are its axioms
+among \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}; is the statement
+Mathlib's \texttt{RiemannHypothesis}; and are the definitions it routes through non-vacuous.
+The first four are decided mechanically, the fourth exactly when the target is a proposition
+(\texttt{example : target = RiemannHypothesis := rfl}) and by comparing printed types
+otherwise, which is weaker and is labelled as weaker. The fifth is \emph{not} decided, and the
+code has no branch returning a verdict for it: it can locate the shapes an objection names, a
+predicate defined as \texttt{fun \_ \_ \_ => True} or a value fixed by \texttt{rfl}, and
+locating is not a dependency trace. That gap is exactly the question left open in
+Section~\ref{sec:evaluations}.
+
+\textbf{The first case.} The agent's first record is the 2026 Alp\"oge claim, and its report
+holds two rows a reader will want to collapse: the published term is \verdict{validated
+(term)}, on the replay of the kernel evidence, and the definitional question is
+\verdict{undetermined}, because Nielsen's objection~\cite{nielsen} is consistent with every
+kernel fact and nothing here decides it. Both are reported, about the same artefact, because
+both are true. The record also carries a live negative control, this repository's
+\texttt{Dispute.lean}, in which the claimant's position is stated with \texttt{sorry} and the
+structural core of the objection is proved without one: asked the five questions, the agent
+finds the file compiles, contains exactly the two \texttt{sorry}s the record says it contains,
+carries \texttt{sorryAx} in its axiom list, is definitionally equal to
+\texttt{RiemannHypothesis} in its statement, and is undecided on non-vacuity. A checker that
+gets a known file wrong cannot be trusted on an unknown one.
+
+\textbf{Controls against overclaiming.} The verdict vocabulary is the six words of
+Definition~\ref{def:verdicts}, with no seventh meaning ``true'', and a test reads this paper's
+source to keep the two identical. Every report carries the sentence that $\RH$ is open; a
+report whose own prose asserts a proof raises rather than being written, while quoted material
+is exempt and rendered as a quotation; and an absent artefact is reported as \emph{not run}
+with the date of the record it replays, never as \verdict{undetermined}, because a status
+suggesting that something had been asked would be the same noise in a new place.
+
+\textbf{What it cannot do.} It does not read the proof, it cannot resolve non-vacuity, it
+cannot decide peer review, and it cannot turn a numerical check into evidence, which is why the
+zero check is in the panel with the sentence that says so beside it. It audits claims, tracks
+their status, and says what was checked and by what.
 
 \begin{thebibliography}{99}
 

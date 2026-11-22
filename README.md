@@ -90,6 +90,7 @@ right — that one is yours).
 | Cayley-Dickson / four-square study | Confirms Hurwitz's dimension limit (1,2,4,8); confirms a genuine Euler-product identity at dimension 4 (`ζ(s)ζ(s-1)`), which does not by itself constrain the zeros of `ζ` |
 | Idea-vetting pipeline | Working; five stages (A–E), enforced falsification criteria. **Scope limit:** every gate takes a map or an operator, so a proof-shaped claim has no valid input — see [`docs/claimed_proof_triage.md`](docs/claimed_proof_triage.md) |
 | Proportion certificates | **Checked, and not RH.** The elementary components of two recent "more than 2/3 of zeros are simple and on the critical line" results: a rank–trace inequality (0 violations in 20 000 cases), a multiset inequality (0 in 3 000), and the constant chain to 0.6725007037 / 0.8362503518. The analytic inputs are unreachable here, and one paper proves its method cannot reach RH |
+| Claimed-proof audit agent | **Working, and it adjudicates nothing.** Three levels, each with a named trust base: numerical falsification run by this repository's own modules (`dh_filter`, `zeros`, `proportion_certificates`); the five formal questions asked by compiling the artefact (compiles, `sorry`, axioms, statement identity, non-vacuity); and institutional status. First case, the 2026 Alpöge claim: the published term is `validated (term)` and the definitional question is `undetermined` **at the same time**, because both are true, and the non-vacuity check has no branch that returns a verdict. A live negative control on this repository's own `Dispute.lean` finds exactly its two documented `sorry`s and its `sorryAx`. See [`docs/claim_verification_agent.md`](docs/claim_verification_agent.md) |
 | OpenAI Math family 003 | External quasi-Riemann manuscripts and Lean artifacts catalogued for follow-up; not imported or independently verified. See [`docs/openai_math_quasi_riemann.md`](docs/openai_math_quasi_riemann.md) |
 | Davenport–Heilbronn filter | **Working.** Screens a candidate's declared inputs against a function whose RH-analogue is **false**, returning `dead` / `eligible` / `needs_sourcing`. The dead list has one entry, and it is this repository's flagship proposal. The inventory is the deliverable: 9 rows, each with its source, 3 verified by computation, 3 left `unsourced` rather than guessed — see [`docs/dh_filter.md`](docs/dh_filter.md) |
 | Zeta-containment screen | **Working.** Asks whether a proposed framework's zeta function has `ζ` as a factor: the Gaussian and Eisenstein Dedekind zetas are `strictly_harder` (a proof implies RH but proves more), a lone `L(s,χ₋₄)` is a `separate_target` needing a transfer step, and Davenport–Heilbronn / Epstein have no Euler product at all. Both declared products are **verified** against each field's own series over 2000 coefficients — see [`docs/zeta_factors.md`](docs/zeta_factors.md) |
@@ -100,7 +101,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1276 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1329 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1219,7 +1220,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1276 tests pass** on the current tree. They are not smoke tests: the suite
+**1329 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1279,6 +1280,8 @@ silently changed meaning.
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
 | `test_evaluation_paper.py` | 7 | The paper guards itself: 16 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
+| `test_claim_audit.py` | 39 | The audit agent: the six-verdict vocabulary checked against the paper, every probe naming and importing the module it claims, a document hash that fails on one changed byte, `not_run` kept distinct from `undetermined`, the fifth question having no passing branch, and a voice guard that raises on a proof claim |
+| `test_alpoge_claim.py` | 14 | One live audit of the 2026 Alpöge claim: the archive replayed and labelled as a replay, the live negative control finding its two `sorry`s and its `sorryAx`, the statement kernel-equal to `RiemannHypothesis` by `rfl`, the comparator rejecting a lookalike proposition, and the command writing both reports |
 | `test_idele_split_lean.py` | 4 | The split-prime module compiles sorry-free, its axioms are the standard three, the aggregate imports it, and the Lean certificate agrees with the exact Python check |
 | `test_four_squares.py` | 4 | Jacobi four-square checks |
 | `test_quantum_chaos.py` | 4 | Zero-spacing statistics |
@@ -1460,6 +1463,7 @@ riemann-framework/
 │   │   ├── operator_candidates.py # Prime-length graph, the twin, the screening table
 │   │   ├── prime_certificate.py   # Sieve invariants and the certified millionth prime
 │   │   ├── proportion_certificates.py # Certificates behind the two 2/3 proportion theorems
+│   │   ├── claim_audit.py        # Audit agent for claimed proofs of RH (three levels)
 │   │   ├── generate_plots.py      # Plot generation entry point
 │   │   ├── test_plot.py           # Plot demo entry point
 │   │   └── plots.py               # Plot generation
@@ -1493,6 +1497,8 @@ riemann-framework/
 │       ├── test_dh_filter.py         # DH calibration, inventory, verdict precedence
 │       ├── test_prime_certificate.py # Sieve invariants + certified millionth prime
 │       ├── test_proportion_certificates.py # Certificates behind the 2/3 theorems
+│       ├── test_claim_audit.py      # Agent vocabulary, instruments, refusals
+│       ├── test_alpoge_claim.py     # Live audit of the 2026 Alpöge claim
 │       ├── test_zeta_factors.py      # Number-field factorizations + containment
 │       ├── test_prime_races.py       # Prime race, Chebyshev's bias, 2946 regression
 │       ├── test_miller_rabin.py      # Liar bound, Carmichael numbers, GRH base count
@@ -1517,6 +1523,7 @@ riemann-framework/
 │   ├── run_bb84_implementation_demo.py # Source, detectors, PNS accounting
 │   ├── run_idea_pipeline.py       # Vet ideas/*.json through stages A–E
 │   ├── run_dh_filter.py           # Screen ideas against Davenport–Heilbronn
+│   ├── audit_claim.py             # Audit a claimed proof: report to out/claims/
 │   ├── run_zeta_factors.py        # Screen frameworks for containment of zeta
 │   ├── run_number_theory_claims_demo.py # Prime races, Miller-Rabin, 2D lattices
 │   ├── run_de_bruijn_newman_demo.py # H_t flow, zeros, and the three limits
@@ -1528,6 +1535,9 @@ riemann-framework/
 │   ├── verify_graded_algebra_port.py # Verify the even/odd port corrections
 │   ├── run_falsification.py       # Run DSH grid and write artifacts
 │   └── run_graded_prime_monoid_demo.py # Monoid identification, rivals, Euler check
+│
+├── claims/                        # Claimed-proof records audited by the agent
+│   └── alpoge_2026.json           # The 2026 Alpöge claim, with its replayed evidence
 │
 ├── ideas/                         # Candidate-idea records (JSON, stage E enforced)
 │   ├── dimension_shift_w.json
@@ -1563,7 +1573,8 @@ riemann-framework/
 │   ├── finite_field_curves.md        # RH over F_q: exact certificates, and no transfer
 │   ├── hilbert_polya.md              # The operator, four measured gaps, four corrections
 │   ├── operator_candidates.md        # The prime-length graph, the twin, five criteria
-│   └── verification.md           # How an RH proof is checked
+│   ├── verification.md           # How an RH proof is checked
+│   └── claim_verification_agent.md # The audit agent: three levels, five questions
 │
 ├── typings/                      # Custom type stubs
 │   └── mpmath/__init__.pyi       # mpmath signatures (fixes Pylance int-param inference)

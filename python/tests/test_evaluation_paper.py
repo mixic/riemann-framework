@@ -154,7 +154,12 @@ def test_the_falsification_criteria_are_printed(paper_text: str) -> None:
 
 
 def test_the_paper_names_the_repository_it_was_computed_from(paper_text: str) -> None:
-    """Reproducibility claim: the commands and the file names must appear."""
-    for token in ("pythonscripts/run_dh_filter.py", "1276tests", "references/",
-                  "ideas/"):
+    """Reproducibility claim: the commands and the file names must appear.
+
+    `claims/` is in the list because the appendix describing the audit agent names the
+    directory its records live in: a paper that described the procedure and not its input
+    would be describing a method with nothing to run on.
+    """
+    for token in ("pythonscripts/run_dh_filter.py", "1329tests", "references/",
+                  "ideas/", "claims/"):
         assert token.replace(" ", "") in paper_text.replace(" ", ""), token

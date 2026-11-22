@@ -1,0 +1,150 @@
+{
+  "id": "alpoge_2026",
+  "title": "The 2026 Alpöge claim of a proof of RH and GRH, and Nielsen's objection",
+  "claimant": "Levent Alpöge, with Claude; the formalisation released as a Lean 4 library",
+  "date": "2026-11-20",
+  "statement": "\"also formalized the arguments without assumptions\": a statement of belief that the author, working with Claude, discovered a proof of the Riemann hypothesis, that the method extends to the generalised Riemann hypothesis, and that the argument has been formalised in Lean 4 with no assumptions beyond Mathlib's.",
+  "statement_location": "references/alpoge_remark_2026-11-20.pdf, p. 1. The document is four pages and contains no mathematics: it states the belief, gives a timeline of the argument, and says why the medium was Lean rather than a paper (\"It being obviously inappropriate to attempt to post some massive unreadable travesty of 'slop', I decided to only present Lean.\").",
+  "declared_inputs": [],
+  "probes": [
+    "numerical_domain",
+    "dh_screen",
+    "zero_consistency"
+  ],
+  "document": {
+    "path": "references/alpoge_remark_2026-11-20.pdf",
+    "sha256": "3fc97784b71ddd44ff8aa0a177e99622a1c61b13cfa843a0989ee4a7a0cfeb8d",
+    "bytes": 245114,
+    "pages": 4,
+    "url": "https://alpo.ge/remark.pdf",
+    "retrieved": "2026-11-22"
+  },
+  "formal": [
+    {
+      "role": "the published archive (absent from this machine by default)",
+      "root": "external/alpoge-lean",
+      "module": "",
+      "statements": [
+        {
+          "name": "riemannHypothesis",
+          "expected": "RiemannHypothesis",
+          "mode": "check",
+          "defeq": false
+        }
+      ],
+      "axiom_targets": [
+        "riemannHypothesis"
+      ],
+      "imports": [],
+      "recorded_on": "2026-11-22",
+      "recorded": {
+        "compiles": true,
+        "compiles_evidence": "commit 2dea990, `lean-toolchain` leanprover/lean4:v4.33.1, Mathlib pinned at 0df444a3; 164,283 modules under `src/` (931.2 MB of git blobs); the 61.5 GB `lean4export` 3.1.0 export parses to 1,468,418 declarations and is accepted by an independent checker",
+        "sorry_free": true,
+        "sorry_evidence": "a git-wide text scan of 164,283 modules finds 5 `sorry`, all five in the Comparator-only `Comparator/Challenge.lean`, which holds the five challenge statements rather than any proof; 0 `axiom`, `constant` or `opaque` declarations; the exported term contains 0 `sorryAx`",
+        "axioms_justified": true,
+        "axioms_evidence": "the export declares exactly three axioms, `propext`, `Quot.sound` and `Classical.choice`, and no `sorryAx`; `con-leche --compare` reports all five challenge theorems justified by the solution",
+        "statement_matches": true,
+        "statement_evidence": "`con-leche --compare` matches each proved theorem against the challenge record; `Statements.lean` and `Challenge.lean` define the same statements at source level; the challenge statement is Mathlib's own `RiemannHypothesis` (`Mathlib/NumberTheory/LSeries/RiemannZeta.lean`: `def RiemannHypothesis : Prop := ∀ (s : ℂ) (_ : riemannZeta s = 0) (_ : ¬∃ n : ℕ, s = -2 * (n + 1)) (_ : s ≠ 1), s.re = 1 / 2`)",
+        "declarations_accepted": 1468418,
+        "verifier": "con-leche (branch `compare`, commit 274f0138, built with Lean 4.36.0), `--verified --jobs=12`: exit 0, 561.6 s wall, 34.4 GB peak RSS",
+        "negative_control": "the challenge file alone, `con-leche --verified --jobs=12 challenge.ndjson`: exit 2, \"use of the sorryAx axiom in value of riemannHypothesis\"",
+        "dependency_closure": "163,852 of 163,893 parsed modules reachable from the target, maximum depth 42"
+      },
+      "commands": [
+        "git clone https://github.com/Deicyde/riemann-hypothesis external/alpoge-lean  # 931 MB; needs core.longpaths",
+        "git -C external/alpoge-lean grep -n -E '\\bsorry\\b|\\bsorryAx\\b' -- src",
+        "python scripts/audit/scan_export_axioms.py solution.ndjson  # 3 axioms, 0 sorryAx",
+        "con-leche --compare --jobs=20 challenge.ndjson solution.ndjson  # exit 0",
+        "con-leche --verified --jobs=12 challenge.ndjson  # negative control: exit 2, sorryAx"
+      ],
+      "note": "A replay is not a substitute for the run: it records what a run on another machine established, with the commands that produced it. The record does not assert the archive's module path, because the audit did not need one; a live run therefore needs `--lean-root` and a module path in this entry before its output means anything."
+    },
+    {
+      "role": "this repository's recording of the dispute (live)",
+      "root": ".",
+      "module": "RiemannFramework.Dispute",
+      "statements": [
+        {
+          "name": "RiemannFramework.RiemannHypothesisStatement",
+          "expected": "RiemannHypothesis",
+          "mode": "print",
+          "defeq": true
+        }
+      ],
+      "axiom_targets": [
+        "RiemannFramework.closed_of_vacuous",
+        "RiemannFramework.alpoge_position"
+      ],
+      "imports": [
+        "Mathlib"
+      ],
+      "recorded": {},
+      "recorded_on": "2026-11-22",
+      "commands": [
+        "lake build RiemannFramework.Dispute",
+        "python -m pytest python/tests/test_alpoge_claim.py -q"
+      ],
+      "note": "This is not a model of the published proof and it is not offered as one. It is the repository's own file: it states Alpöge's position with `sorry` and proves the structural core of Nielsen's objection without one. Running the five questions on it is a live negative control, and the `sorry` the agent finds is the one the record says is there."
+    }
+  ],
+  "institutional": [
+    {
+      "kind": "peer_review",
+      "value": "no journal article exists as of 2026-11-22; the primary document is a four-page personal remark that states no mathematics",
+      "source": "references/alpoge_remark_2026-11-20.pdf",
+      "date": "2026-11-20",
+      "note": "There is no prose argument to review, which is why the level-1 instruments have no declared inputs to classify."
+    },
+    {
+      "kind": "community_statement",
+      "value": "the Lean and Mathlib communities jointly stated \"We have full confidence that Alpöge's proof of the Riemann Hypothesis is correct\", and that all four Xena Project criteria are satisfied",
+      "source": "https://leanprover-community.github.io/blog/posts/riemann-hypothesis/",
+      "date": "2026-11-21",
+      "note": "A statement about a statement and a term, by parties who maintain the library the term is stated in."
+    },
+    {
+      "kind": "independent_replay",
+      "value": "Drew Sutherland's verification page publishes the checklist: kernel replay, axiom audit, export hashes, statement comparison",
+      "source": "https://math.mit.edu/~drew/grh/",
+      "date": "2026-11-21 12:55 UTC",
+      "note": "A checklist of checks that were run, not an independent formalisation of the argument."
+    },
+    {
+      "kind": "independent_replay",
+      "value": "reproduced here: `con-leche --verified` accepted 1,468,418 declarations with exit 0 in 561.6 s, and `--compare` justified all five challenge theorems; the challenge alone fails with `sorryAx` as a negative control",
+      "source": "scripts/audit/, docs/verification_report.md rows 1 and 4",
+      "date": "2026-11-22",
+      "note": "One independent checker, not three: nanoda and leanchecker were not run, and the report says so."
+    },
+    {
+      "kind": "objection_on_record",
+      "value": "Nielsen's 13-page objection, not peer-reviewed, states that the formalisation discharges its geometry obligations vacuously",
+      "source": "references/nielsen_invalidity_2026-11-20.pdf",
+      "date": "2026-11-21 16:50 (PDF build)",
+      "note": "Her Appendix A states that she does not show the term fails to typecheck, nor that `RiemannHypothesis` is underivable."
+    },
+    {
+      "kind": "clay_status",
+      "value": "the Riemann hypothesis remains one of the Clay Mathematics Institute's Millennium Prize Problems and the prize is unawarded",
+      "source": "https://www.claymath.org/millennium-problems/",
+      "date": "accessed 2026-11-22",
+      "note": "A preprint and a formalisation do not change this status; only the Institute's own process can, and it has not run."
+    }
+  ],
+  "objections": [
+    {
+      "source": "Nielsen, The Invalidity of Alpöge's Proposed Proof of the Riemann Hypothesis (2026-11-20), §8 and §9",
+      "summary": "the geometry predicate the formalisation routes through is constantly `True` (`anyGeometry := fun _ _ _ => True`), so the obligations it discharges carry no geometry and the conclusion establishes nothing",
+      "status": "undetermined",
+      "decisive_question": "does the compiled dependency chain of the final theorem pass through `anyGeometry`, `geoDegenerate`, `divXFl` or `x0`? A walk of the exported dependency graph answers it; reading 70 of 175,187 source files does not, and this repository does not hold the archive."
+    },
+    {
+      "source": "Chu, third-party audit of the code claims (2026-11-22)",
+      "summary": "agrees that `anyGeometry` is `fun _ _ _ => True`, that it reaches 24 files, and that `GeoCl.base` discharges every obligation with `trivial`; disputes Nielsen's reading of the `degenerate` names as the release's own, reporting every `degenerate` hit as the ordinary word `nondegenerate`",
+      "status": "undetermined",
+      "decisive_question": "a case-sensitive count of `geoDegenerate` over the archive. One of the two sides is wrong about a search that takes one command, and neither has published the count with the command that produced it."
+    }
+  ],
+  "notes": "The claim declares no inputs in the Davenport-Heilbronn filter's sense, and that is a fact about the release rather than about the argument: the published material is a Lean library, so there is no prose inventory of assumptions to classify. The filter therefore returns `needs_sourcing` (an undeclared candidate is unscreened, not dead) and the numerical instruments return `outside domain`. The non-vacuity question is the only one in this record that nothing in the repository can decide, and it is the one that matters."
+}
