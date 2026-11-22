@@ -287,7 +287,7 @@ this commit:
 | 2 | its axioms are the standard three | `checked_ok`, replayed: no `sorryAx`, 1,468,418 declarations accepted | not assessed |
 | 2 | the theorem is the Riemann hypothesis | `checked_ok`, replayed: `con-leche --compare` | validated (term) |
 | 2 | its definitions are non-vacuous | `undetermined` | undetermined |
-| 2 | the dependency trace reaches `anyGeometry` etc. | `not_run`: the archive is not here; the driver is printed | not assessed |
+| 2 | the dependency trace reaches `anyGeometry` etc. | `not_run`: the archive is not here; `scripts/audit/trace_archive.py` performs it when it is | not assessed |
 | 3 | peer review | `recorded`: no journal article exists; the primary document is four pages and states no mathematics | not assessed |
 | 3 | community statement | `recorded`, 2026-11-21 | not assessed |
 | 3 | independent replay | `recorded`: `con-leche` exit 0, negative control exit 2 with `sorryAx` | not assessed |

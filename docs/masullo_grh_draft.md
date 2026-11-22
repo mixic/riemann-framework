@@ -212,6 +212,27 @@ explicit formula qualifies, which is most arithmetic arguments — while the dea
 decisive. The filter's value is in what it *rejects*; a draft that is not on the dead list has
 cleared a low bar, not a high one.
 
+**The declaration checked against the draft's own text.** The filter reads declarations, so an
+input the argument uses but the declaration never mentions would be invisible to it. That gap is
+now scanned rather than assumed: `python scripts/audit/scan_declared_inputs.py` extracts the text
+of the archived PDF and matches the inventory's vocabulary against it. The result:
+
+| class | hypothesis | mentions |
+|:---|:---|---:|
+| declared | `euler_product` | 60 |
+| declared | `explicit_formula_prime_side` | 71 |
+| declared | `functional_equation` | 78 |
+| excluded, with a reason | `li_positivity` (the positivity criterion) | 5 |
+| excluded, with a reason | `gue_pair_correlation` (pair correlation) | 1 |
+
+215 mentions, none **unreconciled**: every hypothesis the draft names is either declared or
+excluded in writing. Four inventory rows are never named — `hadamard_product`,
+`real_coefficients`, `zero_symmetry` and `riemann_von_mangoldt_count` — and the draft's three
+references to Hadamard are to Hadamard's Lemma and to Hadamard–de la Vallée Poussin, not to the
+factorisation row. The check is lexicographic and the limits are stated in the module: a mention is
+not a use, and a paraphrase that avoids the inventory's vocabulary is not seen. It converts a
+silent omission into a reconciliation that has to be written down.
+
 ## 7. What this repository can and cannot do with it
 
 - **The vetting pipeline cannot take it.** Every gate needs a map or an operator; a proof-shaped

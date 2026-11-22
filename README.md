@@ -101,7 +101,7 @@ right — that one is yours).
 | mpmath stub guards | **Guarded.** `typings/mpmath/__init__.pyi` is the *only* view any checker has of `mpmath` here — pyright resolves it to the stub and never to the package — so every omitted name becomes an editor error in whatever module uses it. Three gaps reached the editor before CI (`workdps`, `floor`, and an `int` parameter defaulting to `...`). Two AST checks now close that: every `mp.` name used anywhere in the tree is declared, and no concretely-typed parameter defaults to `...`. Both are **driven into failing** by their own tests, and the coverage guard was verified by deleting `floor` from the stub and confirming it names all three affected files |
 | Documentation-sync guards | **Guarded, where it is mechanical.** The recurring failure here is a document that was true when written and stopped being true quietly — stale test counts, an attack class listed as unimplemented after it shipped, pair correlation claimed while only gap statistics existed. `test_documentation_sync.py` compares the README against *live* artefacts: per-file test counts and the total against `pytest --collect-only`, every module / test file / doc against the README, every embedded figure and internal link against the filesystem, every `output/` figure also against git's index (a file can exist on the author's disk, be ignored, and never reach CI — which is how a green local suite and a red CI run coexisted), and every `output/` plot against being shown somewhere. Prose that contradicts the code cannot be caught this way, and the module says so rather than implying otherwise |
 | Formal proof of RH | Open problem |
-| Test suite | **1409 tests passing**; includes the negative results and a regression test for each corrected bug |
+| Test suite | **1424 tests passing**; includes the negative results and a regression test for each corrected bug |
 
 ## The idea-vetting pipeline
 
@@ -1082,6 +1082,18 @@ orm_unit_does_not_force_local_units), and certifies the arithmetic case in ℤ[i
   `python scripts/adjudicate.py --claim claims/alpoge_2026.json`. A panel is per artefact: the
   record's published archive and its live control are adjudicated separately, because pooling
   them made the control's deliberate `sorry` the claim's verdict.
+- **`python/riemann_framework/input_omission.py`** — the declaration scan. The DH and circularity
+  screens read declarations, so an input the argument uses but the declaration never mentions is
+  invisible to them; this module scans the primary document for the inventory's own vocabulary and
+  classifies every mention as declared, excluded with a reason, or **unreconciled**. It is run by
+  `scripts/audit/scan_declared_inputs.py`, and on the archived Masullo draft it reports 215
+  mentions across six hypotheses, none unreconciled, and four inventory rows the draft never
+  names. It is lexicographic: a mention is not a use, and a paraphrase escapes it.
+- **`scripts/audit/trace_archive.py`** — the archive trace driver. The published archive is not
+  held here, so the record reports `not run`; this script makes that a tested path rather than a
+  paragraph. It validates the archive (lakefile, toolchain, target module), copies the trace module
+  in, runs both extractors with the archive's own `lake`, and writes a record whose status is `ran`
+  or a reason. `--plan` is offline and is what the tests exercise.
 
 **The pipeline interface:**
 
@@ -1241,7 +1253,7 @@ From `python/`:
 python -m pytest tests/ -q
 ```
 
-**1409 tests pass** on the current tree. They are not smoke tests: the suite
+**1424 tests pass** on the current tree. They are not smoke tests: the suite
 contains the negative results themselves, a regression test for every bug that
 has been corrected here, and assertions that the Lean development has not
 silently changed meaning.
@@ -1298,10 +1310,12 @@ silently changed meaning.
 | `test_stage_screen.py` | 8 | The DH filter applied to this stage: five claims, one unsourced input, no `dead` and no `eligible`, no claim about the zeros, and the undeclared claim left unscreened |
 | `test_packaging.py` | 7 | The metadata parses, the version has one source and is read back by the backend, the licence matches `LICENSE`, every third-party import is declared, and matplotlib stays in the `plots` extra |
 | `test_declared_dependencies.py` | 6 | Every third-party import of the package, the tests, the examples and the scripts is in `python/requirements.txt`; the scanner driven into failing on the sympy import that made CI red; `zstandard` allowlisted with its reason and its absence run for real; and `requirements.txt` compared against `pyproject.toml` |
+| `test_input_omission.py` | 9 | The declaration scan: every inventory row has vocabulary, the declared and excluded ledgers are disjoint and reference the inventory, hyphenation and typographic apostrophes are folded, a mention outside both ledgers is unreconciled, a document that names nothing is `no_mentions` rather than clean, and the command line writes its record |
+| `test_archive_trace_driver.py` | 6 | The archive trace driver without a toolchain: a missing archive is `not run` with its path, a missing lakefile blocks, a toolchain mismatch is a recorded risk, the plan names the copy and both extractors without touching the archive, and a completed run writes a JSON-safe record |
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
-| `test_evaluation_paper.py` | 7 | The paper guards itself: 23 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
+| `test_evaluation_paper.py` | 7 | The paper guards itself: 24 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
 | `test_claim_audit.py` | 59 | The audit agent: the six-verdict vocabulary checked against the paper, every probe naming and importing the module it claims, a document hash that fails on one changed byte, `not_run` kept distinct from `undetermined`, the fifth question having no passing branch, and a voice guard that raises on a proof claim |
 | `test_alpoge_claim.py` | 21 | One live audit of the 2026 Alpöge claim: the archive replayed and labelled as a replay, the live negative control finding its two `sorry`s and its `sorryAx`, the statement kernel-equal to `RiemannHypothesis` by `rfl`, the comparator rejecting a lookalike proposition, and the command writing both reports |
 | `test_adjudicator.py` | 46 | The five probes and the aggregation, driven through every branch without a toolchain: the falsification condition (no trace, no term verdict; a surviving vacuity mutant withholds it), `rejected` reserved for screens and not for a file that fails to compile, an absent mutant reported `not run` and never `killed`, a census that could not scan reported `not run`, the dual-extractor agreement and disagreement records, the four-colour graph, and all four deliverables |
@@ -1536,6 +1550,8 @@ riemann-framework/
 │       ├── test_mpmath_stub.py       # Stub coverage + well-formedness guards
 │       ├── test_documentation_sync.py # README counts, paths, figures, links
 │       ├── test_declared_dependencies.py # Imports against the declared dependency set
+│       ├── test_input_omission.py    # Mentions against the declared inputs
+│       ├── test_archive_trace_driver.py # The archive trace driver, without a toolchain
 │       ├── test_dsin.py              # DSIN simulation tests
 │       ├── test_bb84_implementation.py # Source, detectors, PNS
 │       └── test_bb84.py              # Baseline + backend equivalence
