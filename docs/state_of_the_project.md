@@ -350,7 +350,7 @@ grand conjecture. It is what makes the next attempt harder to fool.
   `DependencyTrace.lean`, the audit metaprogram, which contains no proofs to be
   `sorry`-free about | `DimensionShift`, `InvolutionEigenspace`, `ZetaBridge`, `DynamicalDesymmetrisation`, `Boundary`, `IdeleSplit` |
 | tests passing | 1439 | `python/tests/` |
-| documents | 49 | `docs/` |
+| documents | 48 | `docs/` |
 | negative results on record | 20 sections | [`lessons_learned.md`](lessons_learned.md) |
 | corrections with regression tests | 12 | §5 above |
 | manuscripts | 2 | [`desymmetrisation_paper.md`](desymmetrisation_paper.md), [`dh_filter_methods_note.md`](dh_filter_methods_note.md) |

@@ -131,13 +131,13 @@ def _computations(first, second, *, c2_note: str) -> tuple[Computation, ...]:
     ran2 = status2 in (Status.CHECKED_OK, Status.CHECKED_FAILED) and bool(d2.get("names"))
     if ran1:
         c1 = Computation("C1", "#deps (Expr.getUsedConstants)", "checked_ok",
-                         f"closure of {len(d1['names'])} names", {"names": d1["names"]})
+                         f"closure of {len(d1['names'])} names", {"names": d1["names"], "output": d1.get("output", "")})
     else:
         c1 = _not_run("C1", "#deps (Expr.getUsedConstants)", _first_error(d1),
                       "build the archive on a filesystem without the Windows 260-character path limit, then re-run")
     c2 = (
         Computation("C2", "#depsm (structural recursion)", "checked_ok",
-                    f"closure of {len(d2['names'])} names", {"names": d2["names"]}, substitute=c2_note)
+                    f"closure of {len(d2['names'])} names", {"names": d2["names"], "output": d2.get("output", "")}, substitute=c2_note)
         if ran2
         else _not_run("C2", "#depsm (structural recursion)", _first_error(d2),
                       "build the archive on a filesystem without the Windows 260-character path limit, then re-run",
@@ -295,6 +295,15 @@ def main() -> int:
         out_dir = args.out / args.claim
 
     hashes = write_artefacts(report, out_dir, first=first, second=second)
+
+    # A9: raw probe output, one file per computation, so a reader can audit the parse.
+    logs = out_dir / "probe_logs"
+    logs.mkdir(parents=True, exist_ok=True)
+    for item in report.computations:
+        text = str(item.payload.get("output") or "")
+        if not text:
+            text = f"status: {item.status}\ndetail: {item.detail}\n"
+        (logs / f"{item.name}.log").write_text(text, encoding="utf-8")
     print(f"claim: {report.claim}")
     print(f"target: {report.target} ({report.module or 'module not recorded'})")
     print(f"verdict: {report.verdict.value}")

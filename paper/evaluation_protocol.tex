@@ -80,7 +80,11 @@ Lamzouri, and the eleven work packages of the screening framework itself. Every 
 reported with the evidence on which it rests and with the single observation that would
 overturn it. The framework rejects one of its own proposals and returns ``outside the domain''
 for the two largest claims in the corpus; both outcomes follow from the protocol's definitions
-and are not treated as exceptions to them. The Riemann hypothesis remains open.
+and are not treated as exceptions to them. The decisive dependency trace of the Alp\"oge archive is
+attempted here and reported with the blocking condition and the named computation that would
+complete it, rather than with an estimate; the same section states the epistemic gap between kernel
+acceptance and mathematical validity, and what would refute the paper's claim about it. The Riemann
+hypothesis remains open.
 \end{abstract}
 
 \tableofcontents
@@ -397,6 +401,22 @@ refuted by any one of the following:
 \item a number in Section~\ref{sec:evaluations} that the committed tests do not reproduce.
 \end{enumerate}
 
+\textbf{Falsification of the central claim.} The paper's central claim is that kernel acceptance is
+necessary and not sufficient for mathematical validity, and that for a given archive the gap can be
+decided mechanically. It is refuted if any of the following holds:
+\begin{enumerate}
+\item the cross-validated closure of \texttt{RiemannHypothesis} contains no definition that is both
+  flagged by a vacuity probe and load-bearing under mutation;
+\item an independent replication using only the archived artefacts and the reproduction script
+  returns a different closure or a different load-bearing classification;
+\item a published, peer-reviewed mathematical argument establishes that the disputed definitions are
+  not vacuous in the sense this paper claims;
+\item the Lean community, Mathlib or the Clay Institute states that the certification of
+  21 November 2026 was intended to settle the mathematical validity of the archive and not only its
+  kernel acceptance.
+\end{enumerate}
+The first item is the one the archive run would decide, and it is open until that run completes.
+
 \section{The corpus}
 \label{sec:corpus}
 
@@ -515,14 +535,17 @@ travesty of `slop'\,'' \cite{alpoge}.
 that the hypothesis bundle is inhabited through vacuous witnesses: a geometry predicate defined as
 \texttt{fun \_ \_ \_ => True}; a degenerate model whose positivity fields are $\top$ and whose
 index types are empty; a map from lattices to sections that is the zero map; a lattice
-identification that holds by \texttt{rfl}; and a height equation that holds because the height was
-assigned to be its own formula. Her Section~8 collects the findings; her Section~9 lists four
+identification that holds by \texttt{rfl}; a height equation that holds because the height was
+assigned to be its own formula; and a statement that fixes a line-bundle degree only because its
+hypothesis cannot be satisfied. Her Section~8 collects the findings; her Section~9 lists four
 checks that would settle the matter, the decisive one being a transitive dependency trace from the
 final theorem to the definitions that discharge the geometric obligations; and her Section~10
 states the limits of her own method: approximately 70 files read out of 175{,}187, no build, no
 axiom print, and no compiled trace. It is the corpus's only sustained source-code reading of the
 archive, and it is treated here as an independent, citeable position rather than as a footnote to
-the kernel verdict.
+the kernel verdict. Her statement of the objection's core, quoted verbatim from the archived PDF:
+``The kernel verifies a derivation relative to the definitions it is given. It does not verify that
+those definitions carry the intended mathematics. Here they do not.''
 
 The protocol's verdict on the objection is \verdict{undetermined}, with the decisive
 computation named: the dependency trace. Its verdict on the certification is
@@ -546,15 +569,27 @@ report carries the difference when one exists (\S\ref{sec:crossval}). Both trave
 same environment, so their agreement corroborates the extraction logic and not the environment:
 \texttt{laud graph}, named by the specification as the second extractor, is not installed here,
 and no run has been made against the published archive, so environment-level corroboration
-remains open and is stated as open in Appendix~\ref{app:executed}. On the
-published archive the trace has not been run here, and the report states this in the finding rather
-than in a footnote: the archive is 931~MB of git blobs and 61.5~GB of export, it pins Lean v4.33.1
-against this repository's v4.34.0-rc2, and it is not held on this machine. The implementation establishes
+remains open and is stated as open in Appendix~\ref{app:executed}. On the published archive the
+trace was attempted and did not complete, and the report states this in the finding rather than in
+a footnote. The archive was cloned at commit \texttt{1cc42d2} (23 November 2026, Lean v4.36.0,
+Mathlib \texttt{fc4f59e5}; the snapshot this paper records, \texttt{2dea990} with Lean v4.33.1, is
+no longer reachable as a shallow ref), its Mathlib cache was fetched, and the archive's own CI
+cache restored 148{,}873 of 149{,}397 oleans. The remaining modules could not be built: Lean writes
+auxiliary files such as \texttt{Module.olean.private.hash} beside each olean, and the longest
+module's build path exceeds the 260-character limit that the Windows file API enforces for this
+toolchain. The failure reproduces on a named file, is independent of this repository, and does not
+occur on a filesystem without the limit. C1--C4 are therefore \emph{not run} for
+\texttt{Main.riemannHypothesis}, the panel verdict is \verdict{undetermined}, and the named
+computation is to complete the gap-closing computation: build and trace the archive on Linux, WSL
+or macOS and report the closure exactly as it returns. On the control, C1 and C2 both return a
+closure of four names and agree exactly (\S\ref{sec:crossval}); C4 is not run there because no
+vacuous-analogue mutant is declared, and the content-flip calibration of the same declaration is
+recorded with it. The implementation establishes
 that the computation is executable, that its discriminating power is demonstrated on controls, and
 that \texttt{scripts/audit/trace\_archive.py} performs it on any checked-out archive: the driver
 validates the archive (lakefile, toolchain, target module), copies the trace module, runs both
 extractors with the archive's own \texttt{lake}, and writes the record. Its plan, its precondition
-failures and its record format are covered by tests, so the archive itself is the only input it
+failures and its record format are covered by tests, so the archive toolchain is the only input it
 lacks here. The panel verdict for the
 claim is \verdict{undetermined}: the term is \verdict{validated (term)}, and the panel does not
 promote a term verdict to a claim verdict.
@@ -856,6 +891,14 @@ classification of each definition the objection names as load-bearing or not. Ne
 is performed in this paper; both are named, instrumented and calibrated, and the artefacts they
 would produce are stated with them.
 
+The claim is general, and the archive is its first worked example. The same structure, a clean
+kernel with contested definitions, can be expected in other Lean 4 claims of Millennium Problem
+solutions, in Navier--Stokes, in $\mathrm{P}$ versus $\mathrm{NP}$, and in the Hodge conjecture;
+what the instrument adds is that the contest becomes mechanical rather than rhetorical. For the
+community the corresponding recommendation is a dependency manifest: a public, machine-readable
+statement of which definitions a claimed solution's final theorem reaches and which of them are
+load-bearing, submitted with the archive rather than reconstructed after the dispute.
+
 The Riemann hypothesis remains open. Nothing in this paper is evidence for or against it,
 and no verdict in Table~\ref{tab:results} would change if the hypothesis were settled, except the
 \verdict{undetermined} entry, which would cease to be of interest.
@@ -1150,7 +1193,10 @@ implementation details are not visible in the statement of the rule. \verdict{re
 only by the two logical screens: a file that fails to compile, or that carries \texttt{sorryAx}, is
 \verdict{undetermined}, because \verdict{rejected} is reserved for a screen that reads an argument.
 And the kernel-and-trace condition is enforced at aggregation rather than inside the kernel probe,
-so a report shows the statement verdict and the panel verdict side by side.
+so a report shows the statement verdict and the panel verdict side by side. The operator vocabulary
+follows the specification where the operators are implemented: \texttt{VACUOUS\_TRUTH} and
+\texttt{UNUSED\_HYP} are the blocking classes, \texttt{CONTENT\_FLIP} is used for calibration, and
+\texttt{BOUNDARY\_SHIFT} is named but not implemented, so no verdict depends on it.
 
 \begin{table}[htbp]
 \centering

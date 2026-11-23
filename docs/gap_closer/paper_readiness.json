@@ -1,0 +1,93 @@
+{
+  "artefact_dir": "C:\\Users\\Milan\\Projects\\riemann-framework\\output\\rh_paper_finalizer",
+  "checks": [
+    {
+      "id": "A2 closure_deps.txt",
+      "ok": false,
+      "detail": "0 names"
+    },
+    {
+      "id": "A3 closure_laud.txt",
+      "ok": false,
+      "detail": "0 names"
+    },
+    {
+      "id": "A4 closure_crossvalidated.json",
+      "ok": false,
+      "detail": "status 'not_run', common 0 names"
+    },
+    {
+      "id": "A5 load_bearing.json",
+      "ok": false,
+      "detail": "0 classified declaration(s)"
+    },
+    {
+      "id": "A6 dependency_graph.html",
+      "ok": true,
+      "detail": "five-colour legend present"
+    },
+    {
+      "id": "A7 gap_statement.md",
+      "ok": true,
+      "detail": "has Section 4 with the named computations"
+    },
+    {
+      "id": "A8 reproduction.sh",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "id": "A9 probe_logs/",
+      "ok": true,
+      "detail": "10 log file(s)"
+    },
+    {
+      "id": "A10 MANIFEST.sha256",
+      "ok": true,
+      "detail": "verifies"
+    },
+    {
+      "id": "A1 final paper",
+      "ok": true,
+      "detail": "paper/evaluation_protocol.pdf present"
+    },
+    {
+      "id": "R1 executed closure",
+      "ok": false,
+      "detail": "closure not executed on the archive"
+    },
+    {
+      "id": "R2 per-declaration classification",
+      "ok": false,
+      "detail": "0 declaration(s) classified"
+    },
+    {
+      "id": "R3 verdict populated",
+      "ok": true,
+      "detail": "verdict 'undetermined'"
+    },
+    {
+      "id": "R4 falsification stated",
+      "ok": true,
+      "detail": "gap statement names the computations that move the verdict"
+    },
+    {
+      "id": "R5 no proof claim",
+      "ok": true,
+      "detail": "none"
+    }
+  ],
+  "blocking": [
+    "A2 closure_deps.txt",
+    "A3 closure_laud.txt",
+    "A4 closure_crossvalidated.json",
+    "A5 load_bearing.json",
+    "R1 executed closure",
+    "R2 per-declaration classification"
+  ],
+  "verdict": "undetermined",
+  "named_computations": [
+    "complete RH-GAP-CLOSER first"
+  ],
+  "specification": "RH-PAPER-FINALIZER"
+}

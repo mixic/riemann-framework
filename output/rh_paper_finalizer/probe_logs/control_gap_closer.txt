@@ -23,7 +23,7 @@ named computations:
 written: C:\Users\Milan\Projects\riemann-framework\out\gap_closer\alpoge_2026-control
   closure_deps.txt 3b863634bdaa7a4c
   closure_laud.txt 4907d81dfc9ad660
-  closure_crossvalidated.json 8c9627597dccd970
+  closure_crossvalidated.json 024bb77159f9a720
   load_bearing.json 1c028d48dd84916f
   dependency_graph.html 054e7e6ec5dc0c68
   gap_statement.md aafcef89f5c1804b

@@ -1094,7 +1094,17 @@ orm_unit_does_not_force_local_units), and certifies the arithmetic case in ℤ[i
   actually execute. The archive run is reported `not run`, with the clone command as its named
   computation, until the archive is on the machine. The German peer review that requested the
   archive computation, translated in full with a response matrix, is
-  [`docs/peer_review_gap_closure.md`](docs/peer_review_gap_closure.md).
+  [`docs/peer_review_gap_closure.md`](docs/peer_review_gap_closure.md). Each archived report also
+  carries `reproduction.sh` (pinned archive commit, clean `bash -n`), `probe_logs/` with one raw
+  log per computation, and a `MANIFEST.sha256` verified by
+  `scripts/audit/verify_manifest.py`; `scripts/audit/paper_readiness.py` checks the finalizer's
+  preconditions mechanically and, while the archive closure is unexecuted, emits `undetermined`
+  with the named computation "complete RH-GAP-CLOSER first". The finalizer's separate paper has
+  been merged into this evaluation paper, so the repository holds one paper: §5.1 reports the
+  archive attempt and Nielsen's findings, §3.4 states the falsification of the central claim, and
+  §8 states the general claim and the community recommendation. The artefact suite remains under
+  `output/rh_paper_finalizer/` with a verifying `MANIFEST.sha256`, and
+  `scripts/audit/paper_readiness.py` checks the suite against the single paper mechanically.
 - **`python/riemann_framework/input_omission.py`** — the declaration scan. The DH and circularity
   screens read declarations, so an input the argument uses but the declaration never mentions is
   invisible to them; this module scans the primary document for the inventory's own vocabulary and
@@ -1189,7 +1199,7 @@ changes the standing position that RH is open ([`docs/claimed_proof_triage.md`](
 and no file here is an input to any computation in this repository.
 
 The protocol that compares them, with its evidence classes and its verdict table, is the paper
-[*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 25 pp.).
+[*A Screening Protocol for Claimed Proofs of the Riemann Hypothesis*](paper/evaluation_protocol.pdf) (`paper/evaluation_protocol.tex`, 26 pp.).
 
 **The audit that runs the instruments themselves** is [`docs/verification_report.md`](docs/verification_report.md):
 it rebuilds the Alpöge verdict from the published export rather than from prose — three axioms and
@@ -1329,7 +1339,7 @@ silently changed meaning.
 | `test_boundary_lean.py` | 3 | The Lean boundary module compiles sorry-free and axiom-free, the aggregate module imports it, and the false equal-dimension claim stays gone from `future_work.md` and the eigenspace docstring |
 | `test_reference_archive.py` | 9 | The three archived PDFs hash to the values their index records, every file in `references/` is indexed, every record is cited by a document that names it, and each of the three records points back at the archive |
 | `test_trace_formula_screen.py` | 8 | The draft's declared inputs screen `eligible`, the failing inputs are named, the filter still fires on a purely analytic input set, an invented input cannot be talked into a pass, and the JSON record matches the module |
-| `test_evaluation_paper.py` | 7 | The paper guards itself: 25 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
+| `test_evaluation_paper.py` | 7 | The paper guards itself: 26 pages of text layer, the sentence that keeps RH open, no proof claim, the six verdict words, and its printed hashes checked against `references/` |
 | `test_claim_audit.py` | 59 | The audit agent: the six-verdict vocabulary checked against the paper, every probe naming and importing the module it claims, a document hash that fails on one changed byte, `not_run` kept distinct from `undetermined`, the fifth question having no passing branch, and a voice guard that raises on a proof claim |
 | `test_alpoge_claim.py` | 21 | One live audit of the 2026 Alpöge claim: the archive replayed and labelled as a replay, the live negative control finding its two `sorry`s and its `sorryAx`, the statement kernel-equal to `RiemannHypothesis` by `rfl`, the comparator rejecting a lookalike proposition, and the command writing both reports |
 | `test_adjudicator.py` | 46 | The five probes and the aggregation, driven through every branch without a toolchain: the falsification condition (no trace, no term verdict; a surviving vacuity mutant withholds it), `rejected` reserved for screens and not for a file that fails to compile, an absent mutant reported `not run` and never `killed`, a census that could not scan reported `not run`, the dual-extractor agreement and disagreement records, the four-colour graph, and all four deliverables |

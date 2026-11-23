@@ -330,6 +330,57 @@ repository substitutes an estimate for them.
 
 ---
 
+## 8. Submission readiness (RH-PAPER-FINALIZER)
+
+The finalizer specification makes the paper conditional on an executed, cross-validated closure
+and a load-bearing classification for every flagged declaration. Its own rule for an incomplete
+precondition is explicit: emit `undetermined` with the named computation "complete RH-GAP-CLOSER
+first", and do not assert in the paper what no artefact supports.
+
+The finalizer's separate paper was merged into the evaluation paper, so the repository holds one
+paper. Its content now sits in the paper's §5.1 (the archive attempt and Nielsen's findings), §3.4
+(the falsification of the central claim), and §8 (the general claim and the community
+recommendation). The artefact suite remains under `output/rh_paper_finalizer/` and carries A2–A10.
+`scripts/audit/paper_readiness.py` checks that suite against the specification; its result is
+committed as `docs/gap_closer/paper_readiness.json`:
+
+| check | result |
+|:---|:---|
+| A1 `paper.pdf` | pass: `paper/evaluation_protocol.pdf`, 26 pages |
+| A2 `closure_deps.txt` | fail: 0 names |
+| A3 `closure_laud.txt` | fail: 0 names |
+| A4 `closure_crossvalidated.json` | fail: status `not_run`, common closure empty |
+| A5 `load_bearing.json` | fail: 0 classified declarations |
+| A6 `dependency_graph.html` | pass: five-colour legend present |
+| A7 `gap_statement.md` | pass: Section 4 names the computations |
+| A8 `reproduction.sh` | pass: present, pinned commit, `bash -n` clean |
+| A9 `probe_logs/` | pass: 10 files (control artefacts, archive log, pytest log) |
+| A10 `MANIFEST.sha256` | pass: 17 files verify |
+| R1 executed closure | fail: the archive closure did not run |
+| R2 per-declaration classification | fail: nothing to classify |
+| R3 verdict populated | pass: `undetermined` |
+| R4 falsification stated | pass: Section 4 lists the moving computations |
+| R5 no proof claim | pass: none in the paper or the gap statement |
+
+**Verdict: `undetermined`. Named computation: complete RH-GAP-CLOSER first.**
+
+This is the specification's own fallback, and it is also the merged paper's verdict for the
+archive: §5.1 reports the attempt, the platform failure and the named computation, and §8 of the
+paper states the general claim without promoting a term verdict. The paper is written and
+reproducible; what it cannot do is report a closure that no run produced.
+
+One correction belongs to this revision. The finalizer's draft quoted Nielsen as writing "the
+kernel verifies a derivation relative to the given definitions ... carry the mathematics their
+names claim". The archived PDF reads: "The kernel verifies a derivation relative to the definitions
+it is given. It does not verify that those definitions carry the intended mathematics. Here they
+do not." The merged paper quotes the verbatim sentence and keeps its own gloss outside the
+quotation marks. A direct quotation that alters words is a defect of the same kind the paper is
+about, and the archived PDF makes the check mechanical.
+
+When the closure is executed on a filesystem without the Windows path limit, the same command
+regenerates A2–A5 and A9, the manifest is regenerated, and the readiness check moves from
+`undetermined` to the verdict the pipeline returns.
+
 ## Appendix A. The German original
 
 The text below is reproduced as received. Section references inside it (C1–C5, Schritte 1–5) are
