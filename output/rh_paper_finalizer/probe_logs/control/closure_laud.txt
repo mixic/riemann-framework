@@ -1,0 +1,6 @@
+# C2 closure for geometry_is_vacuous (#depsm (structural recursion), checked_ok)
+# 4 names
+Nat
+RiemannFramework.geometry_is_vacuous
+RiemannFramework.vacuousGeometry
+True

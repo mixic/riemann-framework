@@ -1,0 +1,32 @@
+$ python scripts/audit/rh_gap_closer.py --local-control --claim alpoge_2026
+
+exit_code: 0
+
+[stdout]
+claim: alpoge_2026
+target: geometry_is_vacuous (RiemannFramework.Dispute)
+verdict: undetermined
+  C1 checked_ok: closure of 4 names
+  C2 checked_ok: closure of 4 names
+  C3 checked_ok: the two closures agree
+  C4 not_run: the declared mutants for this theorem are content flips, not vacuous analogues; the flip is recorded as engine calibration (flip-vacuous-geometry-for-theorem-that-states-it: killed)
+  audit ok   no validated term over a vacuity witness: 1 vacuity-critical declaration(s)
+  audit ok   four computations executed before a term verdict: C1=checked_ok, C2=checked_ok, C3=checked_ok, C4=not_run
+  audit ok   closure discrepancy not silently resolved: C3 compared
+  audit ok   #print axioms is not used as the tracer: getUsedConstants
+  audit ok   red nodes are in the closure: 1 red
+  audit ok   yellow nodes are outside the closure: 0 yellow
+  audit ok   gap statement asserts no proof: none
+named computations:
+  - discharge the vacuity witness vacuousGeometry: replace it with a definition whose content the proof uses, or record it as load-bearing and reopen the objection
+  - run C4 (declare a vacuous-analogue mutant for each flagged declaration and re-run)
+written: C:\Users\Milan\Projects\riemann-framework\out\gap_closer\alpoge_2026-control
+  closure_deps.txt 3b863634bdaa7a4c
+  closure_laud.txt 4907d81dfc9ad660
+  closure_crossvalidated.json 8c9627597dccd970
+  load_bearing.json 1c028d48dd84916f
+  dependency_graph.html 054e7e6ec5dc0c68
+  gap_statement.md aafcef89f5c1804b
+No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry.
+
+[stderr]

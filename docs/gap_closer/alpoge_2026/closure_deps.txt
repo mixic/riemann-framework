@@ -1,2 +1,2 @@
-# C1 closure for Main.riemannHypothesis (#deps (Expr.getUsedConstants), not_run)
+# C1 closure for riemannHypothesis (#deps (Expr.getUsedConstants), not_run)
 # 0 names

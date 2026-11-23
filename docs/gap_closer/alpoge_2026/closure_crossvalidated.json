@@ -1,23 +1,23 @@
 {
   "claim": "alpoge_2026",
-  "target": "Main.riemannHypothesis",
-  "module": "Main",
+  "target": "riemannHypothesis",
+  "module": "",
   "c1": {
     "name": "C1",
     "instrument": "#deps (Expr.getUsedConstants)",
     "status": "not_run",
-    "detail": "C:\\alpoge-archive\\src\\TraceProbe.lean:1:0: error: object file 'C:\\alpoge-archive\\.lake\\build\\lib\\lean\\Formalism\\LocalToGlobal\\SiegelLatticeTheory\\CasimirReductionTheory\\OneParameterDerivatives\\TauReduction\\BlockGramReduction\\LatticeFinitelyGeneratedOfCommensurable.olean' of modul",
+    "detail": "archive precondition failed (archive directory: missing, lakefile: missing, lean-toolchain: missing)",
     "substitute": null,
-    "named_computation": "build the archive on a filesystem without the Windows 260-character path limit, then re-run",
+    "named_computation": "clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean",
     "payload": {}
   },
   "c2": {
     "name": "C2",
     "instrument": "#depsm (structural recursion)",
     "status": "not_run",
-    "detail": "C:\\alpoge-archive\\src\\TraceProbe.lean:1:0: error: object file 'C:\\alpoge-archive\\.lake\\build\\lib\\lean\\Formalism\\LocalToGlobal\\SiegelLatticeTheory\\CasimirReductionTheory\\OneParameterDerivatives\\TauReduction\\BlockGramReduction\\LatticeFinitelyGeneratedOfCommensurable.olean' of modul",
+    "detail": "archive precondition failed (archive directory: missing, lakefile: missing, lean-toolchain: missing)",
     "substitute": "laud graph is not available; #depsm is the substitute",
-    "named_computation": "build the archive on a filesystem without the Windows 260-character path limit, then re-run",
+    "named_computation": "clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean",
     "payload": {}
   },
   "status": "not_run",
@@ -26,10 +26,10 @@
   "common": null,
   "verdict": "undetermined",
   "named_computations": [
-    "run C1 (build the archive on a filesystem without the Windows 260-character path limit, then re-run)",
-    "run C2 (build the archive on a filesystem without the Windows 260-character path limit, then re-run)",
+    "run C1 (clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean)",
+    "run C2 (clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib 0df444a3, then re-run this script with --archive external/alpoge-lean)",
     "run C3 (run C1 and C2)",
-    "run C4 (for every flagged declaration in the closure, replace its body with a vacuous analogue in a copy of the archive, recompile the target, and record the outcome)"
+    "run C4 (run C1--C3, then declare a vacuous analogue from the archive's own source)"
   ],
   "standing": "No verdict here means that the Riemann hypothesis is true. The strongest positive verdict is validated (term), which concerns a term and the definitions it invokes, not the mathematics those definitions are meant to carry."
 }
