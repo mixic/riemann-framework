@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -29,7 +30,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "python"))
 
 from riemann_framework.adjudicator import load_mutants, run_mutant  # noqa: E402
-from riemann_framework.claim_audit import Status, TraceRequest, Verdict, dependency_trace  # noqa: E402
+from riemann_framework.claim_audit import (  # noqa: E402
+    Status,
+    TraceRequest,
+    Verdict,
+    dependency_trace,
+    parse_deps,
+)
 from riemann_framework.gap_closer import (  # noqa: E402
     Computation,
     STANDING,
@@ -40,12 +47,53 @@ from riemann_framework.gap_closer import (  # noqa: E402
 
 CLAIMS = REPO_ROOT / "claims" / "alpoge_2026.json"
 TRACE_MODULE = "RiemannFramework.DependencyTrace"
+TRACE_SOURCE = REPO_ROOT / "lean" / "RiemannFramework" / "DependencyTrace.lean"
 LIVE_ROLE = "this repository's recording of the dispute (live)"
 ARCHIVE_TOOL = (
     "clone https://github.com/Deicyde/riemann-hypothesis into external/alpoge-lean (931 MB; "
     "needs core.longpaths), build it with its own lakefile under Lean v4.33.1 and Mathlib "
     "0df444a3, then re-run this script with --archive external/alpoge-lean"
 )
+
+
+def _trace_body() -> str:
+    """The trace definitions with their imports removed, for inlining into a probe.
+
+    The archive has no `Audit` library, so a copied module cannot be imported. The probe
+    file imports the target module first and carries the elaborators inline, which keeps the
+    trace self-contained and needs nothing added to the archive's lakefile.
+    """
+    lines = TRACE_SOURCE.read_text(encoding="utf-8").splitlines()
+    return "\n".join(
+        line for line in lines if not line.startswith(("import ", "public import "))
+    )
+
+
+def inline_trace(
+    project: Path, module: str, theorem: str, extractor: str, *, timeout: int
+) -> tuple[Status, dict]:
+    """Run `#deps` or `#depsm` with the trace inlined, and return its closure."""
+    probe = project / "src" / "TraceProbe.lean"
+    probe.write_text(
+        "import " + module + "\n\n" + _trace_body() + f"\n\n#{extractor} {theorem}\n",
+        encoding="utf-8",
+    )
+    run = subprocess.run(
+        ["lake", "env", "lean", str(probe.resolve())],
+        cwd=project,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
+    )
+    output = (run.stdout or "") + (run.stderr or "")
+    blocks = parse_deps(output)
+    names = blocks.get(theorem, set())
+    if len(blocks) == 1 and not names:
+        names = next(iter(blocks.values()))
+    status = Status.CHECKED_OK if run.returncode == 0 and names else Status.NOT_RUN
+    return status, {"names": names, "output": output, "returncode": run.returncode}
 
 
 def _not_run(name: str, instrument: str, reason: str, named: str, *, substitute: str | None = None) -> Computation:
@@ -66,6 +114,14 @@ def _trace_pair(project: Path, module: str, theorem: str, suspects: tuple[str, .
     return first, second
 
 
+def _first_error(details: dict) -> str:
+    """The first line of a failed Lean run that names an error, for the report."""
+    for line in str(details.get("output", "")).splitlines():
+        if "error" in line.lower():
+            return line.strip()[:280]
+    return "the trace did not run"
+
+
 def _computations(first, second, *, c2_note: str) -> tuple[Computation, ...]:
     status1, d1 = first
     status2, d2 = second
@@ -77,27 +133,35 @@ def _computations(first, second, *, c2_note: str) -> tuple[Computation, ...]:
         c1 = Computation("C1", "#deps (Expr.getUsedConstants)", "checked_ok",
                          f"closure of {len(d1['names'])} names", {"names": d1["names"]})
     else:
-        c1 = _not_run("C1", "#deps (Expr.getUsedConstants)", "the trace did not run",
-                      "inspect the Lean output and re-run")
+        c1 = _not_run("C1", "#deps (Expr.getUsedConstants)", _first_error(d1),
+                      "build the archive on a filesystem without the Windows 260-character path limit, then re-run")
     c2 = (
         Computation("C2", "#depsm (structural recursion)", "checked_ok",
                     f"closure of {len(d2['names'])} names", {"names": d2["names"]}, substitute=c2_note)
         if ran2
-        else _not_run("C2", "#depsm (structural recursion)", "the second extractor did not run",
-                      "inspect the Lean output and re-run", substitute=c2_note)
+        else _not_run("C2", "#depsm (structural recursion)", _first_error(d2),
+                      "build the archive on a filesystem without the Windows 260-character path limit, then re-run",
+                      substitute=c2_note)
     )
     n1 = set(d1.get("names", ())) if ran1 else set()
     n2 = set(d2.get("names", ())) if ran2 else set()
     only1 = sorted(n1 - n2)
     only2 = sorted(n2 - n1)
     agree = ran1 and ran2 and not only1 and not only2
-    c3 = Computation(
-        "C3", "closure comparison",
-        "checked_ok" if agree else "checked_failed",
-        "the two closures agree" if agree else f"{len(only1)} only in #deps, {len(only2)} only in #depsm",
-        {"only_in_deps": only1, "only_in_laud": only2, "agreement": agree},
-        named_computation=None if agree else "reconcile the closure mismatch between #deps and #depsm",
-    )
+    if not (ran1 and ran2):
+        c3 = Computation(
+            "C3", "closure comparison", "not_run", "no closure to compare",
+            {"only_in_deps": None, "only_in_laud": None, "agreement": False},
+            named_computation="run C1 and C2",
+        )
+    else:
+        c3 = Computation(
+            "C3", "closure comparison",
+            "checked_ok" if agree else "checked_failed",
+            "the two closures agree" if agree else f"{len(only1)} only in #deps, {len(only2)} only in #depsm",
+            {"only_in_deps": only1, "only_in_laud": only2, "agreement": agree},
+            named_computation=None if agree else "reconcile the closure mismatch between #deps and #depsm",
+        )
     return c1, c2, c3
 
 
@@ -133,10 +197,8 @@ def archive_mode(archive: Path, *, claim: str, theorem: str, module: str, timeou
             computations[1],
         )
 
-    target = archive / "Audit" / "DependencyTrace.lean"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(REPO_ROOT / "lean" / "RiemannFramework" / "DependencyTrace.lean", target)
-    first, second = _trace_pair(archive, module, theorem, (), timeout, "Audit.DependencyTrace")
+    first = inline_trace(archive, module, theorem, "deps", timeout=timeout)
+    second = inline_trace(archive, module, theorem, "depsm", timeout=timeout)
     c1, c2, c3 = _computations(first, second, c2_note="laud graph is not available; #depsm is the substitute")
     c4 = _not_run(
         "C4", "vacuous-analogue mutation",

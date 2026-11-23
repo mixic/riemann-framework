@@ -502,7 +502,10 @@ case, so the general statement lies outside what was checked. This is a scope li
 page and not a defect identified in the archive.
 
 \textbf{What the instruments establish.} The statement is Mathlib's
-\texttt{RiemannHypothesis}; the term has that type; the axiom set is the standard one. In the
+\texttt{RiemannHypothesis}; the term has that type; the axiom set is the standard one. The joint
+statement of 21 November 2026 is a kernel-level certification: it records that the statement is
+correct, that the code compiles and that the axioms are clean. It is not a statement about the
+definitions the term invokes, and that distinction is the subject of this paper. In the
 vocabulary of Definition~\ref{def:verdicts} this is a \verdict{validated} verdict about a
 \emph{term}, and it cannot be reused as a verdict about the \emph{argument}, because no argument is
 written down. The author states the reason: a prose write-up would be a ``massive unreadable
@@ -517,7 +520,9 @@ assigned to be its own formula. Her Section~8 collects the findings; her Section
 checks that would settle the matter, the decisive one being a transitive dependency trace from the
 final theorem to the definitions that discharge the geometric obligations; and her Section~10
 states the limits of her own method: approximately 70 files read out of 175{,}187, no build, no
-axiom print, and no compiled trace.
+axiom print, and no compiled trace. It is the corpus's only sustained source-code reading of the
+archive, and it is treated here as an independent, citeable position rather than as a footnote to
+the kernel verdict.
 
 The protocol's verdict on the objection is \verdict{undetermined}, with the decisive
 computation named: the dependency trace. Its verdict on the certification is
@@ -839,6 +844,17 @@ computation, one eligible but unvalidated declaration, and four validated statem
 is a proof of the Riemann hypothesis. The two largest claims in the corpus are the two that cannot
 be evaluated: one has no prose argument and the other has no statement. The result is unfavourable
 to the corpus and is the one the evidence supports.
+
+\textbf{The epistemic gap.} Kernel acceptance is necessary for a mathematical proof and is not
+sufficient for one. What the kernel confirms is the existence of a term of type
+\texttt{RiemannHypothesis} under a stated axiom set; what a mathematical proof is ordinarily taken
+to establish is the proposition itself, by arguments whose definitions carry the mathematics their
+names claim. The verdicts of Section~\ref{sec:evaluations} are arranged along that gap, and the two
+computations that would narrow it for the archive are specified in
+Appendix~\ref{app:executed}: the cross-validated dependency closure, and the per-declaration
+classification of each definition the objection names as load-bearing or not. Neither computation
+is performed in this paper; both are named, instrumented and calibrated, and the artefacts they
+would produce are stated with them.
 
 The Riemann hypothesis remains open. Nothing in this paper is evidence for or against it,
 and no verdict in Table~\ref{tab:results} would change if the hypothesis were settled, except the
