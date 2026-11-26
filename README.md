@@ -366,6 +366,13 @@ imaginary-time claim, and the attribution — the 2017 PRL is Bender, Brody and
 **Müller**, not "Bender, Brody and Jones", and its claimed spectrum rests on
 boundary conditions that later work disputes.
 
+[`docs/hilbert_polya_programme.md`](docs/hilbert_polya_programme.md) turns that record into a
+research programme rather than a conclusion: the gates an operator must pass (specification,
+self-adjointness, spectral identity, arithmetic input, formalisation), the six kill criteria with
+their precedents in this repository, a status table of the candidate classes, and a first attack on
+the Weil functional with the Davenport–Heilbronn control built in. No candidate in it is claimed to
+pass; the table is the programme's first, negative result.
+
 ## Hidden symmetries bias every spacing test
 
 A statistic measured on a Hamiltonian that commutes with an involution is measured on
